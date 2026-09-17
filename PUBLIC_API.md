@@ -2,6 +2,39 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.2.0b2
+
+Adds the append-only audit bounded context from `pyiamkit.audit`:
+
+```text
+AuditCategory
+AuditEvent
+AuditEventId
+AuditOutcome
+AuditRepository
+AuditSink
+DomainEventAuditBridge
+```
+
+Adds authorization audit and explanation contracts from `pyiamkit.authorization`:
+
+```text
+AuthorizationDecisionAuditRecorder
+AuthorizationDecisionId
+DecisionExplanation
+ExplanationLevel
+```
+
+`AuthorizationEngine` accepts an optional `audit_sink` and adds:
+
+```text
+AuthorizationEngine.describe()
+```
+
+The existing `AuthorizationEngine.explain()` contract is preserved. `AuthorizationDecision.explanation()` projects either a safe summary or opt-in detailed internal path.
+
+Authorization audit records deliberately omit resource attribute payloads. A configured audit sink participates synchronously in decision finalization; write failures are not silently ignored.
+
 ## 0.2.0b1
 
 Adds restrictive authorization-governance contracts from `pyiamkit.authorization`:
@@ -26,11 +59,9 @@ StaticSoDEvaluator
 StaticSoDViolation
 ```
 
-`AuthorizationRequest` may now carry a tenant-bound `ResourceDescriptor`, and `AuthorizationDecision` may expose `matched_rule_id` for restrictive governance provenance.
+`AuthorizationRequest` may carry a tenant-bound `ResourceDescriptor`, and `AuthorizationDecision` may expose `matched_rule_id` for restrictive governance provenance.
 
-Governance rules in this milestone are deny-only: they are evaluated only after RBAC finds a candidate permission. They can reduce an authorization result to `DENY` but cannot create an `ALLOW`.
-
-Static SoD is also enforced before a conflicting RoleBinding is persisted. Effective inherited Roles participate in that check.
+Governance rules are deny-only: they can reduce a candidate RBAC authorization to `DENY` but cannot create an `ALLOW`.
 
 ## 0.2.0a2
 
