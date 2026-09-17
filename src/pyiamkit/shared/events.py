@@ -1,9 +1,9 @@
 """Base domain-event primitives."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from types import MappingProxyType
-from typing import Mapping
 from uuid import UUID, uuid4
 
 

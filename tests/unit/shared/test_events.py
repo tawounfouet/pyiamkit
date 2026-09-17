@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -9,7 +9,7 @@ def test_domain_event_is_timezone_aware_and_copies_metadata() -> None:
     metadata = {"source": "test"}
     event = DomainEvent(
         event_type="ExampleCreated",
-        occurred_at=datetime.now(timezone.utc),
+        occurred_at=datetime.now(UTC),
         metadata=metadata,
     )
     metadata["source"] = "changed"
@@ -19,7 +19,7 @@ def test_domain_event_is_timezone_aware_and_copies_metadata() -> None:
 
 def test_domain_event_rejects_empty_type() -> None:
     with pytest.raises(ValueError, match="event_type"):
-        DomainEvent(event_type=" ", occurred_at=datetime.now(timezone.utc))
+        DomainEvent(event_type=" ", occurred_at=datetime.now(UTC))
 
 
 def test_domain_event_rejects_naive_datetime() -> None:

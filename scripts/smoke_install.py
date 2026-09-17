@@ -2,7 +2,6 @@
 
 import pyiamkit
 
-
 if __name__ == "__main__":
     if not pyiamkit.__version__:
         raise SystemExit("PyIAMKit version is missing")
