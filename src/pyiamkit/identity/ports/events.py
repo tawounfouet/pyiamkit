@@ -1,10 +1,5 @@
-"""Identity event publication port."""
+"""Backward-compatible Identity event publication port."""
 
-from collections.abc import Sequence
-from typing import Protocol
+from pyiamkit.shared import DomainEventSink
 
-from pyiamkit.shared import DomainEvent
-
-
-class DomainEventSink(Protocol):
-    def publish(self, events: Sequence[DomainEvent]) -> None: ...
+__all__ = ["DomainEventSink"]
