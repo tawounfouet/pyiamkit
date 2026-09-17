@@ -40,4 +40,7 @@ jobs:
       - name: Smoke import
         run: python scripts/smoke_install.py
       - name: Run examples
-        run: python examples/01_version.py
+        run: |
+          for example in examples/*.py; do
+            python "$example"
+          done

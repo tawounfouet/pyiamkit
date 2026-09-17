@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Pre-Alpha (`0.0.1`) — not yet recommended for production use.
+> **Status:** Pre-Alpha (`0.1.0a1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -18,9 +18,9 @@ PyIAMKit is being designed around a small set of security principles:
 
 ## Current milestone
 
-The repository is currently at the **bootstrap** milestone. The immediate goal is to establish a clean Python package with strong typing, repeatable tests, CI, and a minimal shared kernel before implementing the `Identity` domain in `0.1.0a1`.
+`0.1.0a1` implements the first real bounded context: **Identity**. It provides User and ServiceAccount identities, an explicit security-sensitive lifecycle, external identity links, domain events and an in-memory repository.
 
-## Development setup
+## Quickstart
 
 Python 3.12+ is required.
 
@@ -33,25 +33,46 @@ python -m pip install build mypy pytest pytest-cov ruff
 make check
 ```
 
-If you use `uv`, the same project can be installed with:
+```python
+from pyiamkit.identity import IdentityApplicationService
+from pyiamkit.identity.adapters.memory import (
+    InMemoryDomainEventSink,
+    InMemoryIdentityRepository,
+)
+from pyiamkit.shared import SystemClock
 
-```bash
-uv sync --group dev
+service = IdentityApplicationService(
+    repository=InMemoryIdentityRepository(),
+    clock=SystemClock(),
+    event_sink=InMemoryDomainEventSink(),
+)
+
+alice = service.create_user(
+    display_name="Alice",
+    primary_email="alice@example.com",
+)
+alice = service.activate_identity(alice.id)
+
+print(alice.status.value)
 ```
 
-## Repository layout
+## Architecture
 
 ```text
-src/pyiamkit/   Python package
-tests/          Unit, integration, conformance and security tests
-docs/           Architecture and project documentation
-examples/       Executable examples
-scripts/        Release and smoke-test utilities
+Applications
+    ↓
+Application Services
+    ↓
+Domain Aggregates
+    ↓
+Ports
+    ↓
+Adapters
 ```
 
-## Roadmap
+The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
 
-The planned progression is:
+## Roadmap
 
 ```text
 0.0.1      Repository bootstrap
