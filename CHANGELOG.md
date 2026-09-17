@@ -6,6 +6,22 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.2.0b2] - 2026-09-17
+
+### Added
+
+- Dedicated append-only `pyiamkit.audit` bounded context.
+- Immutable `AuditEvent` records, audit categories/outcomes, `AuditSink` and queryable `AuditRepository` ports.
+- InMemory append-only audit repository reference adapter.
+- `DomainEventAuditBridge` for projecting domain events into the audit stream.
+- Stable `AuthorizationDecisionId` on every runtime authorization decision.
+- `AuthorizationDecisionAuditRecorder` for minimal decision audit projection.
+- Optional `audit_sink` integration in `AuthorizationEngine` covering both ALLOW and DENY decisions.
+- Audit minimization: authorization audit records include resource type/identifier but never copy resource attribute payloads.
+- Summary and detailed decision explanation projections through `ExplanationLevel` and `DecisionExplanation`.
+- `AuthorizationEngine.describe()` while preserving the existing `explain()` contract.
+- Audit and explainability unit tests.
+
 ## [0.2.0b1] - 2026-09-17
 
 ### Added

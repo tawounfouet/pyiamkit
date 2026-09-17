@@ -1,13 +1,17 @@
 """Public authorization API."""
 
 from .application import RoleCatalogApplicationService
+from .audit import AuthorizationDecisionAuditRecorder
 from .binding_application import RoleBindingApplicationService
 from .domain.binding_value_objects import GrantSource, RoleBindingId, RoleBindingStatus
 from .domain.decision import (
     AuthorizationDecision,
+    AuthorizationDecisionId,
     AuthorizationReason,
     AuthorizationRequest,
     AuthorizationResult,
+    DecisionExplanation,
+    ExplanationLevel,
 )
 from .domain.errors import (
     AuthorizationModelError,
@@ -70,6 +74,8 @@ __all__ = [
     "AccessGovernanceApplicationService",
     "AuthorizationConstraint",
     "AuthorizationDecision",
+    "AuthorizationDecisionAuditRecorder",
+    "AuthorizationDecisionId",
     "AuthorizationDenied",
     "AuthorizationEngine",
     "AuthorizationModelError",
@@ -78,8 +84,10 @@ __all__ = [
     "AuthorizationResult",
     "ConstraintEvaluator",
     "ConstraintRepository",
+    "DecisionExplanation",
     "DistinctActorSoDRule",
     "DynamicSoDEvaluator",
+    "ExplanationLevel",
     "GovernanceRuleId",
     "GovernanceViolation",
     "GovernanceViolationKind",
