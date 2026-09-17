@@ -2,14 +2,39 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
-## 0.0.1
+## 0.1.0a1
 
-The only root-level supported public symbol is:
+Root-level stable-for-this-alpha symbol:
 
 ```python
 pyiamkit.__version__
 ```
 
-Shared-kernel primitives remain importable from `pyiamkit.shared`, but they are **alpha contracts** and may evolve before `1.0.0`.
+Alpha Identity API from `pyiamkit.identity`:
 
-The public API will grow deliberately as domain contracts stabilize.
+```text
+Identity
+IdentityId
+IdentityType
+IdentityStatus
+User
+ServiceAccount
+EmailAddress
+IdentityApplicationService
+IdentityRepository
+IdentityError
+IdentityNotFound
+InvalidIdentityTransition
+InvalidDisplayName
+InvalidEmailAddress
+InvalidServiceAccount
+InvalidExternalIdentity
+ExternalIdentityAlreadyLinked
+ExternalIdentityLinkNotFound
+```
+
+These Identity contracts are intentionally public but remain pre-1.0 alpha APIs.
+
+## 0.0.1
+
+The initial root public API contained only `pyiamkit.__version__`.
