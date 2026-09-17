@@ -11,6 +11,7 @@ from .domain.decision import (
 )
 from .domain.errors import (
     AuthorizationModelError,
+    InvalidGovernanceRule,
     InvalidPermissionCode,
     InvalidRoleBinding,
     InvalidRoleBindingTransition,
@@ -31,16 +32,43 @@ from .domain.errors import (
     RoleNotAssignable,
     RoleNotFound,
     RoleTenantMismatch,
+    StaticSoDViolation,
+)
+from .domain.governance import (
+    AuthorizationConstraint,
+    DistinctActorSoDRule,
+    GovernanceRuleId,
+    GovernanceViolation,
+    GovernanceViolationKind,
+    MutuallyExclusiveRolesRule,
+    NumericMaximumConstraint,
+    ResourceAttributeEqualsConstraint,
+    ResourceDescriptor,
+    SeparationOfDutyRule,
 )
 from .domain.permission import Permission
 from .domain.role import Role
 from .domain.role_binding import RoleBinding
 from .domain.value_objects import PermissionCode, RoleId, RoleStatus, RoleType
 from .engine import AuthorizationDenied, AuthorizationEngine
+from .governance import (
+    AccessGovernanceApplicationService,
+    ConstraintEvaluator,
+    DynamicSoDEvaluator,
+    StaticSoDEvaluator,
+)
 from .hierarchy import RoleHierarchyApplicationService, RoleHierarchyResolver
-from .ports import PermissionCatalogRepository, RoleBindingRepository, RoleRepository
+from .ports import (
+    ConstraintRepository,
+    PermissionCatalogRepository,
+    RoleBindingRepository,
+    RoleRepository,
+    SoDRuleRepository,
+)
 
 __all__ = [
+    "AccessGovernanceApplicationService",
+    "AuthorizationConstraint",
     "AuthorizationDecision",
     "AuthorizationDenied",
     "AuthorizationEngine",
@@ -48,11 +76,21 @@ __all__ = [
     "AuthorizationReason",
     "AuthorizationRequest",
     "AuthorizationResult",
+    "ConstraintEvaluator",
+    "ConstraintRepository",
+    "DistinctActorSoDRule",
+    "DynamicSoDEvaluator",
+    "GovernanceRuleId",
+    "GovernanceViolation",
+    "GovernanceViolationKind",
     "GrantSource",
+    "InvalidGovernanceRule",
     "InvalidPermissionCode",
     "InvalidRoleBinding",
     "InvalidRoleBindingTransition",
     "InvalidRoleName",
+    "MutuallyExclusiveRolesRule",
+    "NumericMaximumConstraint",
     "Permission",
     "PermissionAlreadyAssigned",
     "PermissionAlreadyExists",
@@ -60,6 +98,8 @@ __all__ = [
     "PermissionCode",
     "PermissionNotAssigned",
     "PermissionNotFound",
+    "ResourceAttributeEqualsConstraint",
+    "ResourceDescriptor",
     "Role",
     "RoleAlreadyExists",
     "RoleBinding",
@@ -85,4 +125,8 @@ __all__ = [
     "RoleStatus",
     "RoleTenantMismatch",
     "RoleType",
+    "SeparationOfDutyRule",
+    "SoDRuleRepository",
+    "StaticSoDEvaluator",
+    "StaticSoDViolation",
 ]

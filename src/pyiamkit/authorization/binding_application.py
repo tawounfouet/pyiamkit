@@ -27,7 +27,8 @@ from .domain.errors import (
 )
 from .domain.role_binding import RoleBinding
 from .domain.value_objects import RoleId, RoleStatus
-from .ports import RoleBindingRepository, RoleRepository
+from .governance import StaticSoDEvaluator
+from .ports import RoleBindingRepository, RoleRepository, SoDRuleRepository
 
 
 class RoleBindingApplicationService:
@@ -43,6 +44,8 @@ class RoleBindingApplicationService:
         binding_repository: RoleBindingRepository,
         clock: Clock,
         event_sink: DomainEventSink,
+        sod_repository: SoDRuleRepository | None = None,
+        max_hierarchy_depth: int = 32,
     ) -> None:
         self._identities = identity_repository
         self._tenants = tenant_repository
@@ -51,6 +54,15 @@ class RoleBindingApplicationService:
         self._bindings = binding_repository
         self._clock = clock
         self._events = event_sink
+        self._static_sod = (
+            None
+            if sod_repository is None
+            else StaticSoDEvaluator(
+                role_repository=role_repository,
+                sod_repository=sod_repository,
+                max_hierarchy_depth=max_hierarchy_depth,
+            )
+        )
 
     def assign_role(
         self,
@@ -91,9 +103,16 @@ class RoleBindingApplicationService:
         if role.tenant_id is not None and role.tenant_id != tenant_id:
             raise RoleTenantMismatch(role.tenant_id, tenant_id)
 
-        for binding in self._bindings.find_active_for_subject(identity_id, tenant_id, now):
+        active_bindings = self._bindings.find_active_for_subject(identity_id, tenant_id, now)
+        for binding in active_bindings:
             if binding.role_id == role_id and binding.scope == scope:
                 raise RoleBindingAlreadyExists()
+        if self._static_sod is not None:
+            self._static_sod.ensure_assignment_allowed(
+                candidate_role_id=role_id,
+                existing_bindings=active_bindings,
+                tenant_id=tenant_id,
+            )
 
         binding = RoleBinding.create(
             identity_id=identity_id,

@@ -143,3 +143,15 @@ class RoleHierarchyDepthExceeded(RoleHierarchyError):
 
     def __init__(self, max_depth: int) -> None:
         super().__init__(f"Role hierarchy exceeds configured maximum depth {max_depth}.")
+
+
+class InvalidGovernanceRule(AuthorizationModelError):
+    code = "GOVERNANCE_RULE_INVALID"
+
+
+class StaticSoDViolation(AuthorizationModelError):
+    code = "SOD_STATIC_VIOLATION"
+
+    def __init__(self, rule_id: object) -> None:
+        self.rule_id = rule_id
+        super().__init__(f"Role assignment violates static SoD rule {rule_id}.")
