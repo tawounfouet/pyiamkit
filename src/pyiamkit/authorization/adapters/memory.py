@@ -53,6 +53,7 @@ class InMemoryRoleRepository:
             assignable=role.assignable,
             sensitive=role.sensitive,
             permissions=role.permissions,
+            parent_role_ids=role.parent_role_ids,
             created_at=role.created_at,
             updated_at=role.updated_at,
         )

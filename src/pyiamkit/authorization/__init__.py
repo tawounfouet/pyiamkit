@@ -22,6 +22,11 @@ from .domain.errors import (
     RoleAlreadyExists,
     RoleBindingAlreadyExists,
     RoleBindingNotFound,
+    RoleHierarchyCycle,
+    RoleHierarchyDepthExceeded,
+    RoleHierarchyError,
+    RoleHierarchyTenantMismatch,
+    RoleHierarchyUnavailable,
     RoleInactive,
     RoleNotAssignable,
     RoleNotFound,
@@ -32,6 +37,7 @@ from .domain.role import Role
 from .domain.role_binding import RoleBinding
 from .domain.value_objects import PermissionCode, RoleId, RoleStatus, RoleType
 from .engine import AuthorizationDenied, AuthorizationEngine
+from .hierarchy import RoleHierarchyApplicationService, RoleHierarchyResolver
 from .ports import PermissionCatalogRepository, RoleBindingRepository, RoleRepository
 
 __all__ = [
@@ -64,6 +70,13 @@ __all__ = [
     "RoleBindingRepository",
     "RoleBindingStatus",
     "RoleCatalogApplicationService",
+    "RoleHierarchyApplicationService",
+    "RoleHierarchyCycle",
+    "RoleHierarchyDepthExceeded",
+    "RoleHierarchyError",
+    "RoleHierarchyResolver",
+    "RoleHierarchyTenantMismatch",
+    "RoleHierarchyUnavailable",
     "RoleId",
     "RoleInactive",
     "RoleNotAssignable",

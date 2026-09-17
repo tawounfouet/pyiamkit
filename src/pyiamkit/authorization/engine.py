@@ -12,8 +12,9 @@ from .domain.decision import (
     AuthorizationRequest,
     AuthorizationResult,
 )
-from .domain.errors import AuthorizationModelError
+from .domain.errors import AuthorizationModelError, RoleHierarchyError
 from .domain.value_objects import RoleStatus
+from .hierarchy import RoleHierarchyResolver
 from .ports import PermissionCatalogRepository, RoleBindingRepository, RoleRepository
 
 
@@ -28,7 +29,7 @@ class AuthorizationDenied(AuthorizationModelError):
 
 
 class AuthorizationEngine:
-    """Evaluate direct scoped RBAC bindings with explicit default-deny semantics."""
+    """Evaluate scoped RBAC including transitive Role inheritance."""
 
     def __init__(
         self,
@@ -40,6 +41,7 @@ class AuthorizationEngine:
         role_repository: RoleRepository,
         binding_repository: RoleBindingRepository,
         clock: Clock,
+        max_hierarchy_depth: int = 32,
     ) -> None:
         self._identities = identity_repository
         self._tenants = tenant_repository
@@ -48,6 +50,10 @@ class AuthorizationEngine:
         self._roles = role_repository
         self._bindings = binding_repository
         self._clock = clock
+        self._hierarchy = RoleHierarchyResolver(
+            role_repository,
+            max_depth=max_hierarchy_depth,
+        )
 
     def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
         now = self._clock.now()
@@ -83,7 +89,6 @@ class AuthorizationEngine:
         if not scoped_bindings:
             return self._deny(request, now, AuthorizationReason.DENY_SCOPE_MISMATCH)
 
-        resolved = []
         for binding in sorted(scoped_bindings, key=lambda item: str(item.id)):
             role = self._roles.get(binding.role_id)
             if role is None or role.status is not RoleStatus.ACTIVE:
@@ -100,26 +105,43 @@ class AuthorizationEngine:
                     AuthorizationReason.DENY_ROLE_TENANT_MISMATCH,
                     explanation=(f"binding:{binding.id}", f"role:{role.id}"),
                 )
-            resolved.append((binding, role))
-
-        for binding, role in resolved:
-            if request.permission in role.permissions:
+            try:
+                path = self._hierarchy.permission_path(role.id, request.permission)
+            except RoleHierarchyError as exc:
+                return self._deny(
+                    request,
+                    now,
+                    AuthorizationReason.DENY_ROLE_HIERARCHY_INVALID,
+                    explanation=(
+                        f"binding:{binding.id}",
+                        f"role:{role.id}",
+                        f"hierarchy_error:{exc.code}",
+                    ),
+                )
+            if path is not None:
+                source = path[-1]
+                inherited = len(path) > 1
                 return AuthorizationDecision(
                     result=AuthorizationResult.ALLOW,
-                    reason_code=AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH,
+                    reason_code=(
+                        AuthorizationReason.ALLOW_INHERITED_ROLE_PERMISSION_MATCH
+                        if inherited
+                        else AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
+                    ),
                     subject_id=request.subject_id,
                     tenant_id=request.tenant_id,
                     permission=request.permission,
                     scope=request.scope,
                     evaluated_at=now,
+                    bound_role_id=role.id,
                     matched_binding_id=binding.id,
-                    matched_role_id=role.id,
+                    matched_role_id=source.id,
                     correlation_id=request.correlation_id,
                     explanation_path=(
                         f"subject:{request.subject_id}",
                         f"tenant:{request.tenant_id}",
                         f"binding:{binding.id}",
-                        f"role:{role.id}",
+                        *(f"role:{item.id}" for item in path),
                         f"permission:{request.permission}",
                         AuthorizationResult.ALLOW.value,
                     ),

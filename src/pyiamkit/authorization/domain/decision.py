@@ -17,11 +17,13 @@ class AuthorizationResult(StrEnum):
 
 
 class AuthorizationReason(StrEnum):
+    ALLOW_INHERITED_ROLE_PERMISSION_MATCH = "ALLOW_INHERITED_ROLE_PERMISSION_MATCH"
     ALLOW_ROLE_PERMISSION_MATCH = "ALLOW_ROLE_PERMISSION_MATCH"
     DENY_MEMBERSHIP_NOT_FOUND = "DENY_MEMBERSHIP_NOT_FOUND"
     DENY_NO_ACTIVE_BINDING = "DENY_NO_ACTIVE_BINDING"
     DENY_PERMISSION_NOT_GRANTED = "DENY_PERMISSION_NOT_GRANTED"
     DENY_PERMISSION_NOT_REGISTERED = "DENY_PERMISSION_NOT_REGISTERED"
+    DENY_ROLE_HIERARCHY_INVALID = "DENY_ROLE_HIERARCHY_INVALID"
     DENY_ROLE_TENANT_MISMATCH = "DENY_ROLE_TENANT_MISMATCH"
     DENY_ROLE_UNAVAILABLE = "DENY_ROLE_UNAVAILABLE"
     DENY_SCOPE_MISMATCH = "DENY_SCOPE_MISMATCH"
@@ -33,7 +35,7 @@ class AuthorizationReason(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class AuthorizationRequest:
-    """Minimal scoped RBAC request for the first runtime authorization engine."""
+    """Scoped RBAC request."""
 
     subject_id: IdentityId
     tenant_id: TenantId
@@ -57,6 +59,7 @@ class AuthorizationDecision:
     permission: PermissionCode
     scope: TenantScope
     evaluated_at: datetime
+    bound_role_id: RoleId | None = None
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
     correlation_id: str | None = None

@@ -109,3 +109,37 @@ class PermissionNotAssigned(AuthorizationModelError):
 
     def __init__(self, code: object) -> None:
         super().__init__(f"Permission {code} is not assigned to the role.")
+
+
+class RoleHierarchyError(AuthorizationModelError):
+    code = "ROLE_HIERARCHY_ERROR"
+
+
+class RoleHierarchyCycle(RoleHierarchyError):
+    code = "ROLE_HIERARCHY_CYCLE"
+
+    def __init__(self, role_id: object, parent_role_id: object) -> None:
+        super().__init__(f"Linking role {role_id} to parent {parent_role_id} would create a cycle.")
+
+
+class RoleHierarchyTenantMismatch(RoleHierarchyError):
+    code = "ROLE_HIERARCHY_TENANT_MISMATCH"
+
+    def __init__(self, child_tenant: object, parent_tenant: object) -> None:
+        super().__init__(
+            f"Role hierarchy tenant mismatch: child={child_tenant}, parent={parent_tenant}."
+        )
+
+
+class RoleHierarchyUnavailable(RoleHierarchyError):
+    code = "ROLE_HIERARCHY_UNAVAILABLE"
+
+    def __init__(self, role_id: object) -> None:
+        super().__init__(f"Role hierarchy references unavailable role {role_id}.")
+
+
+class RoleHierarchyDepthExceeded(RoleHierarchyError):
+    code = "ROLE_HIERARCHY_DEPTH_EXCEEDED"
+
+    def __init__(self, max_depth: int) -> None:
+        super().__init__(f"Role hierarchy exceeds configured maximum depth {max_depth}.")
