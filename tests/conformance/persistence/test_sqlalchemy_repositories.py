@@ -39,7 +39,7 @@ from pyiamkit.persistence.sqlalchemy import (
     drop_schema,
 )
 from pyiamkit.persistence.sqlalchemy.schema import identity_table
-from pyiamkit.tenancy import Membership, Tenant, TenantId, TenantScope
+from pyiamkit.tenancy import Membership, Tenant, TenantScope
 
 NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
 
@@ -248,7 +248,12 @@ def test_role_permission_hierarchy_and_binding_round_trip(db_session: Session) -
 @pytest.mark.conformance
 def test_constraints_and_sod_rules_round_trip(db_session: Session) -> None:
     tenant = _active_tenant(db_session)
-    other_tenant = TenantId.new()
+    other_tenant = Tenant.create(name="OTHER", slug="other", created_at=NOW)
+    other_tenant.pull_events()
+    other_tenant.activate(at=NOW)
+    other_tenant.pull_events()
+    SqlAlchemyTenantRepository(db_session).save(other_tenant)
+
     permission_repository = SqlAlchemyPermissionCatalogRepository(db_session)
     role_repository = SqlAlchemyRoleRepository(db_session)
     constraint_repository = SqlAlchemyConstraintRepository(db_session)
@@ -256,7 +261,12 @@ def test_constraints_and_sod_rules_round_trip(db_session: Session) -> None:
 
     permission = Permission(PermissionCode("payment.approve"), "Approve payments")
     permission_repository.save(permission)
-    maker = Role.create(name="Maker", role_type=RoleType.TENANT, tenant_id=tenant.id, created_at=NOW)
+    maker = Role.create(
+        name="Maker",
+        role_type=RoleType.TENANT,
+        tenant_id=tenant.id,
+        created_at=NOW,
+    )
     checker = Role.create(
         name="Checker",
         role_type=RoleType.TENANT,
@@ -286,7 +296,7 @@ def test_constraints_and_sod_rules_round_trip(db_session: Session) -> None:
         permission=permission.code,
         resource_attribute="currency",
         expected_value="USD",
-        tenant_id=other_tenant,
+        tenant_id=other_tenant.id,
     )
     constraint_repository.save(global_limit)
     constraint_repository.save(tenant_currency)
