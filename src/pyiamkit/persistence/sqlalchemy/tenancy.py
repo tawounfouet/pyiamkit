@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.orm import Session
 
 from pyiamkit.identity import IdentityId
@@ -119,33 +120,31 @@ class SqlAlchemyMembershipRepository:
         return membership
 
 
-def _tenant_from_row(row: object) -> Tenant:
-    mapping = row
+def _tenant_from_row(row: RowMapping) -> Tenant:
     return Tenant._rehydrate(
-        tenant_id=TenantId(uuid_from_db(mapping["id"])),  # type: ignore[index]
-        version=int(mapping["version"]),  # type: ignore[index]
-        name=str(mapping["name"]),  # type: ignore[index]
-        slug=str(mapping["slug"]),  # type: ignore[index]
-        status=TenantStatus(str(mapping["status"])),  # type: ignore[index]
-        created_at=utc_from_db(mapping["created_at"]),  # type: ignore[index]
-        updated_at=utc_from_db(mapping["updated_at"]),  # type: ignore[index]
-        metadata=mapping_from_json(mapping["metadata_json"]),  # type: ignore[index]
+        tenant_id=TenantId(uuid_from_db(row["id"])),
+        version=int(row["version"]),
+        name=str(row["name"]),
+        slug=str(row["slug"]),
+        status=TenantStatus(str(row["status"])),
+        created_at=utc_from_db(row["created_at"]),
+        updated_at=utc_from_db(row["updated_at"]),
+        metadata=mapping_from_json(row["metadata_json"]),
     )
 
 
-def _membership_from_row(row: object) -> Membership:
-    mapping = row
-    organization_uuid = optional_uuid_from_db(mapping["organization_id"])  # type: ignore[index]
+def _membership_from_row(row: RowMapping) -> Membership:
+    organization_uuid = optional_uuid_from_db(row["organization_id"])
     return Membership._rehydrate(
-        membership_id=MembershipId(uuid_from_db(mapping["id"])),  # type: ignore[index]
-        version=int(mapping["version"]),  # type: ignore[index]
-        identity_id=IdentityId(uuid_from_db(mapping["identity_id"])),  # type: ignore[index]
-        tenant_id=TenantId(uuid_from_db(mapping["tenant_id"])),  # type: ignore[index]
+        membership_id=MembershipId(uuid_from_db(row["id"])),
+        version=int(row["version"]),
+        identity_id=IdentityId(uuid_from_db(row["identity_id"])),
+        tenant_id=TenantId(uuid_from_db(row["tenant_id"])),
         organization_id=None if organization_uuid is None else OrganizationId(organization_uuid),
-        status=MembershipStatus(str(mapping["status"])),  # type: ignore[index]
-        source=str(mapping["source"]),  # type: ignore[index]
-        created_at=utc_from_db(mapping["created_at"]),  # type: ignore[index]
-        updated_at=utc_from_db(mapping["updated_at"]),  # type: ignore[index]
-        valid_from=utc_from_db(mapping["valid_from"]),  # type: ignore[index]
-        valid_until=optional_utc_from_db(mapping["valid_until"]),  # type: ignore[index]
+        status=MembershipStatus(str(row["status"])),
+        source=str(row["source"]),
+        created_at=utc_from_db(row["created_at"]),
+        updated_at=utc_from_db(row["updated_at"]),
+        valid_from=utc_from_db(row["valid_from"]),
+        valid_until=optional_utc_from_db(row["valid_until"]),
     )
