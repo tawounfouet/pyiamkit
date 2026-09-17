@@ -8,6 +8,7 @@ from pyiamkit.identity import (
     IdentityId,
     IdentityNotFound,
     IdentityStatus,
+    User,
 )
 from pyiamkit.identity.adapters.memory import (
     InMemoryDomainEventSink,
@@ -55,6 +56,7 @@ def test_create_user_persists_and_publishes_event() -> None:
     stored = repository.get(identity.id)
     assert stored is not None
     assert stored.status is IdentityStatus.PENDING
+    assert isinstance(stored.profile, User)
     assert str(stored.profile.primary_email) == "Alice@example.com"
     assert stored.metadata["source"] == "test"
     assert [event.event_type for event in event_sink.events] == ["IdentityCreated"]
@@ -75,8 +77,10 @@ def test_application_service_executes_full_lifecycle() -> None:
     clock.value = NOW + timedelta(minutes=5)
     result = service.archive_identity(identity.id)
 
+    stored = repository.get(identity.id)
+    assert stored is not None
     assert result.status is IdentityStatus.ARCHIVED
-    assert repository.get(identity.id).status is IdentityStatus.ARCHIVED  # type: ignore[union-attr]
+    assert stored.status is IdentityStatus.ARCHIVED
     assert [event.event_type for event in event_sink.events] == [
         "IdentityCreated",
         "IdentityActivated",
