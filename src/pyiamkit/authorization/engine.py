@@ -13,9 +13,18 @@ from .domain.decision import (
     AuthorizationResult,
 )
 from .domain.errors import AuthorizationModelError, RoleHierarchyError
+from .domain.governance import GovernanceRuleId, GovernanceViolation, GovernanceViolationKind
+from .domain.role_binding import RoleBinding
 from .domain.value_objects import RoleStatus
+from .governance import ConstraintEvaluator, DynamicSoDEvaluator, StaticSoDEvaluator
 from .hierarchy import RoleHierarchyResolver
-from .ports import PermissionCatalogRepository, RoleBindingRepository, RoleRepository
+from .ports import (
+    ConstraintRepository,
+    PermissionCatalogRepository,
+    RoleBindingRepository,
+    RoleRepository,
+    SoDRuleRepository,
+)
 
 
 class AuthorizationDenied(AuthorizationModelError):
@@ -29,7 +38,7 @@ class AuthorizationDenied(AuthorizationModelError):
 
 
 class AuthorizationEngine:
-    """Evaluate scoped RBAC including transitive Role inheritance."""
+    """Evaluate RBAC, hierarchy, constraints and Separation of Duties."""
 
     def __init__(
         self,
@@ -41,6 +50,8 @@ class AuthorizationEngine:
         role_repository: RoleRepository,
         binding_repository: RoleBindingRepository,
         clock: Clock,
+        constraint_repository: ConstraintRepository | None = None,
+        sod_repository: SoDRuleRepository | None = None,
         max_hierarchy_depth: int = 32,
     ) -> None:
         self._identities = identity_repository
@@ -53,6 +64,19 @@ class AuthorizationEngine:
         self._hierarchy = RoleHierarchyResolver(
             role_repository,
             max_depth=max_hierarchy_depth,
+        )
+        self._constraints = (
+            None if constraint_repository is None else ConstraintEvaluator(constraint_repository)
+        )
+        self._dynamic_sod = None if sod_repository is None else DynamicSoDEvaluator(sod_repository)
+        self._static_sod = (
+            None
+            if sod_repository is None
+            else StaticSoDEvaluator(
+                role_repository=role_repository,
+                sod_repository=sod_repository,
+                max_hierarchy_depth=max_hierarchy_depth,
+            )
         )
 
     def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
@@ -118,34 +142,52 @@ class AuthorizationEngine:
                         f"hierarchy_error:{exc.code}",
                     ),
                 )
-            if path is not None:
-                source = path[-1]
-                inherited = len(path) > 1
-                return AuthorizationDecision(
-                    result=AuthorizationResult.ALLOW,
-                    reason_code=(
-                        AuthorizationReason.ALLOW_INHERITED_ROLE_PERMISSION_MATCH
-                        if inherited
-                        else AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
-                    ),
-                    subject_id=request.subject_id,
-                    tenant_id=request.tenant_id,
-                    permission=request.permission,
-                    scope=request.scope,
-                    evaluated_at=now,
-                    bound_role_id=role.id,
-                    matched_binding_id=binding.id,
-                    matched_role_id=source.id,
-                    correlation_id=request.correlation_id,
-                    explanation_path=(
-                        f"subject:{request.subject_id}",
-                        f"tenant:{request.tenant_id}",
+            if path is None:
+                continue
+
+            violation = self._evaluate_governance(request, bindings)
+            if violation is not None:
+                return self._deny(
+                    request,
+                    now,
+                    self._reason_for_violation(violation),
+                    matched_rule_id=violation.rule_id,
+                    explanation=(
                         f"binding:{binding.id}",
-                        *(f"role:{item.id}" for item in path),
-                        f"permission:{request.permission}",
-                        AuthorizationResult.ALLOW.value,
+                        f"role:{role.id}",
+                        f"rule:{violation.rule_id}",
+                        f"governance:{violation.kind.value}",
                     ),
                 )
+
+            source = path[-1]
+            inherited = len(path) > 1
+            return AuthorizationDecision(
+                result=AuthorizationResult.ALLOW,
+                reason_code=(
+                    AuthorizationReason.ALLOW_INHERITED_ROLE_PERMISSION_MATCH
+                    if inherited
+                    else AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
+                ),
+                subject_id=request.subject_id,
+                tenant_id=request.tenant_id,
+                permission=request.permission,
+                scope=request.scope,
+                evaluated_at=now,
+                bound_role_id=role.id,
+                matched_binding_id=binding.id,
+                matched_role_id=source.id,
+                resource=request.resource,
+                correlation_id=request.correlation_id,
+                explanation_path=(
+                    f"subject:{request.subject_id}",
+                    f"tenant:{request.tenant_id}",
+                    f"binding:{binding.id}",
+                    *(f"role:{item.id}" for item in path),
+                    f"permission:{request.permission}",
+                    AuthorizationResult.ALLOW.value,
+                ),
+            )
 
         return self._deny(request, now, AuthorizationReason.DENY_PERMISSION_NOT_GRANTED)
 
@@ -161,12 +203,54 @@ class AuthorizationEngine:
     def explain(self, request: AuthorizationRequest) -> AuthorizationDecision:
         return self.authorize(request)
 
+    def _evaluate_governance(
+        self,
+        request: AuthorizationRequest,
+        bindings: tuple[RoleBinding, ...],
+    ) -> GovernanceViolation | None:
+        if self._static_sod is not None:
+            violation = self._static_sod.detect_runtime(
+                bindings=bindings,
+                tenant_id=request.tenant_id,
+            )
+            if violation is not None:
+                return violation
+        if self._dynamic_sod is not None:
+            violation = self._dynamic_sod.evaluate(request)
+            if violation is not None:
+                return violation
+        if self._constraints is not None:
+            return self._constraints.evaluate(request)
+        return None
+
+    @staticmethod
+    def _reason_for_violation(violation: GovernanceViolation) -> AuthorizationReason:
+        mapping: dict[GovernanceViolationKind, AuthorizationReason] = {
+            GovernanceViolationKind.CONSTRAINT_CONTEXT_MISSING: (
+                AuthorizationReason.DENY_CONSTRAINT_CONTEXT_MISSING
+            ),
+            GovernanceViolationKind.CONSTRAINT_VIOLATION: (
+                AuthorizationReason.DENY_CONSTRAINT_VIOLATION
+            ),
+            GovernanceViolationKind.SOD_CONTEXT_MISSING: (
+                AuthorizationReason.DENY_SOD_CONTEXT_MISSING
+            ),
+            GovernanceViolationKind.SOD_DYNAMIC_CONFLICT: (
+                AuthorizationReason.DENY_SOD_DYNAMIC_CONFLICT
+            ),
+            GovernanceViolationKind.SOD_STATIC_CONFLICT: (
+                AuthorizationReason.DENY_SOD_STATIC_CONFLICT
+            ),
+        }
+        return mapping[violation.kind]
+
     @staticmethod
     def _deny(
         request: AuthorizationRequest,
         evaluated_at: datetime,
         reason: AuthorizationReason,
         *,
+        matched_rule_id: GovernanceRuleId | None = None,
         explanation: tuple[str, ...] = (),
     ) -> AuthorizationDecision:
         return AuthorizationDecision(
@@ -177,6 +261,8 @@ class AuthorizationEngine:
             permission=request.permission,
             scope=request.scope,
             evaluated_at=evaluated_at,
+            matched_rule_id=matched_rule_id,
+            resource=request.resource,
             correlation_id=request.correlation_id,
             explanation_path=(
                 f"subject:{request.subject_id}",

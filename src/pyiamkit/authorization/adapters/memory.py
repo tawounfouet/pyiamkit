@@ -6,6 +6,12 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
 from ..domain.binding_value_objects import RoleBindingId
+from ..domain.governance import (
+    AuthorizationConstraint,
+    DistinctActorSoDRule,
+    GovernanceRuleId,
+    MutuallyExclusiveRolesRule,
+)
 from ..domain.permission import Permission
 from ..domain.role import Role
 from ..domain.role_binding import RoleBinding
@@ -105,4 +111,45 @@ class InMemoryRoleBindingRepository:
             updated_at=binding.updated_at,
             valid_from=binding.valid_from,
             valid_until=binding.valid_until,
+        )
+
+
+class InMemoryConstraintRepository:
+    def __init__(self) -> None:
+        self._items: dict[GovernanceRuleId, AuthorizationConstraint] = {}
+
+    def save(self, constraint: AuthorizationConstraint) -> None:
+        self._items[constraint.id] = constraint
+
+    def list_for(
+        self, permission: PermissionCode, tenant_id: TenantId
+    ) -> tuple[AuthorizationConstraint, ...]:
+        return tuple(
+            rule
+            for rule in self._items.values()
+            if rule.permission == permission and rule.tenant_id in {None, tenant_id}
+        )
+
+
+class InMemorySoDRuleRepository:
+    def __init__(self) -> None:
+        self._static: dict[GovernanceRuleId, MutuallyExclusiveRolesRule] = {}
+        self._dynamic: dict[GovernanceRuleId, DistinctActorSoDRule] = {}
+
+    def save_static(self, rule: MutuallyExclusiveRolesRule) -> None:
+        self._static[rule.id] = rule
+
+    def save_dynamic(self, rule: DistinctActorSoDRule) -> None:
+        self._dynamic[rule.id] = rule
+
+    def list_static(self, tenant_id: TenantId) -> tuple[MutuallyExclusiveRolesRule, ...]:
+        return tuple(rule for rule in self._static.values() if rule.tenant_id in {None, tenant_id})
+
+    def list_dynamic(
+        self, permission: PermissionCode, tenant_id: TenantId
+    ) -> tuple[DistinctActorSoDRule, ...]:
+        return tuple(
+            rule
+            for rule in self._dynamic.values()
+            if rule.permission == permission and rule.tenant_id in {None, tenant_id}
         )
