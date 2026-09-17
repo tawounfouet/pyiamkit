@@ -1,6 +1,6 @@
 """Time abstractions used by the domain."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 
@@ -17,4 +17,4 @@ class SystemClock:
     """Production clock using UTC."""
 
     def now(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
