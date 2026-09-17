@@ -13,6 +13,8 @@ class AuthorizationCatalogEventType(StrEnum):
     ROLE_BINDING_SUSPENDED = "RoleBindingSuspended"
     ROLE_CREATED = "RoleCreated"
     ROLE_DISABLED = "RoleDisabled"
+    ROLE_PARENT_ADDED = "RoleParentAdded"
+    ROLE_PARENT_REMOVED = "RoleParentRemoved"
     ROLE_PERMISSION_ADDED = "RolePermissionAdded"
     ROLE_PERMISSION_REMOVED = "RolePermissionRemoved"
     ROLE_SENSITIVITY_CHANGED = "RoleSensitivityChanged"

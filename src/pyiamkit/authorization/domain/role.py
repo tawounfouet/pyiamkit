@@ -9,6 +9,7 @@ from .errors import (
     InvalidRoleName,
     PermissionAlreadyAssigned,
     PermissionNotAssigned,
+    RoleHierarchyCycle,
     RoleInactive,
 )
 from .events import AuthorizationCatalogEventType
@@ -16,13 +17,14 @@ from .value_objects import PermissionCode, RoleId, RoleStatus, RoleType
 
 
 class Role:
-    """Named permission collection; it grants nothing until a later RoleBinding exists."""
+    """Named permission collection that may inherit capabilities from parent Roles."""
 
     __slots__ = (
         "_assignable",
         "_created_at",
         "_id",
         "_name",
+        "_parent_role_ids",
         "_pending_events",
         "_permissions",
         "_role_type",
@@ -45,6 +47,7 @@ class Role:
         assignable: bool,
         sensitive: bool,
         permissions: frozenset[PermissionCode],
+        parent_role_ids: frozenset[RoleId],
         created_at: datetime,
         updated_at: datetime,
     ) -> None:
@@ -59,6 +62,7 @@ class Role:
         self._assignable = assignable
         self._sensitive = sensitive
         self._permissions = set(permissions)
+        self._parent_role_ids = set(parent_role_ids)
         self._created_at = created_at
         self._updated_at = updated_at
         self._pending_events: list[DomainEvent] = []
@@ -84,6 +88,7 @@ class Role:
             assignable=assignable,
             sensitive=sensitive,
             permissions=frozenset(),
+            parent_role_ids=frozenset(),
             created_at=created_at,
             updated_at=created_at,
         )
@@ -103,6 +108,7 @@ class Role:
         assignable: bool,
         sensitive: bool,
         permissions: frozenset[PermissionCode],
+        parent_role_ids: frozenset[RoleId],
         created_at: datetime,
         updated_at: datetime,
     ) -> "Role":
@@ -116,6 +122,7 @@ class Role:
             assignable=assignable,
             sensitive=sensitive,
             permissions=permissions,
+            parent_role_ids=parent_role_ids,
             created_at=created_at,
             updated_at=updated_at,
         )
@@ -135,6 +142,10 @@ class Role:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def parent_role_ids(self) -> frozenset[RoleId]:
+        return frozenset(self._parent_role_ids)
 
     @property
     def permissions(self) -> frozenset[PermissionCode]:
@@ -163,6 +174,34 @@ class Role:
     @property
     def version(self) -> int:
         return self._version
+
+    def add_parent_role(self, parent_role_id: RoleId, *, at: datetime) -> None:
+        self._require_active()
+        self._require_utc(at, "at")
+        if parent_role_id == self.id:
+            raise RoleHierarchyCycle(self.id, parent_role_id)
+        if parent_role_id in self._parent_role_ids:
+            return
+        self._parent_role_ids.add(parent_role_id)
+        self._touch(at)
+        self._record(
+            AuthorizationCatalogEventType.ROLE_PARENT_ADDED,
+            at,
+            {"parent_role_id": str(parent_role_id)},
+        )
+
+    def remove_parent_role(self, parent_role_id: RoleId, *, at: datetime) -> None:
+        self._require_active()
+        self._require_utc(at, "at")
+        if parent_role_id not in self._parent_role_ids:
+            return
+        self._parent_role_ids.remove(parent_role_id)
+        self._touch(at)
+        self._record(
+            AuthorizationCatalogEventType.ROLE_PARENT_REMOVED,
+            at,
+            {"parent_role_id": str(parent_role_id)},
+        )
 
     def add_permission(self, code: PermissionCode, *, at: datetime) -> None:
         self._require_active()
