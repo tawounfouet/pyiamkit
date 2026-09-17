@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Beta foundation (`0.1.0b2`) — not yet recommended for production use.
+> **Status:** Authorization-engine alpha (`0.2.0a1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,23 +10,31 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.1.0b2` introduces **RoleBindings + Scoped RBAC**. An active Identity with an active Membership can now receive an active, assignable Role inside an explicit TenantScope. Tenant-scoped roles cannot cross tenant boundaries.
+`0.2.0a1` introduces the first **runtime Authorization Engine**. Direct RoleBindings are evaluated against active Identity, Tenant and Membership state, explicit TenantScope, active Roles and registered Permissions. Every request resolves to an explainable `ALLOW` or `DENY` decision.
 
-The actual runtime decision engine (`authorize`, `can`, `require`) arrives in `0.2.0a1`.
+```python
+decision = engine.authorize(request)
+allowed = engine.can(request)
+engine.require(request)
+```
 
 ## Architecture
 
 ```text
-Identity
-   ↓
-Membership
-   ↓
-Tenant
-   ↓
-RoleBinding
-   ├── Role
-   │    └── Permission
-   └── TenantScope
+AuthorizationRequest
+       ↓
+Identity + Tenant + Membership
+       ↓
+active RoleBindings
+       ↓
+TenantScope
+       ↓
+active Role
+       ↓
+Permission
+       ↓
+AuthorizationDecision
+(ALLOW / DENY + reason_code)
 ```
 
 The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
@@ -55,7 +63,9 @@ See the executable examples under `examples/`.
 0.1.0b1    Roles & Permissions
 0.1.0b2    RoleBindings + Scoped RBAC
 0.2.0a1    Authorization Engine
-0.2.x      Hierarchy, policies, SoD, delegation
+0.2.0a2    Hierarchical RBAC
+0.2.0b1    Constraints + Separation of Duties
+0.2.0b2    Audit + decision explainability hardening
 0.3.x      Persistence, sessions, credentials, JWT, FastAPI
 0.4.x      Federation, MFA, Django, SCIM
 0.5.x      Distributed operations and production qualification

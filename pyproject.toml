@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyiamkit"
-version = "0.1.0b2"
+version = "0.2.0a1"
 description = "Framework-agnostic Python foundations for IAM, RBAC, multi-tenancy and authorization."
 readme = "README.md"
 requires-python = ">=3.12"
