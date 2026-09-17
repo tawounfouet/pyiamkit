@@ -180,12 +180,22 @@ def test_tenant_and_membership_repositories_round_trip(db_session: Session) -> N
     loaded_membership = membership_repository.get(membership.id)
     assert loaded_membership is not None
     assert loaded_membership.identity_id == identity.id
-    assert membership_repository.find(identity.id, tenant.id) == loaded_membership
-    assert membership_repository.find_active(identity.id, tenant.id, NOW) == loaded_membership
-    assert (
-        membership_repository.find_active(identity.id, tenant.id, NOW + timedelta(days=1))
-        == loaded_membership
+
+    found_membership = membership_repository.find(identity.id, tenant.id)
+    assert found_membership is not None
+    assert found_membership.id == loaded_membership.id
+
+    active_membership = membership_repository.find_active(identity.id, tenant.id, NOW)
+    assert active_membership is not None
+    assert active_membership.id == loaded_membership.id
+
+    active_later = membership_repository.find_active(
+        identity.id,
+        tenant.id,
+        NOW + timedelta(days=1),
     )
+    assert active_later is not None
+    assert active_later.id == loaded_membership.id
 
 
 @pytest.mark.conformance
@@ -221,7 +231,10 @@ def test_role_permission_hierarchy_and_binding_round_trip(db_session: Session) -
     loaded_child = role_repository.get(child.id)
     assert loaded_child is not None
     assert loaded_child.parent_role_ids == frozenset({parent.id})
-    assert role_repository.find_by_name(tenant.id, "tenant manager") == loaded_child
+    found_child = role_repository.find_by_name(tenant.id, "tenant manager")
+    assert found_child is not None
+    assert found_child.id == loaded_child.id
+    assert found_child.parent_role_ids == loaded_child.parent_role_ids
     assert permission_repository.get(permission.code) == permission
 
     binding = RoleBinding.create(
