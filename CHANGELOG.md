@@ -6,6 +6,20 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.2.0a1] - 2026-09-17
+
+### Added
+
+- First runtime `AuthorizationEngine` with explicit default-deny semantics.
+- Structured `AuthorizationRequest` and `AuthorizationDecision` contracts.
+- Deterministic ALLOW/DENY reason codes and explanation paths.
+- Runtime validation of active Identity, Tenant, Membership, RoleBinding and Role state.
+- Permission-catalog validation before role-permission matching.
+- TenantScope enforcement and fail-closed behavior for unavailable or tenant-incompatible roles.
+- `authorize()`, `can()`, `require()` and `explain()` APIs.
+- Structured `AuthorizationDenied` exception carrying the denied decision.
+- Unit tests and executable runtime authorization example.
+
 ## [0.1.0b2] - 2026-09-17
 
 ### Added
