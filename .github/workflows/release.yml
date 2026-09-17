@@ -1,0 +1,32 @@
+name: Release validation
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build
+      - name: Build artifacts
+        run: python -m build
+      - name: Install wheel
+        run: python -m pip install dist/*.whl
+      - name: Smoke import
+        run: python scripts/smoke_install.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+
+# PyPI publishing is intentionally deferred until Trusted Publishing is configured.
