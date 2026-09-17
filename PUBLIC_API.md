@@ -2,6 +2,36 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.2.0b1
+
+Adds restrictive authorization-governance contracts from `pyiamkit.authorization`:
+
+```text
+AccessGovernanceApplicationService
+AuthorizationConstraint
+ConstraintEvaluator
+ConstraintRepository
+DistinctActorSoDRule
+DynamicSoDEvaluator
+GovernanceRuleId
+GovernanceViolation
+GovernanceViolationKind
+MutuallyExclusiveRolesRule
+NumericMaximumConstraint
+ResourceAttributeEqualsConstraint
+ResourceDescriptor
+SeparationOfDutyRule
+SoDRuleRepository
+StaticSoDEvaluator
+StaticSoDViolation
+```
+
+`AuthorizationRequest` may now carry a tenant-bound `ResourceDescriptor`, and `AuthorizationDecision` may expose `matched_rule_id` for restrictive governance provenance.
+
+Governance rules in this milestone are deny-only: they are evaluated only after RBAC finds a candidate permission. They can reduce an authorization result to `DENY` but cannot create an `ALLOW`.
+
+Static SoD is also enforced before a conflicting RoleBinding is persisted. Effective inherited Roles participate in that check.
+
 ## 0.2.0a2
 
 Adds hierarchical RBAC contracts from `pyiamkit.authorization`:
@@ -16,16 +46,12 @@ RoleHierarchyTenantMismatch
 RoleHierarchyUnavailable
 ```
 
-`Role` now exposes `parent_role_ids`, and authorization decisions distinguish:
+`Role` exposes `parent_role_ids`, and authorization decisions distinguish:
 
 ```text
 bound_role_id   # Role referenced by the effective RoleBinding
 matched_role_id # Role that actually contributes the matching Permission
 ```
-
-`AuthorizationReason` adds direct distinction for inherited authorization and invalid hierarchy conditions.
-
-The hierarchy remains tenant-safe: a tenant Role may inherit a global Role, but a global Role cannot inherit a tenant Role and Roles from different tenants cannot be linked.
 
 ## 0.2.0a1
 
