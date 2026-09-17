@@ -7,5 +7,4 @@ from pyiamkit.shared import DomainEvent
 
 
 class DomainEventSink(Protocol):
-    def publish(self, events: Sequence[DomainEvent]) -> None:
-        ...
+    def publish(self, events: Sequence[DomainEvent]) -> None: ...

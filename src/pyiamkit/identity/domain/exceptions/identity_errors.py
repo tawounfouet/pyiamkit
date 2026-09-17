@@ -49,15 +49,11 @@ class ExternalIdentityAlreadyLinked(IdentityError):
     code = "IDENTITY_EXTERNAL_LINK_EXISTS"
 
     def __init__(self, provider_id: str, external_subject: str) -> None:
-        super().__init__(
-            f"External identity {provider_id}:{external_subject} is already linked."
-        )
+        super().__init__(f"External identity {provider_id}:{external_subject} is already linked.")
 
 
 class ExternalIdentityLinkNotFound(IdentityError):
     code = "IDENTITY_EXTERNAL_LINK_NOT_FOUND"
 
     def __init__(self, provider_id: str, external_subject: str) -> None:
-        super().__init__(
-            f"External identity {provider_id}:{external_subject} is not linked."
-        )
+        super().__init__(f"External identity {provider_id}:{external_subject} is not linked.")
