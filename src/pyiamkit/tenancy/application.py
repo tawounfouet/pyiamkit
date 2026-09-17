@@ -141,7 +141,8 @@ class TenancyApplicationService:
         self._tenants.save(tenant)
         self._events.publish(events)
         saved = self._tenants.get(tenant.id)
-        assert saved is not None
+        if saved is None:
+            raise RuntimeError("Tenant repository did not return the persisted aggregate.")
         return saved
 
     def _save_membership(self, membership: Membership) -> Membership:
@@ -149,5 +150,6 @@ class TenancyApplicationService:
         self._memberships.save(membership)
         self._events.publish(events)
         saved = self._memberships.get(membership.id)
-        assert saved is not None
+        if saved is None:
+            raise RuntimeError("Membership repository did not return the persisted aggregate.")
         return saved
