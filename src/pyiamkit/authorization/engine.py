@@ -83,9 +83,7 @@ class AuthorizationEngine:
                 max_hierarchy_depth=max_hierarchy_depth,
             )
         )
-        self._audit = (
-            None if audit_sink is None else AuthorizationDecisionAuditRecorder(audit_sink)
-        )
+        self._audit = None if audit_sink is None else AuthorizationDecisionAuditRecorder(audit_sink)
 
     def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
         now = self._clock.now()
