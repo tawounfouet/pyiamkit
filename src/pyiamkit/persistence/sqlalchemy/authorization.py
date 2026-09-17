@@ -51,9 +51,13 @@ class SqlAlchemyPermissionCatalogRepository:
         self._session = session
 
     def get(self, code: PermissionCode) -> Permission | None:
-        row = self._session.execute(
-            select(permission_table).where(permission_table.c.code == str(code))
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(
+                select(permission_table).where(permission_table.c.code == str(code))
+            )
+            .mappings()
+            .one_or_none()
+        )
         if row is None:
             return None
         return Permission(
@@ -80,9 +84,11 @@ class SqlAlchemyRoleRepository:
         self._session = session
 
     def get(self, role_id: RoleId) -> Role | None:
-        row = self._session.execute(
-            select(role_table).where(role_table.c.id == role_id.value)
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(select(role_table).where(role_table.c.id == role_id.value))
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else self._rehydrate(row)
 
     def save(self, role: Role) -> None:
@@ -175,9 +181,13 @@ class SqlAlchemyRoleBindingRepository:
         self._session = session
 
     def get(self, binding_id: RoleBindingId) -> RoleBinding | None:
-        row = self._session.execute(
-            select(role_binding_table).where(role_binding_table.c.id == binding_id.value)
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(
+                select(role_binding_table).where(role_binding_table.c.id == binding_id.value)
+            )
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else _binding_from_row(row)
 
     def save(self, binding: RoleBinding) -> None:
@@ -208,14 +218,18 @@ class SqlAlchemyRoleBindingRepository:
         identity_id: IdentityId,
         tenant_id: TenantId,
     ) -> tuple[RoleBinding, ...]:
-        rows = self._session.execute(
-            select(role_binding_table)
-            .where(
-                role_binding_table.c.identity_id == identity_id.value,
-                role_binding_table.c.tenant_id == tenant_id.value,
+        rows = (
+            self._session.execute(
+                select(role_binding_table)
+                .where(
+                    role_binding_table.c.identity_id == identity_id.value,
+                    role_binding_table.c.tenant_id == tenant_id.value,
+                )
+                .order_by(role_binding_table.c.created_at, role_binding_table.c.id)
             )
-            .order_by(role_binding_table.c.created_at, role_binding_table.c.id)
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_binding_from_row(row) for row in rows)
 
     def find_active_for_subject(
@@ -224,20 +238,24 @@ class SqlAlchemyRoleBindingRepository:
         tenant_id: TenantId,
         at: datetime,
     ) -> tuple[RoleBinding, ...]:
-        rows = self._session.execute(
-            select(role_binding_table)
-            .where(
-                role_binding_table.c.identity_id == identity_id.value,
-                role_binding_table.c.tenant_id == tenant_id.value,
-                role_binding_table.c.status == RoleBindingStatus.ACTIVE.value,
-                role_binding_table.c.valid_from <= at,
-                or_(
-                    role_binding_table.c.valid_until.is_(None),
-                    role_binding_table.c.valid_until > at,
-                ),
+        rows = (
+            self._session.execute(
+                select(role_binding_table)
+                .where(
+                    role_binding_table.c.identity_id == identity_id.value,
+                    role_binding_table.c.tenant_id == tenant_id.value,
+                    role_binding_table.c.status == RoleBindingStatus.ACTIVE.value,
+                    role_binding_table.c.valid_from <= at,
+                    or_(
+                        role_binding_table.c.valid_until.is_(None),
+                        role_binding_table.c.valid_until > at,
+                    ),
+                )
+                .order_by(role_binding_table.c.created_at, role_binding_table.c.id)
             )
-            .order_by(role_binding_table.c.created_at, role_binding_table.c.id)
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_binding_from_row(row) for row in rows)
 
 
@@ -274,17 +292,21 @@ class SqlAlchemyConstraintRepository:
         permission: PermissionCode,
         tenant_id: TenantId,
     ) -> tuple[AuthorizationConstraint, ...]:
-        rows = self._session.execute(
-            select(constraint_table)
-            .where(
-                constraint_table.c.permission_code == str(permission),
-                or_(
-                    constraint_table.c.tenant_id.is_(None),
-                    constraint_table.c.tenant_id == tenant_id.value,
-                ),
+        rows = (
+            self._session.execute(
+                select(constraint_table)
+                .where(
+                    constraint_table.c.permission_code == str(permission),
+                    or_(
+                        constraint_table.c.tenant_id.is_(None),
+                        constraint_table.c.tenant_id == tenant_id.value,
+                    ),
+                )
+                .order_by(constraint_table.c.id)
             )
-            .order_by(constraint_table.c.id)
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_constraint_from_row(row) for row in rows)
 
 
@@ -327,17 +349,21 @@ class SqlAlchemySoDRuleRepository:
         )
 
     def list_static(self, tenant_id: TenantId) -> tuple[MutuallyExclusiveRolesRule, ...]:
-        rows = self._session.execute(
-            select(sod_rule_table)
-            .where(
-                sod_rule_table.c.kind == "static_roles",
-                or_(
-                    sod_rule_table.c.tenant_id.is_(None),
-                    sod_rule_table.c.tenant_id == tenant_id.value,
-                ),
+        rows = (
+            self._session.execute(
+                select(sod_rule_table)
+                .where(
+                    sod_rule_table.c.kind == "static_roles",
+                    or_(
+                        sod_rule_table.c.tenant_id.is_(None),
+                        sod_rule_table.c.tenant_id == tenant_id.value,
+                    ),
+                )
+                .order_by(sod_rule_table.c.id)
             )
-            .order_by(sod_rule_table.c.id)
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_static_sod_from_row(row) for row in rows)
 
     def list_dynamic(
@@ -345,18 +371,22 @@ class SqlAlchemySoDRuleRepository:
         permission: PermissionCode,
         tenant_id: TenantId,
     ) -> tuple[DistinctActorSoDRule, ...]:
-        rows = self._session.execute(
-            select(sod_rule_table)
-            .where(
-                sod_rule_table.c.kind == "dynamic_actor",
-                sod_rule_table.c.permission_code == str(permission),
-                or_(
-                    sod_rule_table.c.tenant_id.is_(None),
-                    sod_rule_table.c.tenant_id == tenant_id.value,
-                ),
+        rows = (
+            self._session.execute(
+                select(sod_rule_table)
+                .where(
+                    sod_rule_table.c.kind == "dynamic_actor",
+                    sod_rule_table.c.permission_code == str(permission),
+                    or_(
+                        sod_rule_table.c.tenant_id.is_(None),
+                        sod_rule_table.c.tenant_id == tenant_id.value,
+                    ),
+                )
+                .order_by(sod_rule_table.c.id)
             )
-            .order_by(sod_rule_table.c.id)
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_dynamic_sod_from_row(row) for row in rows)
 
 
