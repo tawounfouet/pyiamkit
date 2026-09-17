@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Hierarchical-RBAC alpha (`0.2.0a2`) — not yet recommended for production use.
+> **Status:** Constraints + SoD beta (`0.2.0b1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,29 +10,42 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.2.0a2` extends the runtime Authorization Engine with **Hierarchical RBAC**. A bound Role can inherit permissions transitively from parent Roles while the original RoleBinding remains the security boundary: inheritance never widens its TenantScope.
+`0.2.0b1` adds **restrictive authorization constraints and Separation of Duties** on top of scoped Hierarchical RBAC. RBAC must first prove that the subject has a candidate permission; governance rules can then reduce that candidate authorization to `DENY`, but they never create access on their own.
 
 ```text
-RoleBinding(scope = Tenant A)
-        ↓
-TenantFinanceManager
-        ↓ inherits
-FinanceManager
-        ↓ inherits
-BaseReader
-        ↓
-Permission
+Identity + Tenant + Membership
+          ↓
+RoleBinding + Role Hierarchy
+          ↓
+candidate Permission
+          ↓
+Static SoD
+          ↓
+Dynamic SoD
+          ↓
+Resource Constraints
+          ↓
+AuthorizationDecision
 ```
 
-A tenant Role may inherit a global Role. A global Role may not inherit a tenant Role, and Roles from different tenants cannot be linked. Cyclic, missing, disabled or over-deep hierarchies fail closed.
+A framework-neutral `ResourceDescriptor` carries the resource context required by runtime rules:
 
 ```python
-decision = engine.authorize(request)
-allowed = engine.can(request)
-engine.require(request)
+resource = ResourceDescriptor(
+    "payment",
+    "PAY-001",
+    tenant_id,
+    attributes={
+        "amount": "42000",
+        "status": "pending",
+        "prepared_by": str(preparer_id),
+    },
+)
 ```
 
-When a permission is inherited, `decision.bound_role_id` identifies the Role attached to the RoleBinding and `decision.matched_role_id` identifies the ancestor Role that contributed the matching Permission.
+Built-in examples now include numeric ceilings, required resource-attribute values, mutually exclusive effective Roles, and maker-checker rules such as `prepared_by != current subject`. Missing required rule context fails closed.
+
+Static SoD is checked before a RoleBinding is persisted and includes inherited Roles, preventing a hierarchy from bypassing a mutually exclusive-role rule.
 
 ## Architecture
 
@@ -41,18 +54,19 @@ AuthorizationRequest
        ↓
 Identity + Tenant + Membership
        ↓
-active RoleBindings
-       ↓
-TenantScope
-       ↓
-bound Role
+active RoleBindings + TenantScope
        ↓
 Role Hierarchy (DAG)
        ↓
-direct / inherited Permission
+candidate Permission
+       ↓
+restrictive Governance Rules
+       ├── Static SoD
+       ├── Dynamic SoD
+       └── Resource Constraints
        ↓
 AuthorizationDecision
-(ALLOW / DENY + reason_code + explanation_path)
+(ALLOW / DENY + reason_code + matched_rule_id + explanation_path)
 ```
 
 The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
@@ -70,7 +84,7 @@ python -m pip install build mypy pytest pytest-cov ruff
 make check
 ```
 
-See the executable examples under `examples/` and architecture notes under `docs/architecture/`.
+See executable examples under `examples/` and architecture notes under `docs/architecture/`.
 
 ## Roadmap
 
