@@ -1,0 +1,50 @@
+"""Public API for the Authentication bounded context."""
+
+from .application import AuthenticationApplicationService
+from .domain import (
+    AssuranceLevel,
+    AuthenticationContext,
+    AuthenticationError,
+    AuthenticationMethod,
+    AuthenticationSubjectInactive,
+    Credential,
+    CredentialAlreadyExists,
+    CredentialId,
+    CredentialNotFound,
+    CredentialStatus,
+    CredentialType,
+    InvalidCredential,
+    InvalidCredentialTransition,
+    InvalidSession,
+    InvalidSessionTransition,
+    Session,
+    SessionId,
+    SessionNotFound,
+    SessionStatus,
+)
+from .ports import CredentialRepository, SessionRepository
+
+__all__ = [
+    "AssuranceLevel",
+    "AuthenticationApplicationService",
+    "AuthenticationContext",
+    "AuthenticationError",
+    "AuthenticationMethod",
+    "AuthenticationSubjectInactive",
+    "Credential",
+    "CredentialAlreadyExists",
+    "CredentialId",
+    "CredentialNotFound",
+    "CredentialRepository",
+    "CredentialStatus",
+    "CredentialType",
+    "InvalidCredential",
+    "InvalidCredentialTransition",
+    "InvalidSession",
+    "InvalidSessionTransition",
+    "Session",
+    "SessionId",
+    "SessionNotFound",
+    "SessionRepository",
+    "SessionStatus",
+]
