@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Authorization-engine alpha (`0.2.0a1`) — not yet recommended for production use.
+> **Status:** Hierarchical-RBAC alpha (`0.2.0a2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,13 +10,29 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.2.0a1` introduces the first **runtime Authorization Engine**. Direct RoleBindings are evaluated against active Identity, Tenant and Membership state, explicit TenantScope, active Roles and registered Permissions. Every request resolves to an explainable `ALLOW` or `DENY` decision.
+`0.2.0a2` extends the runtime Authorization Engine with **Hierarchical RBAC**. A bound Role can inherit permissions transitively from parent Roles while the original RoleBinding remains the security boundary: inheritance never widens its TenantScope.
+
+```text
+RoleBinding(scope = Tenant A)
+        ↓
+TenantFinanceManager
+        ↓ inherits
+FinanceManager
+        ↓ inherits
+BaseReader
+        ↓
+Permission
+```
+
+A tenant Role may inherit a global Role. A global Role may not inherit a tenant Role, and Roles from different tenants cannot be linked. Cyclic, missing, disabled or over-deep hierarchies fail closed.
 
 ```python
 decision = engine.authorize(request)
 allowed = engine.can(request)
 engine.require(request)
 ```
+
+When a permission is inherited, `decision.bound_role_id` identifies the Role attached to the RoleBinding and `decision.matched_role_id` identifies the ancestor Role that contributed the matching Permission.
 
 ## Architecture
 
@@ -29,12 +45,14 @@ active RoleBindings
        ↓
 TenantScope
        ↓
-active Role
+bound Role
        ↓
-Permission
+Role Hierarchy (DAG)
+       ↓
+direct / inherited Permission
        ↓
 AuthorizationDecision
-(ALLOW / DENY + reason_code)
+(ALLOW / DENY + reason_code + explanation_path)
 ```
 
 The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
@@ -52,7 +70,7 @@ python -m pip install build mypy pytest pytest-cov ruff
 make check
 ```
 
-See the executable examples under `examples/`.
+See the executable examples under `examples/` and architecture notes under `docs/architecture/`.
 
 ## Roadmap
 
