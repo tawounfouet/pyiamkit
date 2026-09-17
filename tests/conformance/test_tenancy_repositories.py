@@ -25,9 +25,7 @@ def test_membership_repository_is_tenant_aware() -> None:
     identity_id = IdentityId.new()
     tenant = Tenant.create(name="ACME", slug="acme", created_at=NOW)
     other = Tenant.create(name="OTHER", slug="other", created_at=NOW)
-    membership = Membership.create(
-        identity_id=identity_id, tenant_id=tenant.id, created_at=NOW
-    )
+    membership = Membership.create(identity_id=identity_id, tenant_id=tenant.id, created_at=NOW)
     membership.activate(at=NOW)
     membership.pull_events()
     repository.save(membership)
