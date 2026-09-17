@@ -6,6 +6,20 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.2.0a2] - 2026-09-17
+
+### Added
+
+- Hierarchical RBAC with transitive Role inheritance.
+- `RoleHierarchyResolver` for ancestor, role-path and effective-permission resolution.
+- `RoleHierarchyApplicationService` for guarded parent-role mutations.
+- Cycle detection and bounded hierarchy traversal.
+- Tenant-safe inheritance: tenant Roles may inherit global Roles, while cross-tenant and global-to-tenant inheritance are rejected.
+- Fail-closed authorization when hierarchy references missing, disabled, cyclic or otherwise invalid Roles.
+- Distinct direct and inherited authorization reason codes.
+- `bound_role_id` and `matched_role_id` in authorization decisions to distinguish the bound Role from the Role contributing a permission.
+- Hierarchy-focused unit tests and architecture documentation.
+
 ## [0.2.0a1] - 2026-09-17
 
 ### Added
