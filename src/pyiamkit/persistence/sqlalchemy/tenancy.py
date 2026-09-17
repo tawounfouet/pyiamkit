@@ -22,9 +22,9 @@ from .common import (
     mapping_from_json,
     optional_utc_from_db,
     optional_uuid_from_db,
+    upsert,
     utc_from_db,
     uuid_from_db,
-    upsert,
 )
 from .schema import membership_table, tenant_table
 
