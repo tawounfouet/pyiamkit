@@ -238,11 +238,14 @@ def test_role_permission_hierarchy_and_binding_round_trip(db_session: Session) -
     assert binding_repository.get(binding.id) == binding
     assert binding_repository.find_for_subject(identity.id, tenant.id) == (binding,)
     assert binding_repository.find_active_for_subject(identity.id, tenant.id, NOW) == (binding,)
-    assert binding_repository.find_active_for_subject(
-        identity.id,
-        tenant.id,
-        NOW + timedelta(hours=2),
-    ) == ()
+    assert (
+        binding_repository.find_active_for_subject(
+            identity.id,
+            tenant.id,
+            NOW + timedelta(hours=2),
+        )
+        == ()
+    )
 
 
 @pytest.mark.conformance
