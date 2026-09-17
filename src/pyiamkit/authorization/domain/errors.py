@@ -1,4 +1,4 @@
-"""Roles and permissions domain errors."""
+"""Authorization domain errors."""
 
 from typing import ClassVar
 
@@ -21,6 +21,17 @@ class InvalidRoleName(AuthorizationModelError):
 
     def __init__(self) -> None:
         super().__init__("Role name must contain between 1 and 255 characters.")
+
+
+class InvalidRoleBinding(AuthorizationModelError):
+    code = "ROLE_BINDING_INVALID"
+
+
+class InvalidRoleBindingTransition(AuthorizationModelError):
+    code = "ROLE_BINDING_INVALID_TRANSITION"
+
+    def __init__(self, current_status: object, action: str) -> None:
+        super().__init__(f"Cannot {action} RoleBinding from {current_status} status.")
 
 
 class PermissionNotFound(AuthorizationModelError):
@@ -56,6 +67,34 @@ class RoleInactive(AuthorizationModelError):
 
     def __init__(self, role_id: object) -> None:
         super().__init__(f"Role {role_id} is not active.")
+
+
+class RoleNotAssignable(AuthorizationModelError):
+    code = "ROLE_NOT_ASSIGNABLE"
+
+    def __init__(self, role_id: object) -> None:
+        super().__init__(f"Role {role_id} cannot be assigned directly.")
+
+
+class RoleTenantMismatch(AuthorizationModelError):
+    code = "ROLE_TENANT_MISMATCH"
+
+    def __init__(self, role_tenant: object, target_tenant: object) -> None:
+        super().__init__(f"Role tenant {role_tenant} does not match target tenant {target_tenant}.")
+
+
+class RoleBindingNotFound(AuthorizationModelError):
+    code = "ROLE_BINDING_NOT_FOUND"
+
+    def __init__(self, binding_id: object) -> None:
+        super().__init__(f"RoleBinding {binding_id} was not found.")
+
+
+class RoleBindingAlreadyExists(AuthorizationModelError):
+    code = "ROLE_BINDING_ALREADY_EXISTS"
+
+    def __init__(self) -> None:
+        super().__init__("An active equivalent RoleBinding already exists.")
 
 
 class PermissionAlreadyAssigned(AuthorizationModelError):

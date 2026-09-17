@@ -1,9 +1,14 @@
-"""In-memory adapters for the Roles and Permissions model."""
+"""In-memory adapters for the authorization model."""
 
+from datetime import datetime
+
+from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
+from ..domain.binding_value_objects import RoleBindingId
 from ..domain.permission import Permission
 from ..domain.role import Role
+from ..domain.role_binding import RoleBinding
 from ..domain.value_objects import PermissionCode, RoleId
 
 
@@ -50,4 +55,53 @@ class InMemoryRoleRepository:
             permissions=role.permissions,
             created_at=role.created_at,
             updated_at=role.updated_at,
+        )
+
+
+class InMemoryRoleBindingRepository:
+    def __init__(self) -> None:
+        self._items: dict[RoleBindingId, RoleBinding] = {}
+
+    def get(self, binding_id: RoleBindingId) -> RoleBinding | None:
+        binding = self._items.get(binding_id)
+        return None if binding is None else self._copy(binding)
+
+    def save(self, binding: RoleBinding) -> None:
+        self._items[binding.id] = self._copy(binding)
+
+    def find_for_subject(
+        self, identity_id: IdentityId, tenant_id: TenantId
+    ) -> tuple[RoleBinding, ...]:
+        return tuple(
+            self._copy(binding)
+            for binding in self._items.values()
+            if binding.identity_id == identity_id and binding.tenant_id == tenant_id
+        )
+
+    def find_active_for_subject(
+        self, identity_id: IdentityId, tenant_id: TenantId, at: datetime
+    ) -> tuple[RoleBinding, ...]:
+        return tuple(
+            binding
+            for binding in self.find_for_subject(identity_id, tenant_id)
+            if binding.is_active(at=at)
+        )
+
+    @staticmethod
+    def _copy(binding: RoleBinding) -> RoleBinding:
+        return RoleBinding._rehydrate(
+            binding_id=binding.id,
+            version=binding.version,
+            identity_id=binding.identity_id,
+            role_id=binding.role_id,
+            tenant_id=binding.tenant_id,
+            scope=binding.scope,
+            status=binding.status,
+            grant_source=binding.grant_source,
+            granted_by=binding.granted_by,
+            justification=binding.justification,
+            created_at=binding.created_at,
+            updated_at=binding.updated_at,
+            valid_from=binding.valid_from,
+            valid_until=binding.valid_until,
         )

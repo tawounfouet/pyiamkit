@@ -1,5 +1,13 @@
 """Official authorization model adapters."""
 
-from .memory import InMemoryPermissionCatalogRepository, InMemoryRoleRepository
+from .memory import (
+    InMemoryPermissionCatalogRepository,
+    InMemoryRoleBindingRepository,
+    InMemoryRoleRepository,
+)
 
-__all__ = ["InMemoryPermissionCatalogRepository", "InMemoryRoleRepository"]
+__all__ = [
+    "InMemoryPermissionCatalogRepository",
+    "InMemoryRoleBindingRepository",
+    "InMemoryRoleRepository",
+]
