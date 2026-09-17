@@ -6,6 +6,20 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.3.0a1] - 2026-09-17
+
+### Added
+
+- Optional `pyiamkit.persistence.sqlalchemy` adapter bundle without introducing SQLAlchemy into the core dependency set.
+- SQLAlchemy repositories for Identity, Tenant, Membership, Permission, Role, RoleBinding, constraints, SoD rules and append-only Audit events.
+- Portable SQL schema using UUID identifiers and timezone-aware timestamps, with PostgreSQL `JSONB` for extensible JSON payloads.
+- Explicit caller-owned transaction semantics: repositories execute writes but never commit application transactions.
+- Schema bootstrap helpers for development and test environments.
+- `sqlalchemy` and `postgres` installation extras.
+- SQLite repository-conformance tests covering aggregate round-trips, updates, governance, audit and transaction rollback.
+- Live PostgreSQL 16 CI gate using psycopg and an end-to-end persisted authorization decision.
+- SQLAlchemy persistence example and architecture documentation.
+
 ## [0.2.0b2] - 2026-09-17
 
 ### Added
