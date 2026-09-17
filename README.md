@@ -1,8 +1,8 @@
 # PyIAMKit
 
-PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
+PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** Audit + explainability beta (`0.2.0b2`) — not yet recommended for production use.
+> **Status:** SQLAlchemy persistence alpha (`0.3.0a1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,32 +10,72 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.2.0b2` adds a dedicated **append-only Audit context** and hardens decision explainability while preserving the existing authorization API.
+`0.3.0a1` introduces the first durable persistence layer without making SQLAlchemy a core dependency.
 
-Every runtime decision now has a stable `AuthorizationDecisionId`. When an `AuditSink` is configured, both `ALLOW` and `DENY` decisions are synchronously projected to a minimal audit record containing identity, tenant, permission, reason and selected IAM references.
-
-Resource attribute payloads are deliberately excluded from authorization audit records:
+The existing domain ports remain unchanged:
 
 ```text
-AuthorizationDecision
+Domain / Application
        ↓
-AuthorizationDecisionAuditRecorder
+Repository Protocols
        ↓
-AuditSink
-       ↓
-PostgreSQL / SIEM / Kafka / custom adapter
+┌──────────────────────┬─────────────────────────┐
+│ InMemory adapters    │ SQLAlchemy adapters     │
+│ tests / local logic  │ SQLite / PostgreSQL     │
+└──────────────────────┴─────────────────────────┘
 ```
 
-Decision explanation now supports two projections:
+The SQLAlchemy bundle persists the current Identity, Tenancy, Authorization, governance and Audit models. Repository instances receive an existing SQLAlchemy `Session`; they execute reads/writes but never commit the caller's transaction.
 
 ```python
-summary = decision.explanation()
-detailed = decision.explanation(ExplanationLevel.DETAILED)
+from pyiamkit.persistence.sqlalchemy import (
+    SqlAlchemyIdentityRepository,
+    create_schema,
+    create_session_factory,
+    create_sqlalchemy_engine,
+)
+
+engine = create_sqlalchemy_engine("postgresql+psycopg://user:pass@localhost/iam")
+create_schema(engine)  # bootstrap/testing during the alpha line
+SessionFactory = create_session_factory(engine)
+
+with SessionFactory.begin() as session:
+    identities = SqlAlchemyIdentityRepository(session)
+    identities.save(identity)
 ```
 
-`SUMMARY` exposes the result and reason without internal graph identifiers. `DETAILED` additionally exposes the diagnostic `explanation_path` and is intended for trusted administrative or debugging surfaces.
+PostgreSQL uses native UUID columns and JSONB for extensible JSON payloads. SQLite remains supported as a lightweight conformance/test backend.
 
-The existing `engine.explain(request)` API remains available. `engine.describe(request)` directly returns a safe explanation projection.
+## Installation
+
+Python 3.12+ is required.
+
+Core only:
+
+```bash
+python -m pip install -e .
+```
+
+SQLAlchemy persistence with SQLite or another SQLAlchemy-supported backend:
+
+```bash
+python -m pip install -e ".[sqlalchemy]"
+```
+
+PostgreSQL persistence with psycopg:
+
+```bash
+python -m pip install -e ".[postgres]"
+```
+
+Development checks:
+
+```bash
+python -m pip install build mypy pytest pytest-cov ruff
+make check
+```
+
+See executable examples under `examples/` and architecture notes under `docs/architecture/`.
 
 ## Architecture
 
@@ -46,35 +86,33 @@ Identity + Tenant + Membership
        ↓
 RoleBinding + Role Hierarchy
        ↓
-candidate Permission
-       ↓
 Constraints + SoD
        ↓
 AuthorizationDecision
        ├── DecisionExplanation
-       │    ├── SUMMARY
-       │    └── DETAILED
-       └── AuthorizationDecisionAuditRecorder
-              ↓
-           AuditSink
+       └── AuditSink
+
+Persistence ports
+       ↓
+SQLAlchemy Session
+       ↓
+SQLite / PostgreSQL
 ```
 
-The audit context is independent from Django, FastAPI, SQLAlchemy, Redis and any specific SIEM or messaging platform.
+The domain contexts do not import SQLAlchemy, psycopg, PostgreSQL drivers or database models. Persistence adapters depend inward on domain contracts, never the reverse.
 
-## Quickstart
+## Persistence guarantees in 0.3.0a1
 
-Python 3.12+ is required.
+- caller-owned transactions;
+- repository round-trip conformance on SQLite;
+- live PostgreSQL 16 CI qualification;
+- UUID identifiers and timezone-aware timestamps;
+- PostgreSQL JSONB for extensible payloads;
+- append-only Audit semantics;
+- foreign keys and relational role/permission/hierarchy tables;
+- no implicit commits inside repositories.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e .
-python -m pip install build mypy pytest pytest-cov ruff
-make check
-```
-
-See executable examples under `examples/` and architecture notes under `docs/architecture/`.
+`create_schema()` and `drop_schema()` are alpha bootstrap helpers. A production migration workflow is intentionally deferred to a later persistence-hardening milestone.
 
 ## Roadmap
 
@@ -88,7 +126,10 @@ See executable examples under `examples/` and architecture notes under `docs/arc
 0.2.0a2    Hierarchical RBAC
 0.2.0b1    Constraints + Separation of Duties
 0.2.0b2    Audit + decision explainability hardening
-0.3.x      Persistence, sessions, credentials, JWT, FastAPI
+0.3.0a1    SQLAlchemy / SQLite / PostgreSQL persistence
+0.3.0a2    Sessions + Credentials
+0.3.0b1    JWT
+0.3.0b2    FastAPI integration
 0.4.x      Federation, MFA, Django, SCIM
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
