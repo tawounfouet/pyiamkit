@@ -2,71 +2,43 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
-## 0.1.0a2
+## 0.1.0b1
 
-The `0.1.0a1` Identity API remains public alpha API.
+The Identity and Tenancy alpha APIs remain available.
 
-Alpha Tenancy API from `pyiamkit.tenancy`:
+Beta Roles and Permissions API from `pyiamkit.authorization`:
 
 ```text
-Tenant
-TenantId
-TenantStatus
-Membership
-MembershipId
-MembershipStatus
-Organization
-OrganizationId
-TenantContext
-TenantScope
-TenantIsolationGuard
-TenancyApplicationService
-TenantRepository
-MembershipRepository
-TenancyError
-TenantNotFound
-MembershipNotFound
-TenantInactive
-MembershipInactive
-TenantMismatch
-InvalidTenant
-InvalidTenantTransition
-InvalidMembership
-InvalidMembershipTransition
+Permission
+PermissionCode
+Role
+RoleId
+RoleStatus
+RoleType
+RoleCatalogApplicationService
+PermissionCatalogRepository
+RoleRepository
+AuthorizationModelError
+InvalidPermissionCode
+InvalidRoleName
+PermissionAlreadyAssigned
+PermissionAlreadyExists
+PermissionNotAssigned
+PermissionNotFound
+RoleAlreadyExists
+RoleInactive
+RoleNotFound
 ```
 
-These contracts remain pre-1.0 alpha APIs.
+RoleBinding and Subject assignment are intentionally absent until `0.1.0b2`.
+
+## 0.1.0a2
+
+Alpha Tenancy API is available from `pyiamkit.tenancy`.
 
 ## 0.1.0a1
 
-Root-level stable-for-this-alpha symbol:
-
-```python
-pyiamkit.__version__
-```
-
-Alpha Identity API from `pyiamkit.identity`:
-
-```text
-Identity
-IdentityId
-IdentityType
-IdentityStatus
-User
-ServiceAccount
-EmailAddress
-IdentityApplicationService
-IdentityRepository
-IdentityError
-IdentityNotFound
-InvalidIdentityTransition
-InvalidDisplayName
-InvalidEmailAddress
-InvalidServiceAccount
-InvalidExternalIdentity
-ExternalIdentityAlreadyLinked
-ExternalIdentityLinkNotFound
-```
+Alpha Identity API is available from `pyiamkit.identity`.
 
 ## 0.0.1
 

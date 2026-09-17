@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Pre-Alpha (`0.1.0a2`) — not yet recommended for production use.
+> **Status:** Beta foundation (`0.1.0b1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -18,7 +18,7 @@ PyIAMKit is being designed around a small set of security principles:
 
 ## Current milestone
 
-`0.1.0a2` introduces **Tenancy / Membership**. An Identity remains global while access to a Tenant requires an explicit active Membership. `TenantContext`, `TenantScope` and `TenantIsolationGuard` establish the first concrete cross-tenant security boundary.
+`0.1.0b1` introduces **Roles & Permissions**. Permissions use stable capability codes such as `invoice.read`; roles group those capabilities and may be global or tenant-scoped. No role grants access yet: subject assignment is deliberately deferred to `RoleBinding` in `0.1.0b2`.
 
 ## Quickstart
 
@@ -33,21 +33,23 @@ python -m pip install build mypy pytest pytest-cov ruff
 make check
 ```
 
-See `examples/02_basic_identity.py` and `examples/03_tenancy_membership.py` for executable examples.
+See the executable examples under `examples/`.
 
 ## Architecture
 
 ```text
-Applications
-    ↓
-Application Services
-    ↓
-Domain Aggregates
-    ↓
-Ports
-    ↓
-Adapters
+Identity
+  ↓
+Membership
+  ↓
+Tenant
+
+Role
+  ↓ contains
+Permission
 ```
+
+The connection between a Subject and a Role is intentionally not introduced until `0.1.0b2`.
 
 The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
 
