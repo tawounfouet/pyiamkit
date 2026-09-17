@@ -6,6 +6,22 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.2.0b1] - 2026-09-17
+
+### Added
+
+- Restrictive runtime authorization constraints evaluated after RBAC permission resolution.
+- Framework-neutral `ResourceDescriptor` for tenant-bound protected-resource context.
+- `NumericMaximumConstraint` and `ResourceAttributeEqualsConstraint` built-in rules.
+- Static Separation of Duties through `MutuallyExclusiveRolesRule`.
+- Dynamic Separation of Duties through `DistinctActorSoDRule` for maker-checker style workflows.
+- Static SoD enforcement before RoleBinding persistence, including inherited effective Roles.
+- Runtime defensive static-SoD validation and dynamic SoD checks.
+- Fail-closed behavior when required governance context is missing or malformed.
+- `matched_rule_id` provenance and structured governance denial reason codes.
+- Constraint and SoD repository ports with InMemory reference adapters.
+- `AccessGovernanceApplicationService`, evaluator services, conformance tests and architecture documentation.
+
 ## [0.2.0a2] - 2026-09-17
 
 ### Added
