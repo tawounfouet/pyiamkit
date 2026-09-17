@@ -31,9 +31,9 @@ from .common import (
     decimal_from_db,
     optional_utc_from_db,
     optional_uuid_from_db,
+    upsert,
     utc_from_db,
     uuid_from_db,
-    upsert,
 )
 from .schema import (
     constraint_table,
@@ -231,7 +231,10 @@ class SqlAlchemyRoleBindingRepository:
                 role_binding_table.c.tenant_id == tenant_id.value,
                 role_binding_table.c.status == RoleBindingStatus.ACTIVE.value,
                 role_binding_table.c.valid_from <= at,
-                or_(role_binding_table.c.valid_until.is_(None), role_binding_table.c.valid_until > at),
+                or_(
+                    role_binding_table.c.valid_until.is_(None),
+                    role_binding_table.c.valid_until > at,
+                ),
             )
             .order_by(role_binding_table.c.created_at, role_binding_table.c.id)
         ).mappings().all()
