@@ -6,6 +6,17 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.1.0b2] - 2026-09-17
+
+### Added
+
+- `RoleBinding` aggregate connecting an Identity to a Role in an explicit TenantScope.
+- Binding lifecycle with suspension, reactivation, revocation and temporal validity.
+- Validation of active Identity, Tenant and Membership before role assignment.
+- Tenant-bound role compatibility and direct-assignability enforcement.
+- Tenant-partitioned RoleBinding repository port and InMemory adapter.
+- Cross-tenant and duplicate-binding security tests.
+
 ## [0.1.0b1] - 2026-09-17
 
 ### Added
