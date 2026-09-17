@@ -36,9 +36,11 @@ class SqlAlchemyTenantRepository:
         self._session = session
 
     def get(self, tenant_id: TenantId) -> Tenant | None:
-        row = self._session.execute(
-            select(tenant_table).where(tenant_table.c.id == tenant_id.value)
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(select(tenant_table).where(tenant_table.c.id == tenant_id.value))
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else _tenant_from_row(row)
 
     def save(self, tenant: Tenant) -> None:
@@ -59,9 +61,13 @@ class SqlAlchemyTenantRepository:
         )
 
     def find_by_slug(self, slug: str) -> Tenant | None:
-        row = self._session.execute(
-            select(tenant_table).where(tenant_table.c.slug == slug.strip().lower())
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(
+                select(tenant_table).where(tenant_table.c.slug == slug.strip().lower())
+            )
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else _tenant_from_row(row)
 
 
@@ -72,9 +78,13 @@ class SqlAlchemyMembershipRepository:
         self._session = session
 
     def get(self, membership_id: MembershipId) -> Membership | None:
-        row = self._session.execute(
-            select(membership_table).where(membership_table.c.id == membership_id.value)
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(
+                select(membership_table).where(membership_table.c.id == membership_id.value)
+            )
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else _membership_from_row(row)
 
     def save(self, membership: Membership) -> None:
@@ -100,12 +110,16 @@ class SqlAlchemyMembershipRepository:
         )
 
     def find(self, identity_id: IdentityId, tenant_id: TenantId) -> Membership | None:
-        row = self._session.execute(
-            select(membership_table).where(
-                membership_table.c.identity_id == identity_id.value,
-                membership_table.c.tenant_id == tenant_id.value,
+        row = (
+            self._session.execute(
+                select(membership_table).where(
+                    membership_table.c.identity_id == identity_id.value,
+                    membership_table.c.tenant_id == tenant_id.value,
+                )
             )
-        ).mappings().one_or_none()
+            .mappings()
+            .one_or_none()
+        )
         return None if row is None else _membership_from_row(row)
 
     def find_active(
