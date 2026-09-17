@@ -2,6 +2,37 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.3.0a1
+
+Adds optional SQLAlchemy persistence adapters from `pyiamkit.persistence.sqlalchemy`:
+
+```text
+SqlAlchemyAuditRepository
+SqlAlchemyConstraintRepository
+SqlAlchemyIdentityRepository
+SqlAlchemyMembershipRepository
+SqlAlchemyPermissionCatalogRepository
+SqlAlchemyRoleBindingRepository
+SqlAlchemyRoleRepository
+SqlAlchemySoDRuleRepository
+SqlAlchemyTenantRepository
+create_schema()
+create_session_factory()
+create_sqlalchemy_engine()
+drop_schema()
+```
+
+Installation extras:
+
+```text
+pyiamkit[sqlalchemy]  # SQLAlchemy adapter, SQLite-compatible
+pyiamkit[postgres]    # SQLAlchemy + psycopg for PostgreSQL
+```
+
+The existing domain repository protocols are unchanged. SQLAlchemy adapters receive an existing `Session`, execute persistence operations and deliberately do not commit. Transaction ownership stays with the host application.
+
+`create_schema()` is an alpha bootstrap/test helper, not a substitute for a production migration workflow. PostgreSQL compatibility is qualified in CI against a live PostgreSQL 16 service.
+
 ## 0.2.0b2
 
 Adds the append-only audit bounded context from `pyiamkit.audit`:
