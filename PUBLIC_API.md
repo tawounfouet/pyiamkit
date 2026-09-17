@@ -2,6 +2,31 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.2.0a2
+
+Adds hierarchical RBAC contracts from `pyiamkit.authorization`:
+
+```text
+RoleHierarchyApplicationService
+RoleHierarchyResolver
+RoleHierarchyError
+RoleHierarchyCycle
+RoleHierarchyDepthExceeded
+RoleHierarchyTenantMismatch
+RoleHierarchyUnavailable
+```
+
+`Role` now exposes `parent_role_ids`, and authorization decisions distinguish:
+
+```text
+bound_role_id   # Role referenced by the effective RoleBinding
+matched_role_id # Role that actually contributes the matching Permission
+```
+
+`AuthorizationReason` adds direct distinction for inherited authorization and invalid hierarchy conditions.
+
+The hierarchy remains tenant-safe: a tenant Role may inherit a global Role, but a global Role cannot inherit a tenant Role and Roles from different tenants cannot be linked.
+
 ## 0.2.0a1
 
 Adds the first runtime authorization API from `pyiamkit.authorization`:
@@ -23,8 +48,6 @@ AuthorizationEngine.can()
 AuthorizationEngine.require()
 AuthorizationEngine.explain()
 ```
-
-The engine currently evaluates direct RoleBindings inside an explicit TenantScope. Role hierarchy, policies, SoD and delegation remain outside this milestone.
 
 ## 0.1.0b2
 
