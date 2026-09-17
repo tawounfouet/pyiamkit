@@ -1,5 +1,6 @@
 """In-memory Tenancy adapters."""
 
+from collections.abc import Sequence
 from datetime import datetime
 
 from pyiamkit.identity import IdentityId
@@ -30,10 +31,16 @@ class InMemoryTenantRepository:
 
     @staticmethod
     def _copy(tenant: Tenant) -> Tenant:
-        return Tenant._rehydrate(tenant_id=tenant.id, version=tenant.version,
-            name=tenant.name, slug=tenant.slug, status=tenant.status,
-            created_at=tenant.created_at, updated_at=tenant.updated_at,
-            metadata=tenant.metadata)
+        return Tenant._rehydrate(
+            tenant_id=tenant.id,
+            version=tenant.version,
+            name=tenant.name,
+            slug=tenant.slug,
+            status=tenant.status,
+            created_at=tenant.created_at,
+            updated_at=tenant.updated_at,
+            metadata=tenant.metadata,
+        )
 
 
 class InMemoryMembershipRepository:
@@ -53,8 +60,12 @@ class InMemoryMembershipRepository:
                 return self._copy(membership)
         return None
 
-    def find_active(self, identity_id: IdentityId, tenant_id: TenantId,
-                    at: datetime) -> Membership | None:
+    def find_active(
+        self,
+        identity_id: IdentityId,
+        tenant_id: TenantId,
+        at: datetime,
+    ) -> Membership | None:
         membership = self.find(identity_id, tenant_id)
         if membership is None or not membership.is_active(at=at):
             return None
@@ -62,17 +73,24 @@ class InMemoryMembershipRepository:
 
     @staticmethod
     def _copy(membership: Membership) -> Membership:
-        return Membership._rehydrate(membership_id=membership.id,
-            version=membership.version, identity_id=membership.identity_id,
-            tenant_id=membership.tenant_id, organization_id=membership.organization_id,
-            status=membership.status, source=membership.source,
-            created_at=membership.created_at, updated_at=membership.updated_at,
-            valid_from=membership.valid_from, valid_until=membership.valid_until)
+        return Membership._rehydrate(
+            membership_id=membership.id,
+            version=membership.version,
+            identity_id=membership.identity_id,
+            tenant_id=membership.tenant_id,
+            organization_id=membership.organization_id,
+            status=membership.status,
+            source=membership.source,
+            created_at=membership.created_at,
+            updated_at=membership.updated_at,
+            valid_from=membership.valid_from,
+            valid_until=membership.valid_until,
+        )
 
 
 class InMemoryTenancyEventSink(DomainEventSink):
     def __init__(self) -> None:
         self.events: list[DomainEvent] = []
 
-    def publish(self, events: tuple[DomainEvent, ...]) -> None:
+    def publish(self, events: Sequence[DomainEvent]) -> None:
         self.events.extend(events)

@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Pre-Alpha (`0.1.0a1`) — not yet recommended for production use.
+> **Status:** Pre-Alpha (`0.1.0a2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -18,7 +18,7 @@ PyIAMKit is being designed around a small set of security principles:
 
 ## Current milestone
 
-`0.1.0a1` implements the first real bounded context: **Identity**. It provides User and ServiceAccount identities, an explicit security-sensitive lifecycle, external identity links, domain events and an in-memory repository.
+`0.1.0a2` introduces **Tenancy / Membership**. An Identity remains global while access to a Tenant requires an explicit active Membership. `TenantContext`, `TenantScope` and `TenantIsolationGuard` establish the first concrete cross-tenant security boundary.
 
 ## Quickstart
 
@@ -33,28 +33,7 @@ python -m pip install build mypy pytest pytest-cov ruff
 make check
 ```
 
-```python
-from pyiamkit.identity import IdentityApplicationService
-from pyiamkit.identity.adapters.memory import (
-    InMemoryDomainEventSink,
-    InMemoryIdentityRepository,
-)
-from pyiamkit.shared import SystemClock
-
-service = IdentityApplicationService(
-    repository=InMemoryIdentityRepository(),
-    clock=SystemClock(),
-    event_sink=InMemoryDomainEventSink(),
-)
-
-alice = service.create_user(
-    display_name="Alice",
-    primary_email="alice@example.com",
-)
-alice = service.activate_identity(alice.id)
-
-print(alice.status.value)
-```
+See `examples/02_basic_identity.py` and `examples/03_tenancy_membership.py` for executable examples.
 
 ## Architecture
 

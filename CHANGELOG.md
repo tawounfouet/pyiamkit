@@ -6,6 +6,18 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.1.0a2] - 2026-09-17
+
+### Added
+
+- Tenancy bounded context with Tenant, Membership and Organization models.
+- Explicit Tenant and Membership lifecycle state machines.
+- `TenantContext`, `TenantScope` and `TenantIsolationGuard`.
+- Tenant-aware repository ports and InMemory adapters.
+- Active Identity + Tenant + Membership validation before tenant context resolution.
+- Cross-tenant isolation and repository conformance tests.
+- Shared `DomainEventSink` port for bounded contexts.
+
 ## [0.1.0a1] - 2026-09-17
 
 ### Added
