@@ -20,9 +20,9 @@ from .common import (
     ensure_json_mapping,
     mapping_from_json,
     optional_utc_from_db,
+    upsert,
     utc_from_db,
     uuid_from_db,
-    upsert,
 )
 from .schema import identity_external_link_table, identity_table
 
@@ -145,7 +145,9 @@ def _profile_to_json(profile: User | ServiceAccount) -> dict[str, object]:
         return ensure_json_mapping(
             {
                 "kind": "user",
-                "primary_email": None if profile.primary_email is None else str(profile.primary_email),
+                "primary_email": (
+                    None if profile.primary_email is None else str(profile.primary_email)
+                ),
                 "email_verified": profile.email_verified,
                 "first_name": profile.first_name,
                 "last_name": profile.last_name,
