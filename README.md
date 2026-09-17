@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, and auditability.
 
-> **Status:** Constraints + SoD beta (`0.2.0b1`) — not yet recommended for production use.
+> **Status:** Audit + explainability beta (`0.2.0b2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,42 +10,32 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.2.0b1` adds **restrictive authorization constraints and Separation of Duties** on top of scoped Hierarchical RBAC. RBAC must first prove that the subject has a candidate permission; governance rules can then reduce that candidate authorization to `DENY`, but they never create access on their own.
+`0.2.0b2` adds a dedicated **append-only Audit context** and hardens decision explainability while preserving the existing authorization API.
+
+Every runtime decision now has a stable `AuthorizationDecisionId`. When an `AuditSink` is configured, both `ALLOW` and `DENY` decisions are synchronously projected to a minimal audit record containing identity, tenant, permission, reason and selected IAM references.
+
+Resource attribute payloads are deliberately excluded from authorization audit records:
 
 ```text
-Identity + Tenant + Membership
-          ↓
-RoleBinding + Role Hierarchy
-          ↓
-candidate Permission
-          ↓
-Static SoD
-          ↓
-Dynamic SoD
-          ↓
-Resource Constraints
-          ↓
 AuthorizationDecision
+       ↓
+AuthorizationDecisionAuditRecorder
+       ↓
+AuditSink
+       ↓
+PostgreSQL / SIEM / Kafka / custom adapter
 ```
 
-A framework-neutral `ResourceDescriptor` carries the resource context required by runtime rules:
+Decision explanation now supports two projections:
 
 ```python
-resource = ResourceDescriptor(
-    "payment",
-    "PAY-001",
-    tenant_id,
-    attributes={
-        "amount": "42000",
-        "status": "pending",
-        "prepared_by": str(preparer_id),
-    },
-)
+summary = decision.explanation()
+detailed = decision.explanation(ExplanationLevel.DETAILED)
 ```
 
-Built-in examples now include numeric ceilings, required resource-attribute values, mutually exclusive effective Roles, and maker-checker rules such as `prepared_by != current subject`. Missing required rule context fails closed.
+`SUMMARY` exposes the result and reason without internal graph identifiers. `DETAILED` additionally exposes the diagnostic `explanation_path` and is intended for trusted administrative or debugging surfaces.
 
-Static SoD is checked before a RoleBinding is persisted and includes inherited Roles, preventing a hierarchy from bypassing a mutually exclusive-role rule.
+The existing `engine.explain(request)` API remains available. `engine.describe(request)` directly returns a safe explanation projection.
 
 ## Architecture
 
@@ -54,22 +44,22 @@ AuthorizationRequest
        ↓
 Identity + Tenant + Membership
        ↓
-active RoleBindings + TenantScope
-       ↓
-Role Hierarchy (DAG)
+RoleBinding + Role Hierarchy
        ↓
 candidate Permission
        ↓
-restrictive Governance Rules
-       ├── Static SoD
-       ├── Dynamic SoD
-       └── Resource Constraints
+Constraints + SoD
        ↓
 AuthorizationDecision
-(ALLOW / DENY + reason_code + matched_rule_id + explanation_path)
+       ├── DecisionExplanation
+       │    ├── SUMMARY
+       │    └── DETAILED
+       └── AuthorizationDecisionAuditRecorder
+              ↓
+           AuditSink
 ```
 
-The core remains independent from Django, FastAPI, SQLAlchemy, Redis and external identity providers.
+The audit context is independent from Django, FastAPI, SQLAlchemy, Redis and any specific SIEM or messaging platform.
 
 ## Quickstart
 
