@@ -41,28 +41,40 @@ class SqlAlchemyAuditRepository:
             raise ValueError(f"Audit event {event.id} already exists") from exc
 
     def all(self) -> tuple[AuditEvent, ...]:
-        rows = self._session.execute(
-            select(audit_event_table).order_by(
-                audit_event_table.c.occurred_at,
-                audit_event_table.c.id,
+        rows = (
+            self._session.execute(
+                select(audit_event_table).order_by(
+                    audit_event_table.c.occurred_at,
+                    audit_event_table.c.id,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return tuple(_audit_from_row(row) for row in rows)
 
     def by_correlation_id(self, correlation_id: str) -> tuple[AuditEvent, ...]:
-        rows = self._session.execute(
-            select(audit_event_table)
-            .where(audit_event_table.c.correlation_id == correlation_id)
-            .order_by(audit_event_table.c.occurred_at, audit_event_table.c.id)
-        ).mappings().all()
+        rows = (
+            self._session.execute(
+                select(audit_event_table)
+                .where(audit_event_table.c.correlation_id == correlation_id)
+                .order_by(audit_event_table.c.occurred_at, audit_event_table.c.id)
+            )
+            .mappings()
+            .all()
+        )
         return tuple(_audit_from_row(row) for row in rows)
 
     def by_subject(self, subject_id: str) -> tuple[AuditEvent, ...]:
-        rows = self._session.execute(
-            select(audit_event_table)
-            .where(audit_event_table.c.subject_id == subject_id)
-            .order_by(audit_event_table.c.occurred_at, audit_event_table.c.id)
-        ).mappings().all()
+        rows = (
+            self._session.execute(
+                select(audit_event_table)
+                .where(audit_event_table.c.subject_id == subject_id)
+                .order_by(audit_event_table.c.occurred_at, audit_event_table.c.id)
+            )
+            .mappings()
+            .all()
+        )
         return tuple(_audit_from_row(row) for row in rows)
 
 
@@ -81,8 +93,6 @@ def _audit_from_row(row: RowMapping) -> AuditEvent:
         resource_id=None if row["resource_id"] is None else str(row["resource_id"]),
         outcome=None if outcome_value is None else AuditOutcome(str(outcome_value)),
         reason_code=None if row["reason_code"] is None else str(row["reason_code"]),
-        correlation_id=(
-            None if row["correlation_id"] is None else str(row["correlation_id"])
-        ),
+        correlation_id=(None if row["correlation_id"] is None else str(row["correlation_id"])),
         metadata=mapping_from_json(row["metadata_json"]),
     )
