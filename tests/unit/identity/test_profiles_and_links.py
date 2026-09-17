@@ -2,7 +2,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from pyiamkit.identity import Identity, IdentityId, IdentityType, InvalidServiceAccount
+from pyiamkit.identity import (
+    Identity,
+    IdentityId,
+    IdentityStatus,
+    IdentityType,
+    InvalidServiceAccount,
+)
 from pyiamkit.identity.domain.entities import ServiceAccount
 from pyiamkit.identity.domain.exceptions import (
     ExternalIdentityAlreadyLinked,
@@ -78,7 +84,7 @@ def test_identity_rejects_self_owned_service_account_on_rehydration() -> None:
             identity_id=identity_id,
             version=0,
             identity_type=IdentityType.SERVICE_ACCOUNT,
-            status=identity_status_pending(),
+            status=IdentityStatus.PENDING,
             display_name="Worker",
             profile=profile,
             created_at=NOW,
@@ -90,12 +96,6 @@ def test_identity_rejects_self_owned_service_account_on_rehydration() -> None:
             external_links=(),
             metadata={},
         )
-
-
-def identity_status_pending():
-    from pyiamkit.identity import IdentityStatus
-
-    return IdentityStatus.PENDING
 
 
 def test_external_identity_link_and_unlink() -> None:
