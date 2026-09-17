@@ -1,8 +1,14 @@
 """Minimal post-build smoke test."""
 
+from importlib.metadata import version
+
 import pyiamkit
 
 if __name__ == "__main__":
-    if not pyiamkit.__version__:
-        raise SystemExit("PyIAMKit version is missing")
+    distribution_version = version("pyiamkit")
+    if pyiamkit.__version__ != distribution_version:
+        raise SystemExit(
+            "PyIAMKit runtime/distribution version mismatch: "
+            f"{pyiamkit.__version__} != {distribution_version}"
+        )
     print(f"PyIAMKit {pyiamkit.__version__} import OK")
