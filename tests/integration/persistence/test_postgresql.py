@@ -1,0 +1,140 @@
+import os
+from datetime import UTC, datetime
+
+import pytest
+
+from pyiamkit.authorization import (
+    AuthorizationEngine,
+    AuthorizationReason,
+    AuthorizationRequest,
+    Permission,
+    PermissionCode,
+    Role,
+    RoleBinding,
+    RoleType,
+)
+from pyiamkit.identity import Identity
+from pyiamkit.persistence.sqlalchemy import (
+    SqlAlchemyAuditRepository,
+    SqlAlchemyIdentityRepository,
+    SqlAlchemyMembershipRepository,
+    SqlAlchemyPermissionCatalogRepository,
+    SqlAlchemyRoleBindingRepository,
+    SqlAlchemyRoleRepository,
+    SqlAlchemyTenantRepository,
+    create_schema,
+    create_session_factory,
+    create_sqlalchemy_engine,
+    drop_schema,
+)
+from pyiamkit.shared import Clock
+from pyiamkit.tenancy import Membership, Tenant, TenantScope
+
+NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
+
+
+class FrozenClock(Clock):
+    def now(self) -> datetime:
+        return NOW
+
+
+@pytest.mark.integration
+def test_postgresql_end_to_end_authorization_persistence() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+
+    with factory.begin() as session:
+        identities = SqlAlchemyIdentityRepository(session)
+        tenants = SqlAlchemyTenantRepository(session)
+        memberships = SqlAlchemyMembershipRepository(session)
+        permissions = SqlAlchemyPermissionCatalogRepository(session)
+        roles = SqlAlchemyRoleRepository(session)
+        bindings = SqlAlchemyRoleBindingRepository(session)
+        audit = SqlAlchemyAuditRepository(session)
+
+        identity = Identity.create_user(display_name="Alice", created_at=NOW)
+        identity.pull_events()
+        identity.activate(at=NOW)
+        identity.pull_events()
+        identities.save(identity)
+
+        tenant = Tenant.create(name="ACME", slug="acme", created_at=NOW)
+        tenant.pull_events()
+        tenant.activate(at=NOW)
+        tenant.pull_events()
+        tenants.save(tenant)
+
+        membership = Membership.create(
+            identity_id=identity.id,
+            tenant_id=tenant.id,
+            created_at=NOW,
+        )
+        membership.pull_events()
+        membership.activate(at=NOW)
+        membership.pull_events()
+        memberships.save(membership)
+
+        permission = Permission(PermissionCode("invoice.read"), "Read invoices")
+        permissions.save(permission)
+        role = Role.create(
+            name="Reader",
+            role_type=RoleType.TENANT,
+            tenant_id=tenant.id,
+            created_at=NOW,
+        )
+        role.pull_events()
+        role.add_permission(permission.code, at=NOW)
+        role.pull_events()
+        roles.save(role)
+
+        binding = RoleBinding.create(
+            identity_id=identity.id,
+            role_id=role.id,
+            tenant_id=tenant.id,
+            scope=TenantScope(tenant.id),
+            created_at=NOW,
+        )
+        binding.pull_events()
+        bindings.save(binding)
+
+        engine_service = AuthorizationEngine(
+            identity_repository=identities,
+            tenant_repository=tenants,
+            membership_repository=memberships,
+            permission_repository=permissions,
+            role_repository=roles,
+            binding_repository=bindings,
+            audit_sink=audit,
+            clock=FrozenClock(),
+        )
+        decision = engine_service.authorize(
+            AuthorizationRequest(
+                subject_id=identity.id,
+                tenant_id=tenant.id,
+                permission=permission.code,
+                scope=TenantScope(tenant.id),
+                correlation_id="postgres-e2e",
+            )
+        )
+        assert decision.allowed is True
+        assert decision.reason_code is AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
+
+    with factory() as session:
+        persisted_identity = SqlAlchemyIdentityRepository(session).get(identity.id)
+        persisted_binding = SqlAlchemyRoleBindingRepository(session).get(binding.id)
+        audit_events = SqlAlchemyAuditRepository(session).by_correlation_id("postgres-e2e")
+        assert persisted_identity is not None
+        assert persisted_identity.id == identity.id
+        assert persisted_binding == binding
+        assert len(audit_events) == 1
+        assert audit_events[0].outcome is not None
+        assert audit_events[0].outcome.value == "allow"
+
+    drop_schema(engine)
+    engine.dispose()
