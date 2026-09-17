@@ -329,8 +329,10 @@ class Identity:
         at: datetime,
     ) -> None:
         self._require_utc(at, "at")
+        provider = provider_id.strip()
+        subject = external_subject.strip()
         for index, link in enumerate(self._external_links):
-            if link.provider_id == provider_id.strip() and link.external_subject == external_subject.strip():
+            if link.provider_id == provider and link.external_subject == subject:
                 self._external_links.pop(index)
                 self._touch(at)
                 self._record(
@@ -379,7 +381,7 @@ class Identity:
     def _normalize_display_name(value: str) -> str:
         normalized = value.strip()
         if not 1 <= len(normalized) <= 255:
-            raise InvalidDisplayName
+            raise InvalidDisplayName()
         return normalized
 
     @staticmethod
