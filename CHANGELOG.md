@@ -6,6 +6,18 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.1.0b1] - 2026-09-17
+
+### Added
+
+- Stable permission-code value object using the `resource.action` convention.
+- Immutable Permission catalog entries.
+- Role aggregate with explicit type, status, sensitivity, assignability and optional tenant scope.
+- Strict add/remove permission semantics and domain events.
+- Role and Permission repository ports plus InMemory adapters.
+- Role catalog application service and repository conformance tests.
+- Explicit guarantee that roles contain capabilities but grant nothing before RoleBindings exist.
+
 ## [0.1.0a2] - 2026-09-17
 
 ### Added
