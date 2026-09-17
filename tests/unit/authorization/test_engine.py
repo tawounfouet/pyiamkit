@@ -11,7 +11,6 @@ from pyiamkit.authorization import (
     PermissionCode,
     Role,
     RoleBinding,
-    RoleStatus,
     RoleType,
 )
 from pyiamkit.authorization.adapters import (
