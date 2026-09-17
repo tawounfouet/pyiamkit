@@ -63,6 +63,77 @@ identity_external_link_table = Table(
     Column("linked_at", DateTime(timezone=True), nullable=False),
 )
 
+credential_table = Table(
+    "iam_credentials",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True),
+    Column("version", Integer, nullable=False),
+    Column(
+        "identity_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_identities.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("credential_type", String(32), nullable=False),
+    Column("status", String(32), nullable=False, index=True),
+    Column("reference", String(512), nullable=False, unique=True),
+    Column("fingerprint", String(512)),
+    Column("label", String(255)),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("valid_from", DateTime(timezone=True), nullable=False),
+    Column("valid_until", DateTime(timezone=True)),
+    Column("revoked_at", DateTime(timezone=True)),
+    Column("metadata_json", json_type, nullable=False),
+    CheckConstraint(
+        "valid_until IS NULL OR valid_until > valid_from",
+        name="credential_validity_interval",
+    ),
+)
+Index(
+    "ix_iam_credentials_identity_status",
+    credential_table.c.identity_id,
+    credential_table.c.status,
+)
+
+session_table = Table(
+    "iam_sessions",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True),
+    Column("version", Integer, nullable=False),
+    Column(
+        "identity_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_identities.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("status", String(32), nullable=False, index=True),
+    Column("authentication_method", String(32), nullable=False),
+    Column("assurance_level", String(16), nullable=False),
+    Column("mfa", Boolean, nullable=False),
+    Column("authenticated_at", DateTime(timezone=True), nullable=False),
+    Column("provider_id", String(255)),
+    Column("device_id", String(255)),
+    Column("network_zone", String(255)),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("last_activity_at", DateTime(timezone=True), nullable=False),
+    Column("revoked_at", DateTime(timezone=True)),
+    Column("revocation_reason", Text),
+    CheckConstraint("expires_at > created_at", name="session_expiry_after_creation"),
+)
+Index(
+    "ix_iam_sessions_identity_status",
+    session_table.c.identity_id,
+    session_table.c.status,
+)
+Index(
+    "ix_iam_sessions_identity_expires_at",
+    session_table.c.identity_id,
+    session_table.c.expires_at,
+)
+
 tenant_table = Table(
     "iam_tenants",
     metadata,
