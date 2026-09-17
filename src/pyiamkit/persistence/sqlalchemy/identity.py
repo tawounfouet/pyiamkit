@@ -34,21 +34,29 @@ class SqlAlchemyIdentityRepository:
         self._session = session
 
     def get(self, identity_id: IdentityId) -> Identity | None:
-        row = self._session.execute(
-            select(identity_table).where(identity_table.c.id == identity_id.value)
-        ).mappings().one_or_none()
+        row = (
+            self._session.execute(
+                select(identity_table).where(identity_table.c.id == identity_id.value)
+            )
+            .mappings()
+            .one_or_none()
+        )
         if row is None:
             return None
 
-        links = self._session.execute(
-            select(identity_external_link_table)
-            .where(identity_external_link_table.c.identity_id == identity_id.value)
-            .order_by(
-                identity_external_link_table.c.linked_at,
-                identity_external_link_table.c.provider_id,
-                identity_external_link_table.c.external_subject,
+        links = (
+            self._session.execute(
+                select(identity_external_link_table)
+                .where(identity_external_link_table.c.identity_id == identity_id.value)
+                .order_by(
+                    identity_external_link_table.c.linked_at,
+                    identity_external_link_table.c.provider_id,
+                    identity_external_link_table.c.external_subject,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         identity_type = IdentityType(str(row["identity_type"]))
         profile = _profile_from_json(identity_type, mapping_from_json(row["profile"]))
         return Identity._rehydrate(
