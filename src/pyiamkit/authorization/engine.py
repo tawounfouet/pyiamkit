@@ -2,15 +2,19 @@
 
 from datetime import datetime
 
+from pyiamkit.audit import AuditSink
 from pyiamkit.identity import IdentityRepository, IdentityStatus
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import MembershipRepository, TenantRepository, TenantStatus
 
+from .audit import AuthorizationDecisionAuditRecorder
 from .domain.decision import (
     AuthorizationDecision,
     AuthorizationReason,
     AuthorizationRequest,
     AuthorizationResult,
+    DecisionExplanation,
+    ExplanationLevel,
 )
 from .domain.errors import AuthorizationModelError, RoleHierarchyError
 from .domain.governance import GovernanceRuleId, GovernanceViolation, GovernanceViolationKind
@@ -38,7 +42,7 @@ class AuthorizationDenied(AuthorizationModelError):
 
 
 class AuthorizationEngine:
-    """Evaluate RBAC, hierarchy, constraints and Separation of Duties."""
+    """Evaluate RBAC, hierarchy and governance with optional append-only auditing."""
 
     def __init__(
         self,
@@ -52,6 +56,7 @@ class AuthorizationEngine:
         clock: Clock,
         constraint_repository: ConstraintRepository | None = None,
         sod_repository: SoDRuleRepository | None = None,
+        audit_sink: AuditSink | None = None,
         max_hierarchy_depth: int = 32,
     ) -> None:
         self._identities = identity_repository
@@ -77,6 +82,9 @@ class AuthorizationEngine:
                 sod_repository=sod_repository,
                 max_hierarchy_depth=max_hierarchy_depth,
             )
+        )
+        self._audit = (
+            None if audit_sink is None else AuthorizationDecisionAuditRecorder(audit_sink)
         )
 
     def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
@@ -162,31 +170,33 @@ class AuthorizationEngine:
 
             source = path[-1]
             inherited = len(path) > 1
-            return AuthorizationDecision(
-                result=AuthorizationResult.ALLOW,
-                reason_code=(
-                    AuthorizationReason.ALLOW_INHERITED_ROLE_PERMISSION_MATCH
-                    if inherited
-                    else AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
-                ),
-                subject_id=request.subject_id,
-                tenant_id=request.tenant_id,
-                permission=request.permission,
-                scope=request.scope,
-                evaluated_at=now,
-                bound_role_id=role.id,
-                matched_binding_id=binding.id,
-                matched_role_id=source.id,
-                resource=request.resource,
-                correlation_id=request.correlation_id,
-                explanation_path=(
-                    f"subject:{request.subject_id}",
-                    f"tenant:{request.tenant_id}",
-                    f"binding:{binding.id}",
-                    *(f"role:{item.id}" for item in path),
-                    f"permission:{request.permission}",
-                    AuthorizationResult.ALLOW.value,
-                ),
+            return self._finalize(
+                AuthorizationDecision(
+                    result=AuthorizationResult.ALLOW,
+                    reason_code=(
+                        AuthorizationReason.ALLOW_INHERITED_ROLE_PERMISSION_MATCH
+                        if inherited
+                        else AuthorizationReason.ALLOW_ROLE_PERMISSION_MATCH
+                    ),
+                    subject_id=request.subject_id,
+                    tenant_id=request.tenant_id,
+                    permission=request.permission,
+                    scope=request.scope,
+                    evaluated_at=now,
+                    bound_role_id=role.id,
+                    matched_binding_id=binding.id,
+                    matched_role_id=source.id,
+                    resource=request.resource,
+                    correlation_id=request.correlation_id,
+                    explanation_path=(
+                        f"subject:{request.subject_id}",
+                        f"tenant:{request.tenant_id}",
+                        f"binding:{binding.id}",
+                        *(f"role:{item.id}" for item in path),
+                        f"permission:{request.permission}",
+                        AuthorizationResult.ALLOW.value,
+                    ),
+                )
             )
 
         return self._deny(request, now, AuthorizationReason.DENY_PERMISSION_NOT_GRANTED)
@@ -202,6 +212,14 @@ class AuthorizationEngine:
 
     def explain(self, request: AuthorizationRequest) -> AuthorizationDecision:
         return self.authorize(request)
+
+    def describe(
+        self,
+        request: AuthorizationRequest,
+        *,
+        level: ExplanationLevel = ExplanationLevel.SUMMARY,
+    ) -> DecisionExplanation:
+        return self.authorize(request).explanation(level)
 
     def _evaluate_governance(
         self,
@@ -244,8 +262,8 @@ class AuthorizationEngine:
         }
         return mapping[violation.kind]
 
-    @staticmethod
     def _deny(
+        self,
         request: AuthorizationRequest,
         evaluated_at: datetime,
         reason: AuthorizationReason,
@@ -253,22 +271,29 @@ class AuthorizationEngine:
         matched_rule_id: GovernanceRuleId | None = None,
         explanation: tuple[str, ...] = (),
     ) -> AuthorizationDecision:
-        return AuthorizationDecision(
-            result=AuthorizationResult.DENY,
-            reason_code=reason,
-            subject_id=request.subject_id,
-            tenant_id=request.tenant_id,
-            permission=request.permission,
-            scope=request.scope,
-            evaluated_at=evaluated_at,
-            matched_rule_id=matched_rule_id,
-            resource=request.resource,
-            correlation_id=request.correlation_id,
-            explanation_path=(
-                f"subject:{request.subject_id}",
-                f"tenant:{request.tenant_id}",
-                *explanation,
-                reason.value,
-                AuthorizationResult.DENY.value,
-            ),
+        return self._finalize(
+            AuthorizationDecision(
+                result=AuthorizationResult.DENY,
+                reason_code=reason,
+                subject_id=request.subject_id,
+                tenant_id=request.tenant_id,
+                permission=request.permission,
+                scope=request.scope,
+                evaluated_at=evaluated_at,
+                matched_rule_id=matched_rule_id,
+                resource=request.resource,
+                correlation_id=request.correlation_id,
+                explanation_path=(
+                    f"subject:{request.subject_id}",
+                    f"tenant:{request.tenant_id}",
+                    *explanation,
+                    reason.value,
+                    AuthorizationResult.DENY.value,
+                ),
+            )
         )
+
+    def _finalize(self, decision: AuthorizationDecision) -> AuthorizationDecision:
+        if self._audit is not None:
+            self._audit.record(decision)
+        return decision

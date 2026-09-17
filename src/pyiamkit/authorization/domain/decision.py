@@ -1,15 +1,20 @@
-"""Runtime authorization request and decision value objects."""
+"""Runtime authorization request, decision and explanation value objects."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
 from pyiamkit.identity import IdentityId
+from pyiamkit.shared import EntityId
 from pyiamkit.tenancy import TenantId, TenantScope
 
 from .binding_value_objects import RoleBindingId
 from .governance import GovernanceRuleId, ResourceDescriptor
 from .value_objects import PermissionCode, RoleId
+
+
+class AuthorizationDecisionId(EntityId):
+    """Stable identifier used to correlate a decision with its audit record."""
 
 
 class AuthorizationResult(StrEnum):
@@ -39,6 +44,20 @@ class AuthorizationReason(StrEnum):
     DENY_TENANT_NOT_FOUND = "DENY_TENANT_NOT_FOUND"
 
 
+class ExplanationLevel(StrEnum):
+    SUMMARY = "summary"
+    DETAILED = "detailed"
+
+
+@dataclass(frozen=True, slots=True)
+class DecisionExplanation:
+    decision_id: AuthorizationDecisionId
+    allowed: bool
+    reason_code: AuthorizationReason
+    summary: str
+    details: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True, slots=True)
 class AuthorizationRequest:
     """Scoped RBAC request with optional protected-resource context."""
@@ -59,7 +78,7 @@ class AuthorizationRequest:
 
 @dataclass(frozen=True, slots=True)
 class AuthorizationDecision:
-    """Deterministic and explainable runtime authorization decision."""
+    """Deterministic authorization result with safe and detailed explanation projections."""
 
     result: AuthorizationResult
     reason_code: AuthorizationReason
@@ -68,6 +87,7 @@ class AuthorizationDecision:
     permission: PermissionCode
     scope: TenantScope
     evaluated_at: datetime
+    id: AuthorizationDecisionId = field(default_factory=AuthorizationDecisionId.new)
     bound_role_id: RoleId | None = None
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
@@ -79,3 +99,17 @@ class AuthorizationDecision:
     @property
     def allowed(self) -> bool:
         return self.result is AuthorizationResult.ALLOW
+
+    def explanation(
+        self,
+        level: ExplanationLevel = ExplanationLevel.SUMMARY,
+    ) -> DecisionExplanation:
+        summary = "Access allowed." if self.allowed else "Access denied."
+        details = self.explanation_path if level is ExplanationLevel.DETAILED else ()
+        return DecisionExplanation(
+            decision_id=self.id,
+            allowed=self.allowed,
+            reason_code=self.reason_code,
+            summary=summary,
+            details=details,
+        )
