@@ -2,17 +2,19 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pyiamkit.identity import IdentityApplicationService, IdentityStatus
+from pyiamkit.identity import IdentityApplicationService, IdentityId, IdentityStatus
 from pyiamkit.identity.adapters.memory import (
     InMemoryDomainEventSink,
     InMemoryIdentityRepository,
 )
 from pyiamkit.provisioning import (
     ProvisioningConflict,
+    ProvisioningManagedStateConflict,
     ProvisioningPreconditionFailed,
     ProvisioningResourceId,
     ProvisioningResourceNotFound,
     ProvisioningSource,
+    ProvisioningUser,
     ScimEmail,
     ScimName,
     ScimPatchOperation,
@@ -22,7 +24,7 @@ from pyiamkit.provisioning import (
     UnsupportedScimPatch,
 )
 from pyiamkit.provisioning.adapters import InMemoryProvisioningUserRepository
-from pyiamkit.tenancy import MembershipStatus, TenancyApplicationService
+from pyiamkit.tenancy import MembershipId, MembershipStatus, TenancyApplicationService
 from pyiamkit.tenancy.adapters import (
     InMemoryMembershipRepository,
     InMemoryTenantRepository,
@@ -282,3 +284,146 @@ def test_list_users_uses_scim_one_based_pagination() -> None:
     assert page.start_index == 2
     assert page.items_per_page == 1
     assert page.resources[0].user.user_name == "b@example.com"
+
+
+
+def test_provisioning_source_and_lookup_helpers_cover_optional_paths() -> None:
+    _, service, _, _, _, tenant = _stack()
+
+    assert service.find_by_external_id("missing") is None
+    assert service.find_by_user_name("missing@example.com") is None
+
+    created = service.create_user(_user())
+    assert service.find_by_external_id("ext-42") == created
+    assert service.find_by_user_name("ALICE@EXAMPLE.COM") == created
+
+    blank_base = ProvisioningSource(
+        source_id=" source ",
+        tenant_id=tenant.id,
+        base_url="   ",
+    )
+    assert blank_base.source_id == "source"
+    assert blank_base.base_url is None
+
+    with pytest.raises(ValueError, match="source_id"):
+        ProvisioningSource(source_id="   ", tenant_id=tenant.id)
+
+
+def test_list_users_rejects_invalid_scim_pagination() -> None:
+    _, service, _, _, _, _ = _stack()
+
+    with pytest.raises(ValueError, match="startIndex"):
+        service.list_users(start_index=0)
+    with pytest.raises(ValueError, match="count"):
+        service.list_users(count=-1)
+
+
+def test_if_match_wildcard_allows_existing_resource_update() -> None:
+    _, service, _, _, _, _ = _stack()
+    created = service.create_user(_user())
+
+    replaced = service.replace_user(
+        ProvisioningResourceId.parse(created.id),
+        _user(display_name="Wildcard Update"),
+        if_match="*",
+    )
+
+    assert replaced.user.display_name == "Wildcard Update"
+
+
+def test_locally_revoked_membership_is_not_silently_reactivated() -> None:
+    _, service, _, memberships, resources, _ = _stack()
+    created = service.create_user(_user())
+    resource = resources.get(ProvisioningResourceId.parse(created.id))
+    assert resource is not None
+    membership = memberships.get(resource.membership_id)
+    assert membership is not None
+
+    membership.revoke(at=NOW)
+    membership.pull_events()
+    memberships.save(membership)
+
+    with pytest.raises(ProvisioningManagedStateConflict, match="reactivate"):
+        service.replace_user(
+            resource.id,
+            _user(active=True),
+            if_match=created.meta.version,
+        )
+
+
+def test_missing_managed_membership_fails_closed() -> None:
+    _, service, _, _, resources, tenant = _stack()
+    created = service.create_user(_user())
+    resource = resources.get(ProvisioningResourceId.parse(created.id))
+    assert resource is not None
+
+    broken = ProvisioningUser._rehydrate(
+        resource_id=resource.id,
+        version=resource.version,
+        source_id=resource.source_id,
+        identity_id=resource.identity_id,
+        tenant_id=tenant.id,
+        membership_id=MembershipId.new(),
+        user_name=resource.user_name,
+        active=resource.active,
+        status=resource.status,
+        created_at=resource.created_at,
+        updated_at=resource.updated_at,
+        external_id=resource.external_id,
+        deleted_at=resource.deleted_at,
+    )
+    resources.save(broken)
+
+    with pytest.raises(ProvisioningManagedStateConflict, match="Membership"):
+        service.replace_user(
+            broken.id,
+            _user(display_name="Should Fail"),
+            if_match=broken.etag,
+        )
+
+
+def test_resource_from_another_source_is_hidden_as_not_found() -> None:
+    _, service, identities, memberships, resources, tenant = _stack()
+    created = service.create_user(_user())
+    original = resources.get(ProvisioningResourceId.parse(created.id))
+    assert original is not None
+    assert identities.get(original.identity_id) is not None
+    assert memberships.get(original.membership_id) is not None
+
+    foreign = ProvisioningUser.create(
+        source_id="another-source",
+        identity_id=original.identity_id,
+        tenant_id=tenant.id,
+        membership_id=original.membership_id,
+        user_name="foreign@example.com",
+        external_id="foreign-1",
+        active=True,
+        created_at=NOW,
+    )
+    resources.save(foreign)
+
+    with pytest.raises(ProvisioningResourceNotFound):
+        service.get_user(foreign.id)
+
+
+def test_missing_managed_identity_fails_closed_during_render() -> None:
+    _, service, _, memberships, resources, tenant = _stack()
+    created = service.create_user(_user())
+    original = resources.get(ProvisioningResourceId.parse(created.id))
+    assert original is not None
+    assert memberships.get(original.membership_id) is not None
+
+    orphan = ProvisioningUser.create(
+        source_id="entra-scim",
+        identity_id=IdentityId.new(),
+        tenant_id=tenant.id,
+        membership_id=original.membership_id,
+        user_name="orphan@example.com",
+        external_id="orphan-1",
+        active=True,
+        created_at=NOW,
+    )
+    resources.save(orphan)
+
+    with pytest.raises(ProvisioningManagedStateConflict, match="Identity"):
+        service.get_user(orphan.id)
