@@ -141,8 +141,7 @@ def test_create_group_renders_managed_user_members_without_changing_membership_s
     assert created.group.external_id == "group-42"
     assert {member.value for member in created.group.members} == {alice.id, bob.id}
     assert all(
-        member.ref is not None and "/Users/" in member.ref
-        for member in created.group.members
+        member.ref is not None and "/Users/" in member.ref for member in created.group.members
     )
     persisted_alice_membership = memberships.get(alice_mapping.membership_id)
     persisted_bob_membership = memberships.get(bob_mapping.membership_id)
@@ -178,13 +177,9 @@ def test_group_uniqueness_is_source_scoped_for_display_name_and_external_id() ->
     service.create_group(ScimGroupInput(display_name="Data Team", external_id="group-1"))
 
     with pytest.raises(ProvisioningConflict, match="displayName"):
-        service.create_group(
-            ScimGroupInput(display_name="data team", external_id="group-2")
-        )
+        service.create_group(ScimGroupInput(display_name="data team", external_id="group-2"))
     with pytest.raises(ProvisioningConflict, match="externalId"):
-        service.create_group(
-            ScimGroupInput(display_name="Other Team", external_id="group-1")
-        )
+        service.create_group(ScimGroupInput(display_name="Other Team", external_id="group-1"))
 
 
 def test_group_replace_and_patch_cover_members_etag_and_okta_pathless_replace() -> None:
