@@ -531,14 +531,16 @@ def test_discovery_rejects_invalid_cache_ttl_and_naive_clock() -> None:
     ],
 )
 def test_jwks_resolver_rejects_invalid_configuration(kwargs: dict[str, object]) -> None:
+    options: dict[str, object] = {
+        "jwks_uri": JWKS_URI,
+        "transport": FakeTransport({JWKS_URI: [{"keys": []}]}),
+        "clock": FrozenClock(NOW),
+        "algorithm": "RS256",
+    }
+    options.update(kwargs)
+
     with pytest.raises(OidcJwksError):
-        JwksKeyResolver(
-            jwks_uri=JWKS_URI,
-            transport=FakeTransport({JWKS_URI: [{"keys": []}]}),
-            clock=FrozenClock(NOW),
-            algorithm="RS256",
-            **kwargs,
-        )
+        JwksKeyResolver(**options)
 
 
 def test_jwks_resolver_requires_nonempty_kid() -> None:
