@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** OIDC Discovery/JWKS alpha (`0.4.0a2`) — not yet recommended for production use.
+> **Status:** MFA step-up beta (`0.4.0b1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,58 +10,39 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0a2` adds **OIDC Discovery and remote JWKS rotation** on top of the
-federation core introduced in `0.4.0a1`.
+`0.4.0b1` adds **TOTP MFA enrollment and Session step-up** without storing raw OTP secrets in the IAM database.
 
 ```text
-configured issuer
+active Identity
       ↓
-OidcDiscoveryClient
+begin TOTP enrollment
       ↓
-.well-known/openid-configuration
-      ├── exact issuer match
-      ├── HTTPS endpoints
-      ├── jwks_uri
-      └── advertised ID Token algorithms
+external MfaSecretStore
+      ├── raw secret
+      └── provisioning URI
       ↓
-JwksKeyResolver
-      ├── public signing keys only
-      ├── TTL cache
-      ├── kid lookup
-      └── bounded refresh on unknown kid
+MfaFactor(PENDING)
       ↓
-DiscoveredOidcIdTokenVerifier
+first valid code
       ↓
-StaticOidcIdTokenVerifier
+MfaFactor(ACTIVE)
       ↓
-FederatedIdentityClaims
+AAL1 Session
+      +
+valid unused TOTP
+      ↓
+Session.step_up()
+      ↓
+AAL2 + mfa=true
+      ↓
+reissue access JWT
 ```
 
-The configured signing algorithm still comes from trusted application
-configuration. Discovery only confirms that the provider advertises it; neither
-metadata nor the ID Token header can silently change the verification
-algorithm.
+The persisted MFA factor stores only an opaque `secret_reference`. The PyOTP adapter resolves the secret through an injected store.
 
-```python
-from pyiamkit.authentication.adapters.oidc_discovery import (
-    DiscoveredOidcIdTokenVerifier,
-    HttpxOidcTransport,
-)
+A successful TOTP counter is recorded and cannot be replayed. TOTP step-up raises local assurance to **AAL2**, not AAL3.
 
-with HttpxOidcTransport() as transport:
-    verifier = DiscoveredOidcIdTokenVerifier(
-        provider_id="entra-prod",
-        issuer="https://login.example.com/tenant/v2.0",
-        client_id="pyiamkit-client",
-        algorithm="RS256",
-        transport=transport,
-        clock=clock,
-    )
-```
-
-Discovery metadata and JWKS are cached separately. A new `kid` can trigger a
-controlled JWKS refresh after a cooldown, reducing attacker-driven network
-amplification while still supporting key rotation.
+Because JWT verification cross-checks durable Session assurance, an access token issued before step-up becomes invalid immediately after the Session changes from AAL1/MFA=false to AAL2/MFA=true. The application then issues a fresh token.
 
 ## Installation
 
@@ -101,6 +82,12 @@ OIDC Discovery + remote JWKS:
 
 ```bash
 python -m pip install -e ".[oidc-http]"
+```
+
+TOTP MFA:
+
+```bash
+python -m pip install -e ".[mfa]"
 ```
 
 FastAPI integration:
@@ -156,19 +143,18 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## OIDC Discovery/JWKS guarantees in 0.4.0a2
+## MFA step-up guarantees in 0.4.0b1
 
-- configured issuer remains the trust anchor;
-- discovered issuer must match it exactly;
-- remote OIDC endpoints must use HTTPS;
-- provider metadata must advertise the configured ID Token algorithm;
-- JWKS accepts public signing keys only;
-- symmetric and private key material is rejected;
-- `kid` is mandatory for discovered-key verification;
-- metadata and JWKS have independent TTL caches;
-- unknown-key refresh is rate-limited by a configurable cooldown;
-- token claims continue to be validated by the existing OIDC verifier;
-- network transport stays outside the Authentication core.
+- TOTP secret material is kept behind `MfaSecretStore`;
+- database persistence stores only opaque secret references;
+- factors require first-code confirmation before becoming active;
+- accepted TOTP counters cannot be replayed;
+- factor/session Identity ownership is enforced;
+- revoked factors cannot be used for step-up;
+- TOTP elevates a Session to AAL2 at most;
+- local MFA verification time and factor ID are persisted;
+- stale pre-step-up JWTs fail the existing Session-state cross-check;
+- PyOTP remains optional and outside the Authentication core.
 
 ## Roadmap
 
@@ -188,7 +174,7 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.3.0b2    FastAPI integration
 0.4.0a1    OIDC federation core + static-key ID Token verification
 0.4.0a2    OIDC Discovery / JWKS cache and rotation
-0.4.0b1    MFA enrollment / step-up
+0.4.0b1    MFA enrollment / TOTP step-up
 0.4.x      Django, SCIM and provider integrations
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
