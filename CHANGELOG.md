@@ -6,6 +6,32 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b1] - 2026-09-18
+
+### Added
+
+- Persistent `MfaFactor` aggregate with pending, active and revoked lifecycle states.
+- TOTP MFA enrollment using opaque secret references rather than raw secret persistence.
+- `MfaApplicationService` for enrollment, first-code confirmation, verification, revocation and Session step-up.
+- `MfaSecretStore` and `TotpProvider` ports for external secret-management integration.
+- Optional `pyiamkit[mfa]` extra backed by PyOTP 2.10.x.
+- Reference `PyOtpTotpProvider` and InMemory secret-store adapter for tests/examples.
+- TOTP replay prevention through persisted last accepted counter.
+- Session assurance step-up from AAL1 to AAL2 after a valid local TOTP factor.
+- `mfa_verified_at` and `mfa_factor_id` Session authentication context.
+- SQLAlchemy/SQLite/PostgreSQL persistence for MFA factors and stepped-up Sessions.
+- Tests proving that an existing AAL1 JWT becomes invalid after Session step-up and a newly issued JWT carries AAL2 + MFA.
+
+### Security
+
+- Raw TOTP secrets are never persisted in `iam_mfa_factors`; only opaque secret references are stored.
+- Pending factors cannot authenticate until a first valid TOTP code confirms enrollment.
+- A TOTP counter accepted once cannot be accepted again for the same factor.
+- A factor cannot step up a Session owned by another Identity.
+- Revoked factors fail closed and their referenced secret is deleted through the configured secret-store adapter.
+- TOTP step-up raises local Session assurance to AAL2 only; AAL3 remains reserved for stronger phishing-resistant mechanisms.
+- Step-up mutates durable Session authentication state, so previously issued JWTs with stale AAL/MFA claims fail Session cross-checks.
+
 ## [0.4.0a2] - 2026-09-18
 
 ### Added
