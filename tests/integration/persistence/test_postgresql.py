@@ -1,8 +1,16 @@
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from pyiamkit.authentication import (
+    AssuranceLevel,
+    AuthenticationContext,
+    AuthenticationMethod,
+    Credential,
+    CredentialType,
+    Session,
+)
 from pyiamkit.authorization import (
     AuthorizationEngine,
     AuthorizationReason,
@@ -16,11 +24,13 @@ from pyiamkit.authorization import (
 from pyiamkit.identity import Identity
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
+    SqlAlchemyCredentialRepository,
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
     SqlAlchemyPermissionCatalogRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
+    SqlAlchemySessionRepository,
     SqlAlchemyTenantRepository,
     create_schema,
     create_session_factory,
@@ -51,6 +61,8 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
 
     with factory.begin() as session:
         identities = SqlAlchemyIdentityRepository(session)
+        credentials = SqlAlchemyCredentialRepository(session)
+        sessions = SqlAlchemySessionRepository(session)
         tenants = SqlAlchemyTenantRepository(session)
         memberships = SqlAlchemyMembershipRepository(session)
         permissions = SqlAlchemyPermissionCatalogRepository(session)
@@ -63,6 +75,31 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         identity.activate(at=NOW)
         identity.pull_events()
         identities.save(identity)
+
+        credential = Credential.create(
+            identity_id=identity.id,
+            credential_type=CredentialType.PASSKEY,
+            reference="vault://credentials/alice-passkey",
+            fingerprint="sha256:postgres",
+            created_at=NOW,
+        )
+        credential.pull_events()
+        credentials.save(credential)
+
+        auth_session = Session.open(
+            identity_id=identity.id,
+            context=AuthenticationContext(
+                method=AuthenticationMethod.PASSKEY,
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=True,
+                authenticated_at=NOW,
+                device_id="postgres-ci",
+            ),
+            created_at=NOW,
+            expires_at=NOW + timedelta(hours=8),
+        )
+        auth_session.pull_events()
+        sessions.save(auth_session)
 
         tenant = Tenant.create(name="ACME", slug="acme", created_at=NOW)
         tenant.pull_events()
@@ -127,10 +164,17 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
 
     with factory() as session:
         persisted_identity = SqlAlchemyIdentityRepository(session).get(identity.id)
+        persisted_credential = SqlAlchemyCredentialRepository(session).get(credential.id)
+        persisted_session = SqlAlchemySessionRepository(session).get(auth_session.id)
         persisted_binding = SqlAlchemyRoleBindingRepository(session).get(binding.id)
         audit_events = SqlAlchemyAuditRepository(session).by_correlation_id("postgres-e2e")
         assert persisted_identity is not None
         assert persisted_identity.id == identity.id
+        assert persisted_credential == credential
+        assert persisted_session == auth_session
+        assert persisted_session is not None
+        assert persisted_session.context.assurance_level is AssuranceLevel.AAL2
+        assert persisted_session.context.mfa is True
         assert persisted_binding == binding
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None

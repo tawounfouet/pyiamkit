@@ -2,6 +2,55 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.3.0a2
+
+Adds the framework-neutral Authentication bounded context from `pyiamkit.authentication`:
+
+```text
+AssuranceLevel
+AuthenticationApplicationService
+AuthenticationContext
+AuthenticationError
+AuthenticationMethod
+AuthenticationSubjectInactive
+Credential
+CredentialAlreadyExists
+CredentialId
+CredentialNotFound
+CredentialRepository
+CredentialStatus
+CredentialType
+InvalidCredential
+InvalidCredentialTransition
+InvalidSession
+InvalidSessionTransition
+Session
+SessionId
+SessionNotFound
+SessionRepository
+SessionStatus
+```
+
+Reference InMemory adapters are available from `pyiamkit.authentication.adapters`:
+
+```text
+InMemoryCredentialRepository
+InMemorySessionRepository
+```
+
+Optional SQLAlchemy persistence adds:
+
+```text
+SqlAlchemyCredentialRepository
+SqlAlchemySessionRepository
+```
+
+`Credential.reference` is an opaque pointer to externally protected secret material. It is not the password, API key, client secret or other raw credential. PyIAMKit does not expose an API for storing raw authentication secrets in the Credential aggregate.
+
+`AuthenticationContext` records how authentication was established and the resulting assurance level independently of token format. JWT issuance/verification remains deferred to `0.3.0b1`.
+
+Session and Credential repositories preserve caller-owned transaction semantics and never commit the host application's SQLAlchemy transaction.
+
 ## 0.3.0a1
 
 Adds optional SQLAlchemy persistence adapters from `pyiamkit.persistence.sqlalchemy`:

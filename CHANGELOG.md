@@ -6,6 +6,30 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.3.0a2] - 2026-09-18
+
+### Added
+
+- Dedicated `pyiamkit.authentication` bounded context for credential and authenticated-session lifecycle.
+- `Credential` aggregate with opaque secret references, fingerprints, validity windows, revocation and expiration.
+- `Session` aggregate with explicit expiration, last-activity tracking, revocation reason and authentication context.
+- `AuthenticationContext` carrying authentication method, assurance level, MFA state, provider, device and network-zone metadata.
+- Authentication methods for password, API key, certificate, passkey, OIDC, SAML and external providers.
+- Assurance levels `AAL1`, `AAL2` and `AAL3` as framework-neutral authorization context.
+- `AuthenticationApplicationService` enforcing active-Identity prerequisites, duplicate-reference rejection and bulk session revocation.
+- InMemory Credential and Session repository reference adapters.
+- SQLAlchemy Credential and Session repositories with portable SQLite/PostgreSQL schema.
+- SQL constraints for credential/session validity windows and foreign-key ownership by Identity.
+- Live PostgreSQL persistence coverage for Credential and Session round-trips in the end-to-end authorization scenario.
+- Runtime/package version coherence check in the post-build smoke test.
+
+### Security
+
+- Credential persistence stores only opaque references and optional fingerprints; raw passwords, API keys, client secrets and equivalent secret material are explicitly out of scope.
+- Session persistence stores authentication context and lifecycle state but no bearer token material.
+- Credential/session revocation is irreversible at the aggregate level.
+- Expired credentials and sessions are excluded from active repository queries.
+
 ## [0.3.0a1] - 2026-09-17
 
 ### Added
