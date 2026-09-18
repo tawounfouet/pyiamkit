@@ -60,18 +60,12 @@ class OidcProviderMetadata:
         _require_https_url(self.jwks_uri, name="jwks_uri", allow_query=True)
 
         algorithms = tuple(
-            algorithm.strip()
-            for algorithm in self.id_token_signing_algorithms
-            if algorithm.strip()
+            algorithm.strip() for algorithm in self.id_token_signing_algorithms if algorithm.strip()
         )
         if not algorithms:
-            raise OidcDiscoveryError(
-                "id_token_signing_alg_values_supported must not be empty"
-            )
+            raise OidcDiscoveryError("id_token_signing_alg_values_supported must not be empty")
         if len(set(algorithms)) != len(algorithms):
-            raise OidcDiscoveryError(
-                "id_token_signing_alg_values_supported must be unique"
-            )
+            raise OidcDiscoveryError("id_token_signing_alg_values_supported must be unique")
         object.__setattr__(self, "id_token_signing_algorithms", algorithms)
 
         if self.userinfo_endpoint is not None:
@@ -102,9 +96,7 @@ class HttpxOidcTransport:
             raise OidcRemoteError("HTTP timeout must be positive")
         self._owns_client = client is None
         self._client = (
-            httpx.Client(timeout=timeout, follow_redirects=False)
-            if client is None
-            else client
+            httpx.Client(timeout=timeout, follow_redirects=False) if client is None else client
         )
 
     def get_json(self, url: str) -> Mapping[str, object]:
@@ -171,10 +163,7 @@ class OidcDiscoveryClient:
             if cached is not None and now < cached[1]:
                 return cached[0]
 
-            discovery_url = (
-                configured_issuer.rstrip("/")
-                + "/.well-known/openid-configuration"
-            )
+            discovery_url = configured_issuer.rstrip("/") + "/.well-known/openid-configuration"
             payload = self._transport.get_json(discovery_url)
             metadata = _metadata_from_payload(
                 payload,
@@ -190,9 +179,7 @@ class OidcDiscoveryClient:
 class JwksKeyResolver:
     """Cache public signing keys and refresh once for an unknown kid."""
 
-    _PRIVATE_OR_SYMMETRIC_FIELDS = frozenset(
-        {"d", "p", "q", "dp", "dq", "qi", "oth", "k"}
-    )
+    _PRIVATE_OR_SYMMETRIC_FIELDS = frozenset({"d", "p", "q", "dp", "dq", "qi", "oth", "k"})
 
     def __init__(
         self,
@@ -210,9 +197,7 @@ class JwksKeyResolver:
         if cache_ttl <= timedelta(0):
             raise OidcJwksError("JWKS cache_ttl must be positive")
         if unknown_kid_refresh_cooldown < timedelta(0):
-            raise OidcJwksError(
-                "unknown_kid_refresh_cooldown must not be negative"
-            )
+            raise OidcJwksError("unknown_kid_refresh_cooldown must not be negative")
 
         self._jwks_uri = jwks_uri.strip()
         self._transport = transport
@@ -285,9 +270,7 @@ class JwksKeyResolver:
             parsed[kid.strip()] = parsed_key
 
         if not parsed:
-            raise OidcJwksError(
-                "JWKS does not contain a usable public signing key"
-            )
+            raise OidcJwksError("JWKS does not contain a usable public signing key")
 
         self._keys = parsed
         self._last_refresh_at = now
@@ -408,9 +391,7 @@ def _metadata_from_payload(
 ) -> OidcProviderMetadata:
     issuer = _required_string(payload, "issuer")
     if issuer != configured_issuer:
-        raise OidcDiscoveryError(
-            "Discovered issuer must exactly match the configured issuer"
-        )
+        raise OidcDiscoveryError("Discovered issuer must exactly match the configured issuer")
 
     algorithms_value = payload.get("id_token_signing_alg_values_supported")
     if not isinstance(algorithms_value, list) or not all(
@@ -419,9 +400,7 @@ def _metadata_from_payload(
         raise OidcDiscoveryError(
             "id_token_signing_alg_values_supported must be an array of strings"
         )
-    algorithms = tuple(
-        item.strip() for item in cast(list[str], algorithms_value) if item.strip()
-    )
+    algorithms = tuple(item.strip() for item in cast(list[str], algorithms_value) if item.strip())
 
     return OidcProviderMetadata(
         issuer=issuer,
@@ -444,9 +423,7 @@ def _token_key_id(token: str, *, expected_algorithm: str) -> str:
 
     header = cast(dict[str, object], raw_header)
     if str(header.get("alg", "")) != expected_algorithm:
-        raise InvalidIdentityToken(
-            "OIDC ID Token algorithm does not match configured algorithm"
-        )
+        raise InvalidIdentityToken("OIDC ID Token algorithm does not match configured algorithm")
     kid = header.get("kid")
     if not isinstance(kid, str) or not kid.strip():
         raise InvalidIdentityToken("OIDC ID Token kid header is required")
@@ -478,9 +455,7 @@ def _require_https_url(
     value = url.strip()
     parsed = urlsplit(value)
     if parsed.scheme != "https" or not parsed.netloc or parsed.fragment:
-        raise OidcDiscoveryError(
-            f"{name} must be an HTTPS URL without a fragment"
-        )
+        raise OidcDiscoveryError(f"{name} must be an HTTPS URL without a fragment")
     if not allow_query and parsed.query:
         raise OidcDiscoveryError(f"{name} must not contain a query string")
 
