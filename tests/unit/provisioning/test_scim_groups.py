@@ -140,7 +140,10 @@ def test_create_group_renders_managed_user_members_without_changing_membership_s
     assert created.group.display_name == "Finance Approvers"
     assert created.group.external_id == "group-42"
     assert {member.value for member in created.group.members} == {alice.id, bob.id}
-    assert all(member.ref is not None and "/Users/" in member.ref for member in created.group.members)
+    assert all(
+        member.ref is not None and "/Users/" in member.ref
+        for member in created.group.members
+    )
     persisted_alice_membership = memberships.get(alice_mapping.membership_id)
     persisted_bob_membership = memberships.get(bob_mapping.membership_id)
     assert persisted_alice_membership is not None
