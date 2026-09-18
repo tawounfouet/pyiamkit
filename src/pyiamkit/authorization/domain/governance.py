@@ -127,9 +127,7 @@ class DistinctActorSoDRule:
 
 
 type AuthorizationConstraint = (
-    NumericMaximumConstraint
-    | ResourceAttributeEqualsConstraint
-    | MinimumAssuranceConstraint
+    NumericMaximumConstraint | ResourceAttributeEqualsConstraint | MinimumAssuranceConstraint
 )
 type SeparationOfDutyRule = MutuallyExclusiveRolesRule | DistinctActorSoDRule
 
