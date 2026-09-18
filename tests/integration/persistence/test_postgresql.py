@@ -28,7 +28,6 @@ from pyiamkit.authorization import (
     RoleType,
 )
 from pyiamkit.identity import Identity
-from pyiamkit.provisioning import ProvisioningUser
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
     SqlAlchemyConstraintRepository,
@@ -47,6 +46,7 @@ from pyiamkit.persistence.sqlalchemy import (
     create_sqlalchemy_engine,
     drop_schema,
 )
+from pyiamkit.provisioning import ProvisioningUser
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import Membership, Tenant, TenantScope
 
