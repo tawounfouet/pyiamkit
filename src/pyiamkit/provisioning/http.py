@@ -16,6 +16,7 @@ from .errors import (
     ProvisioningResourceNotFound,
     UnsupportedScimPatch,
 )
+from .providers import GENERIC_SCIM_PROFILE, ScimProviderProfile
 from .scim import (
     SCIM_LIST_RESPONSE_SCHEMA,
     SCIM_PATCH_SCHEMA,
@@ -35,8 +36,8 @@ SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Ser
 SCIM_RESOURCE_TYPE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
 SCIM_SCHEMA_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
-_FILTER_RE = re.compile(
-    r'^\s*(?P<attribute>userName|externalId)\s+(?P<operator>eq)\s+(?P<value>"(?:\\.|[^"])*")\s*$',
+_FILTER_CLAUSE_RE = re.compile(
+    r"^\\s*(?P<attribute>userName|externalId)\\s+(?P<operator>eq)\\s+(?P<value>.+?)\\s*$",
     re.IGNORECASE,
 )
 
@@ -101,6 +102,11 @@ class ScimUserFilter:
 
 
 @dataclass(frozen=True, slots=True)
+class ScimUserFilterExpression:
+    clauses: tuple[ScimUserFilter, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ScimServiceProviderConfig:
     max_results: int = 200
     documentation_uri: str | None = None
@@ -122,20 +128,32 @@ class ScimServiceProviderConfig:
 
 
 def parse_user_filter(value: str | None) -> ScimUserFilter | None:
+    """Parse the original strict single-clause filter contract."""
+
+    expression = parse_user_filter_expression(value, profile=GENERIC_SCIM_PROFILE)
+    if expression is None:
+        return None
+    return expression.clauses[0]
+
+
+def parse_user_filter_expression(
+    value: str | None,
+    *,
+    profile: ScimProviderProfile = GENERIC_SCIM_PROFILE,
+) -> ScimUserFilterExpression | None:
     if value is None or not value.strip():
         return None
-    match = _FILTER_RE.fullmatch(value)
-    if match is None:
-        raise InvalidScimRequest("Unsupported or malformed SCIM filter")
-    try:
-        literal = json.loads(match.group("value"))
-    except json.JSONDecodeError as exc:
-        raise InvalidScimRequest("Malformed SCIM filter string literal") from exc
-    if not isinstance(literal, str):
-        raise InvalidScimRequest("SCIM filter value must be a string")
-    attribute = match.group("attribute")
-    canonical = "userName" if attribute.casefold() == "username" else "externalId"
-    return ScimUserFilter(canonical, literal)
+
+    raw_clauses = _split_and_clauses(value)
+    if len(raw_clauses) > 1 and not profile.allow_and_filters:
+        raise InvalidScimRequest(
+            f"SCIM provider profile {profile.kind.value!r} does not support 'and' filters"
+        )
+
+    clauses = tuple(_parse_filter_clause(clause, profile=profile) for clause in raw_clauses)
+    if not clauses:
+        raise InvalidScimRequest("SCIM filter must contain at least one expression")
+    return ScimUserFilterExpression(clauses)
 
 
 def parse_scim_user_payload(payload: object) -> ScimUserInput:
@@ -318,6 +336,7 @@ class ScimHttpTransport:
         base_url: str | None = None,
         max_results: int = 200,
         documentation_uri: str | None = None,
+        provider_profile: ScimProviderProfile = GENERIC_SCIM_PROFILE,
     ) -> None:
         if max_results < 1:
             raise ValueError("max_results must be at least 1")
@@ -325,6 +344,7 @@ class ScimHttpTransport:
         self._base_url = None if base_url is None else base_url.rstrip("/")
         self._max_results = max_results
         self._documentation_uri = documentation_uri
+        self._provider_profile = provider_profile
 
     def get_service_provider_config(self) -> ScimHttpResponse:
         return ScimHttpResponse.json(
@@ -382,20 +402,19 @@ class ScimHttpTransport:
                 raise InvalidScimRequest("SCIM startIndex must be at least 1")
             if count < 0:
                 raise InvalidScimRequest("SCIM count must not be negative")
-            user_filter = parse_user_filter(filter_expression)
+            expression = parse_user_filter_expression(
+                filter_expression,
+                profile=self._provider_profile,
+            )
             effective_count = min(count, self._max_results)
 
-            if user_filter is None:
+            if expression is None:
                 result = self._service.list_users(
                     start_index=start_index,
                     count=effective_count,
                 )
             else:
-                match = (
-                    self._service.find_by_user_name(user_filter.value)
-                    if user_filter.attribute == "userName"
-                    else self._service.find_by_external_id(user_filter.value)
-                )
+                match = self._find_by_expression(expression)
                 result = self._filtered_list(
                     match,
                     start_index=start_index,
@@ -474,6 +493,26 @@ class ScimHttpTransport:
             etag=resource.meta.version,
         )
 
+    def _find_by_expression(
+        self,
+        expression: ScimUserFilterExpression,
+    ) -> ScimUserResource | None:
+        first = expression.clauses[0]
+        candidate = (
+            self._service.find_by_user_name(first.value)
+            if first.attribute == "userName"
+            else self._service.find_by_external_id(first.value)
+        )
+        if candidate is None:
+            return None
+        return candidate if all(self._matches(candidate, clause) for clause in expression.clauses) else None
+
+    @staticmethod
+    def _matches(resource: ScimUserResource, clause: ScimUserFilter) -> bool:
+        if clause.attribute == "userName":
+            return resource.user.user_name.casefold() == clause.value.casefold()
+        return resource.user.external_id == clause.value
+
     @staticmethod
     def _filtered_list(
         resource: ScimUserResource | None,
@@ -520,6 +559,91 @@ class ScimHttpTransport:
                 scim_type=scim_type,
             ).to_dict(),
         )
+
+
+def _parse_filter_clause(
+    value: str,
+    *,
+    profile: ScimProviderProfile,
+) -> ScimUserFilter:
+    match = _FILTER_CLAUSE_RE.fullmatch(value)
+    if match is None:
+        raise InvalidScimRequest("Unsupported or malformed SCIM filter")
+
+    raw_literal = match.group("value").strip()
+    if raw_literal.startswith('"'):
+        if not raw_literal.endswith('"'):
+            raise InvalidScimRequest("Malformed SCIM filter string literal")
+        try:
+            literal = json.loads(raw_literal)
+        except json.JSONDecodeError as exc:
+            raise InvalidScimRequest("Malformed SCIM filter string literal") from exc
+        if not isinstance(literal, str):
+            raise InvalidScimRequest("SCIM filter value must be a string")
+    else:
+        if not profile.allow_unquoted_filter_values:
+            raise InvalidScimRequest(
+                f"SCIM provider profile {profile.kind.value!r} requires quoted string filters"
+            )
+        if not raw_literal or any(character.isspace() for character in raw_literal):
+            raise InvalidScimRequest("Unquoted SCIM filter values must be non-empty tokens")
+        literal = raw_literal
+
+    attribute = match.group("attribute")
+    canonical = "userName" if attribute.casefold() == "username" else "externalId"
+    return ScimUserFilter(canonical, literal)
+
+
+def _split_and_clauses(value: str) -> tuple[str, ...]:
+    clauses: list[str] = []
+    start = 0
+    in_quote = False
+    escaped = False
+    index = 0
+
+    while index < len(value):
+        character = value[index]
+        if in_quote:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_quote = False
+            index += 1
+            continue
+
+        if character == '"':
+            in_quote = True
+            index += 1
+            continue
+
+        if character.isspace():
+            token_start = index
+            while token_start < len(value) and value[token_start].isspace():
+                token_start += 1
+            if value[token_start : token_start + 3].casefold() == "and":
+                token_end = token_start + 3
+                if token_end < len(value) and value[token_end].isspace():
+                    clause = value[start:index].strip()
+                    if not clause:
+                        raise InvalidScimRequest("Malformed SCIM 'and' filter")
+                    clauses.append(clause)
+                    while token_end < len(value) and value[token_end].isspace():
+                        token_end += 1
+                    start = token_end
+                    index = token_end
+                    continue
+        index += 1
+
+    if in_quote:
+        raise InvalidScimRequest("Malformed SCIM filter string literal")
+
+    final = value[start:].strip()
+    if not final:
+        raise InvalidScimRequest("Malformed SCIM filter")
+    clauses.append(final)
+    return tuple(clauses)
 
 
 def _attribute(
