@@ -15,6 +15,7 @@ from pyiamkit.authentication import (
 from pyiamkit.authentication.adapters import InMemorySessionRepository
 from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
 from pyiamkit.authorization import (
+    AccessGovernanceApplicationService,
     AuthorizationDecision,
     AuthorizationEngine,
     Permission,
@@ -25,12 +26,17 @@ from pyiamkit.authorization import (
     RoleType,
 )
 from pyiamkit.authorization.adapters import (
+    InMemoryConstraintRepository,
     InMemoryPermissionCatalogRepository,
     InMemoryRoleBindingRepository,
     InMemoryRoleRepository,
+    InMemorySoDRuleRepository,
 )
 from pyiamkit.identity import Identity
-from pyiamkit.identity.adapters.memory import InMemoryIdentityRepository
+from pyiamkit.identity.adapters.memory import (
+    InMemoryDomainEventSink,
+    InMemoryIdentityRepository,
+)
 from pyiamkit.integrations.fastapi import bearer_authentication, require_permission
 from pyiamkit.tenancy import Membership, Tenant, TenantScope
 from pyiamkit.tenancy.adapters import (
@@ -63,6 +69,8 @@ def _build_app() -> tuple[
     permissions = InMemoryPermissionCatalogRepository()
     roles = InMemoryRoleRepository()
     bindings = InMemoryRoleBindingRepository()
+    constraints = InMemoryConstraintRepository()
+    sod = InMemorySoDRuleRepository()
     sessions = InMemorySessionRepository()
 
     identity = Identity.create_user(display_name="Alice", created_at=NOW)
@@ -111,6 +119,21 @@ def _build_app() -> tuple[
     binding.pull_events()
     bindings.save(binding)
 
+    governance = AccessGovernanceApplicationService(
+        permission_repository=permissions,
+        role_repository=roles,
+        constraint_repository=constraints,
+        sod_repository=sod,
+        clock=clock,
+        event_sink=InMemoryDomainEventSink(),
+    )
+    governance.register_minimum_assurance(
+        str(permission.code),
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+        tenant_id=tenant.id,
+    )
+
     engine = AuthorizationEngine(
         identity_repository=identities,
         tenant_repository=tenants,
@@ -119,6 +142,8 @@ def _build_app() -> tuple[
         role_repository=roles,
         binding_repository=bindings,
         clock=clock,
+        constraint_repository=constraints,
+        sod_repository=sod,
     )
 
     session = Session.open(
