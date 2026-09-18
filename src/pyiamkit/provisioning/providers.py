@@ -42,8 +42,7 @@ class ScimProviderProfile:
         }
         if unsupported:
             raise ValueError(
-                "Unsupported preferred user lookup attributes: "
-                + ", ".join(sorted(unsupported))
+                "Unsupported preferred user lookup attributes: " + ", ".join(sorted(unsupported))
             )
 
 
