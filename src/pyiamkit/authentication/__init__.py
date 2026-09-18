@@ -22,9 +22,21 @@ from .domain import (
     SessionNotFound,
     SessionStatus,
 )
-from .ports import CredentialRepository, SessionRepository
+from .ports import CredentialRepository, SessionRepository, TokenProvider
+from .tokens import (
+    AccessTokenClaims,
+    ExpiredAccessToken,
+    InvalidAccessToken,
+    IssuedAccessToken,
+    TokenConfigurationError,
+    TokenError,
+    TokenId,
+    TokenSessionInactive,
+    TokenType,
+)
 
 __all__ = [
+    "AccessTokenClaims",
     "AssuranceLevel",
     "AuthenticationApplicationService",
     "AuthenticationContext",
@@ -38,13 +50,22 @@ __all__ = [
     "CredentialRepository",
     "CredentialStatus",
     "CredentialType",
+    "ExpiredAccessToken",
+    "InvalidAccessToken",
     "InvalidCredential",
     "InvalidCredentialTransition",
     "InvalidSession",
     "InvalidSessionTransition",
+    "IssuedAccessToken",
     "Session",
     "SessionId",
     "SessionNotFound",
     "SessionRepository",
     "SessionStatus",
+    "TokenConfigurationError",
+    "TokenError",
+    "TokenId",
+    "TokenProvider",
+    "TokenSessionInactive",
+    "TokenType",
 ]

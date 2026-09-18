@@ -2,6 +2,43 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.3.0b1
+
+Adds framework-neutral token contracts from `pyiamkit.authentication`:
+
+```text
+AccessTokenClaims
+ExpiredAccessToken
+InvalidAccessToken
+IssuedAccessToken
+TokenConfigurationError
+TokenError
+TokenId
+TokenProvider
+TokenSessionInactive
+TokenType
+```
+
+The optional PyJWT adapter is imported explicitly:
+
+```python
+from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
+```
+
+Install it with:
+
+```text
+pyiamkit[jwt]
+```
+
+`JwtTokenProvider` issues access JWTs from an existing active `Session` and verifies both the cryptographic token and the current durable Session state. A valid signature does not override Session revocation or expiration.
+
+The access-token payload intentionally excludes Roles and Permissions. Authorization continues to resolve current RoleBindings, policies, constraints and SoD rules from PyIAMKit's authorization model.
+
+The configured algorithm, issuer and audience are trusted configuration. The token header never selects the allowed algorithm. Optional `kid` lookup supports verification-key rotation.
+
+Refresh tokens are not part of the `0.3.0b1` public API.
+
 ## 0.3.0a2
 
 Adds the framework-neutral Authentication bounded context from `pyiamkit.authentication`:

@@ -8,6 +8,7 @@ from pyiamkit.identity import IdentityId
 from .domain.credential import Credential
 from .domain.session import Session
 from .domain.value_objects import CredentialId, SessionId
+from .tokens import AccessTokenClaims, IssuedAccessToken
 
 
 class CredentialRepository(Protocol):
@@ -31,3 +32,10 @@ class SessionRepository(Protocol):
         identity_id: IdentityId,
         at: datetime,
     ) -> tuple[Session, ...]: ...
+
+
+class TokenProvider(Protocol):
+    """Issue and verify authentication access tokens."""
+
+    def issue_access_token(self, session: Session) -> IssuedAccessToken: ...
+    def verify_access_token(self, token: str) -> AccessTokenClaims: ...

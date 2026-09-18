@@ -6,6 +6,29 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.3.0b1] - 2026-09-18
+
+### Added
+
+- Framework-neutral access-token contracts: `TokenProvider`, `AccessTokenClaims`, `IssuedAccessToken`, `TokenId` and token-specific errors.
+- Optional `pyiamkit[jwt]` extra using PyJWT with cryptographic algorithm support.
+- `JwtTokenProvider` adapter for signed access JWT issuance and verification.
+- Minimal access-token claims linking subject, Session, authentication time, assurance level, authentication method and MFA state.
+- Configurable issuer, audience, access-token TTL and clock leeway.
+- Optional `kid`-based verification-key selection for signing-key rotation.
+- Session-aware verification: a cryptographically valid JWT is rejected when its referenced Session is missing, expired or revoked.
+- Access-token expiration is capped by the durable Session expiration.
+- Executable JWT lifecycle example and security-focused JWT tests.
+
+### Security
+
+- Allowed JWT algorithms are configured out-of-band and never selected from an untrusted token header.
+- Issuer and audience validation are mandatory.
+- Unknown or missing `kid` values fail closed when a verification key set is configured.
+- Tokens do not carry Roles or Permissions as an authorization source of truth.
+- JWT verification cross-checks subject, Session ID, assurance level, authentication method, MFA state and authentication time against the durable Session.
+- Access JWTs are the only token type in this milestone; refresh-token rotation and reuse detection are intentionally not simulated without durable server-side state.
+
 ## [0.3.0a2] - 2026-09-18
 
 ### Added
