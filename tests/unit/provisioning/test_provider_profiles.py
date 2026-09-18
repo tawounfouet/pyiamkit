@@ -146,9 +146,7 @@ def test_original_generic_filter_contract_remains_strict() -> None:
         parse_user_filter("externalId eq ext-42")
 
     with pytest.raises(InvalidScimRequest, match="'and'"):
-        parse_user_filter(
-            'userName eq "alice@example.com" and externalId eq "ext-42"'
-        )
+        parse_user_filter('userName eq "alice@example.com" and externalId eq "ext-42"')
 
 
 def test_entra_profile_accepts_unquoted_and_conjoined_filters() -> None:
