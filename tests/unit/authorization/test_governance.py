@@ -5,8 +5,8 @@ import pytest
 
 from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.authorization import (
-    AuthenticationEvidence,
     AccessGovernanceApplicationService,
+    AuthenticationEvidence,
     AuthorizationEngine,
     AuthorizationReason,
     AuthorizationRequest,
