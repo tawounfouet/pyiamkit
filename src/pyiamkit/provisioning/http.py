@@ -505,7 +505,11 @@ class ScimHttpTransport:
         )
         if candidate is None:
             return None
-        return candidate if all(self._matches(candidate, clause) for clause in expression.clauses) else None
+        return (
+            candidate
+            if all(self._matches(candidate, clause) for clause in expression.clauses)
+            else None
+        )
 
     @staticmethod
     def _matches(resource: ScimUserResource, clause: ScimUserFilter) -> bool:
