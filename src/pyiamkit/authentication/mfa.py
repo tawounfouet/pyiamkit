@@ -1,7 +1,7 @@
 """Multi-factor enrollment, verification and Session step-up orchestration."""
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Protocol
 
 from pyiamkit.identity import IdentityId, IdentityNotFound, IdentityRepository, IdentityStatus
@@ -43,6 +43,14 @@ class TotpEnrollmentMaterial:
 class TotpEnrollment:
     factor: MfaFactor
     provisioning_uri: str
+
+
+class MfaSecretStore(Protocol):
+    """Secret-storage boundary used by MFA adapters."""
+
+    def put(self, reference: str, secret: str) -> None: ...
+    def get(self, reference: str) -> str | None: ...
+    def delete(self, reference: str) -> None: ...
 
 
 class TotpProvider(Protocol):
