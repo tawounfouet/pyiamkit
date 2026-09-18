@@ -59,6 +59,7 @@ can_read_invoice = require_permission(
     tenant_resolver=resolve_tenant,
 )
 
+
 @app.get("/invoices")
 def invoices(
     decision: Annotated[AuthorizationDecision, Depends(can_read_invoice)],
