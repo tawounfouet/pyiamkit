@@ -33,6 +33,9 @@ from .scim import (
 )
 
 __all__ = [
+    "SCIM_LIST_RESPONSE_SCHEMA",
+    "SCIM_PATCH_SCHEMA",
+    "SCIM_USER_SCHEMA",
     "InvalidProvisioningResource",
     "InvalidScimRequest",
     "ProvisioningConflict",
@@ -45,9 +48,6 @@ __all__ = [
     "ProvisioningSource",
     "ProvisioningUser",
     "ProvisioningUserRepository",
-    "SCIM_LIST_RESPONSE_SCHEMA",
-    "SCIM_PATCH_SCHEMA",
-    "SCIM_USER_SCHEMA",
     "ScimEmail",
     "ScimListResponse",
     "ScimMeta",
