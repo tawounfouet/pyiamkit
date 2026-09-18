@@ -329,3 +329,36 @@ def test_session_revocation_turns_existing_token_into_401() -> None:
 
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_fastapi_returns_structured_step_up_challenge_for_insufficient_assurance() -> None:
+    client, _, token_provider, session, sessions = _build_app()
+    low_assurance_session = Session.open(
+        identity_id=session.identity_id,
+        context=AuthenticationContext(
+            method=AuthenticationMethod.PASSWORD,
+            assurance_level=AssuranceLevel.AAL1,
+            mfa=False,
+            authenticated_at=NOW,
+        ),
+        created_at=NOW,
+        expires_at=NOW + timedelta(hours=1),
+    )
+    low_assurance_session.pull_events()
+    sessions.save(low_assurance_session)
+    low_token = token_provider.issue_access_token(low_assurance_session).token
+
+    response = client.get(
+        "/invoices",
+        headers={"Authorization": f"Bearer {low_token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": {
+            "code": "step_up_required",
+            "required_assurance_level": "aal2",
+            "required_mfa": True,
+        }
+    }
+    assert "www-authenticate" not in response.headers
