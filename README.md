@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** Sessions + Credentials alpha (`0.3.0a2`) — not yet recommended for production use.
+> **Status:** JWT beta (`0.3.0b1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,45 +10,66 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.3.0a2` adds the first framework-neutral **Authentication** bounded context on top of the durable persistence introduced in `0.3.0a1`.
-
-Authentication remains deliberately separate from authorization:
+`0.3.0b1` adds **JWT access tokens** as an optional adapter over the Session model introduced in `0.3.0a2`.
 
 ```text
 Identity
    ↓
-Credential reference / external authenticator
-   ↓
 AuthenticationContext
-(method + AAL + MFA + provider/device/network)
    ↓
-Session
+durable Session  ← source of truth for revocation / expiry / assurance
    ↓
-AuthorizationEngine
+JwtTokenProvider
+   ↓
+signed access JWT
+   ↓
+verify signature + issuer + audience + algorithm
+   ↓
+reload Session and cross-check authentication state
+   ↓
+trusted AccessTokenClaims
 ```
 
-The core does **not** store raw passwords, API keys, client secrets or bearer tokens. A `Credential` stores only an opaque reference to externally protected secret material plus non-secret metadata such as type, fingerprint, label, validity and status.
+JWT does not replace server-side authentication state. A token with a valid signature is still rejected when its referenced Session is revoked, expired or missing.
+
+The JWT payload is intentionally small:
+
+```text
+iss        issuer
+sub        Identity ID
+aud        audience
+exp / iat  token lifetime
+jti        token ID
+sid        Session ID
+auth_time  authentication time
+aal        assurance level
+auth_method
+mfa
+amr
+token_use=access
+```
+
+Roles and Permissions are **not** embedded as an authorization source of truth. The Authorization Engine continues to resolve current RoleBindings, hierarchy, constraints and SoD rules.
 
 ```python
-credential = authentication.register_credential(
-    identity_id=identity.id,
-    credential_type=CredentialType.PASSKEY,
-    reference="vault://iam/credentials/passkey/alice",
-    fingerprint="sha256:example-public-fingerprint",
+from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
+
+tokens = JwtTokenProvider(
+    issuer="https://iam.example.com",
+    audience="api://billing",
+    signing_key=signing_key,
+    session_repository=sessions,
+    clock=clock,
+    algorithm="RS256",
 )
 
-session = authentication.open_session(
-    identity_id=identity.id,
-    method=AuthenticationMethod.PASSKEY,
-    assurance_level=AssuranceLevel.AAL2,
-    mfa=True,
-    expires_at=clock.now() + timedelta(hours=8),
-)
+issued = tokens.issue_access_token(session)
+claims = tokens.verify_access_token(issued.token)
 ```
 
-The resulting `AuthenticationContext` is token-format agnostic. JWT issuance and validation are intentionally deferred to `0.3.0b1`, so the future JWT adapter can consume Session state instead of defining authentication semantics itself.
+The allowed algorithm, issuer and audience come from trusted configuration. They are never selected from the untrusted token header. Optional `kid` lookup supports signing-key rotation.
 
-SQLAlchemy adapters persist Credentials and Sessions on SQLite/PostgreSQL while preserving caller-owned transactions.
+`0.3.0b1` intentionally implements **access tokens only**. Refresh-token rotation and reuse detection require durable token-family state and are not simulated in this milestone.
 
 ## Installation
 
@@ -70,6 +91,12 @@ PostgreSQL persistence with psycopg:
 
 ```bash
 python -m pip install -e ".[postgres]"
+```
+
+JWT access-token adapter:
+
+```bash
+python -m pip install -e ".[jwt]"
 ```
 
 Development checks:
@@ -113,23 +140,20 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## Authentication guarantees in 0.3.0a2
+## JWT guarantees in 0.3.0b1
 
-- active Identity required before credential registration or session creation;
-- no raw secret persistence in Credential;
-- duplicate credential references rejected;
-- UTC-aware temporal invariants;
-- explicit credential validity windows;
-- explicit session expiration;
-- irreversible credential/session revocation;
-- bulk revocation of all active sessions for an Identity;
-- expired or revoked artifacts excluded from active queries;
-- authentication method, assurance level and MFA state preserved across persistence;
-- SQLite repository conformance plus live PostgreSQL qualification;
-- caller-owned SQLAlchemy transactions;
-- runtime version and wheel metadata checked for coherence.
-
-`create_schema()` and `drop_schema()` remain alpha bootstrap helpers. Production database migrations, password hashing, JWT, federation and distributed revocation are separate future milestones.
+- fixed configured JWT algorithm allowlist;
+- mandatory issuer and audience validation;
+- mandatory registered/token-link claims;
+- access-token expiration capped by Session expiration;
+- durable Session revalidation on every token verification;
+- Session revocation invalidates already-issued access JWTs;
+- subject, AAL, authentication method, MFA and `auth_time` cross-checked against Session state;
+- optional `kid`-based verification key selection;
+- unknown/missing `kid` fails closed when a key set is configured;
+- no Roles or Permissions embedded as authorization truth;
+- no refresh-token API in this milestone;
+- signing/verification keys are configuration inputs and are not persisted by PyIAMKit.
 
 ## Roadmap
 
