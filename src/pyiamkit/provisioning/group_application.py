@@ -330,7 +330,10 @@ class ScimGroupProvisioningService:
                 raise InvalidScimRequest(
                     f"SCIM Group contains unavailable managed User {member_id}"
                 )
-            assert user is not None
+            if user is None:
+                raise InvalidScimRequest(
+                    f"SCIM Group contains unavailable managed User {member_id}"
+                )
             members.append(
                 ScimGroupMember(
                     value=str(member_id),
