@@ -2,6 +2,7 @@
 
 from decimal import Decimal, InvalidOperation
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.shared import Clock, DomainEvent, DomainEventSink
 from pyiamkit.tenancy import TenantId
 
@@ -18,6 +19,7 @@ from .domain.governance import (
     GovernanceRuleId,
     GovernanceViolation,
     GovernanceViolationKind,
+    MinimumAssuranceConstraint,
     MutuallyExclusiveRolesRule,
     NumericMaximumConstraint,
     ResourceAttributeEqualsConstraint,
@@ -94,6 +96,26 @@ class AccessGovernanceApplicationService:
         )
         self._constraints.save(rule)
         self._publish("AuthorizationConstraintRegistered", rule.id)
+        return rule
+
+    def register_minimum_assurance(
+        self,
+        permission: str,
+        *,
+        minimum_assurance: AssuranceLevel,
+        require_mfa: bool = False,
+        tenant_id: TenantId | None = None,
+    ) -> MinimumAssuranceConstraint:
+        code = self._require_permission(permission)
+        rule = MinimumAssuranceConstraint(
+            id=GovernanceRuleId.new(),
+            permission=code,
+            minimum_assurance=minimum_assurance,
+            require_mfa=require_mfa,
+            tenant_id=tenant_id,
+        )
+        self._constraints.save(rule)
+        self._publish("MinimumAssuranceConstraintRegistered", rule.id)
         return rule
 
     def register_mutually_exclusive_roles(
@@ -183,6 +205,11 @@ class ConstraintEvaluator:
 
     def evaluate(self, request: AuthorizationRequest) -> GovernanceViolation | None:
         for rule in self._repository.list_for(request.permission, request.tenant_id):
+            if isinstance(rule, MinimumAssuranceConstraint):
+                violation = self._evaluate_assurance(rule, request)
+                if violation is not None:
+                    return violation
+                continue
             if request.resource is None:
                 return GovernanceViolation(
                     GovernanceViolationKind.CONSTRAINT_CONTEXT_MISSING,
@@ -206,6 +233,34 @@ class ConstraintEvaluator:
                     rule.id,
                     f"{rule.resource_attribute} does not match required value",
                 )
+        return None
+
+    @staticmethod
+    def _evaluate_assurance(
+        rule: MinimumAssuranceConstraint,
+        request: AuthorizationRequest,
+    ) -> GovernanceViolation | None:
+        evidence = request.authentication
+        if evidence is None:
+            return GovernanceViolation(
+                GovernanceViolationKind.AUTHENTICATION_CONTEXT_MISSING,
+                rule.id,
+                "authentication evidence is required by minimum assurance constraint",
+                required_assurance_level=rule.minimum_assurance,
+                required_mfa=rule.require_mfa,
+            )
+        if (
+            _assurance_rank(evidence.assurance_level)
+            < _assurance_rank(rule.minimum_assurance)
+            or (rule.require_mfa and not evidence.mfa)
+        ):
+            return GovernanceViolation(
+                GovernanceViolationKind.ASSURANCE_STEP_UP_REQUIRED,
+                rule.id,
+                "authentication assurance does not satisfy the configured minimum",
+                required_assurance_level=rule.minimum_assurance,
+                required_mfa=rule.require_mfa,
+            )
         return None
 
     @staticmethod
@@ -340,3 +395,11 @@ class StaticSoDEvaluator:
                     "mutually exclusive effective Roles are simultaneously active",
                 )
         return None
+
+
+def _assurance_rank(level: AssuranceLevel) -> int:
+    return {
+        AssuranceLevel.AAL1: 1,
+        AssuranceLevel.AAL2: 2,
+        AssuranceLevel.AAL3: 3,
+    }[level]
