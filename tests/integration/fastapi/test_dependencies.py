@@ -4,7 +4,6 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.testclient import TestClient
-
 from pyiamkit.authentication import (
     AccessTokenClaims,
     AssuranceLevel,
