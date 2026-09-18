@@ -106,7 +106,9 @@ def test_provider_profiles_are_explicit_and_discoverable() -> None:
     assert OKTA_SCIM_PROFILE.allow_and_filters is False
     assert OKTA_SCIM_PROFILE.preferred_user_lookup_attributes == ("userName",)
     assert OKTA_SCIM_PROFILE.default_page_size == 100
-    assert OKTA_SCIM_PROFILE.supports_groups is False
+    assert OKTA_SCIM_PROFILE.supports_groups is True
+    assert MICROSOFT_ENTRA_PROFILE.supports_groups is True
+    assert GENERIC_SCIM_PROFILE.supports_groups is True
 
 
 def test_provider_profile_rejects_invalid_configuration() -> None:
