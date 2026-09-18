@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** SQLAlchemy persistence alpha (`0.3.0a1`) — not yet recommended for production use.
+> **Status:** Sessions + Credentials alpha (`0.3.0a2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,41 +10,45 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.3.0a1` introduces the first durable persistence layer without making SQLAlchemy a core dependency.
+`0.3.0a2` adds the first framework-neutral **Authentication** bounded context on top of the durable persistence introduced in `0.3.0a1`.
 
-The existing domain ports remain unchanged:
+Authentication remains deliberately separate from authorization:
 
 ```text
-Domain / Application
-       ↓
-Repository Protocols
-       ↓
-┌──────────────────────┬─────────────────────────┐
-│ InMemory adapters    │ SQLAlchemy adapters     │
-│ tests / local logic  │ SQLite / PostgreSQL     │
-└──────────────────────┴─────────────────────────┘
+Identity
+   ↓
+Credential reference / external authenticator
+   ↓
+AuthenticationContext
+(method + AAL + MFA + provider/device/network)
+   ↓
+Session
+   ↓
+AuthorizationEngine
 ```
 
-The SQLAlchemy bundle persists the current Identity, Tenancy, Authorization, governance and Audit models. Repository instances receive an existing SQLAlchemy `Session`; they execute reads/writes but never commit the caller's transaction.
+The core does **not** store raw passwords, API keys, client secrets or bearer tokens. A `Credential` stores only an opaque reference to externally protected secret material plus non-secret metadata such as type, fingerprint, label, validity and status.
 
 ```python
-from pyiamkit.persistence.sqlalchemy import (
-    SqlAlchemyIdentityRepository,
-    create_schema,
-    create_session_factory,
-    create_sqlalchemy_engine,
+credential = authentication.register_credential(
+    identity_id=identity.id,
+    credential_type=CredentialType.PASSKEY,
+    reference="vault://iam/credentials/passkey/alice",
+    fingerprint="sha256:example-public-fingerprint",
 )
 
-engine = create_sqlalchemy_engine("postgresql+psycopg://user:pass@localhost/iam")
-create_schema(engine)  # bootstrap/testing during the alpha line
-SessionFactory = create_session_factory(engine)
-
-with SessionFactory.begin() as session:
-    identities = SqlAlchemyIdentityRepository(session)
-    identities.save(identity)
+session = authentication.open_session(
+    identity_id=identity.id,
+    method=AuthenticationMethod.PASSKEY,
+    assurance_level=AssuranceLevel.AAL2,
+    mfa=True,
+    expires_at=clock.now() + timedelta(hours=8),
+)
 ```
 
-PostgreSQL uses native UUID columns and JSONB for extensible JSON payloads. SQLite remains supported as a lightweight conformance/test backend.
+The resulting `AuthenticationContext` is token-format agnostic. JWT issuance and validation are intentionally deferred to `0.3.0b1`, so the future JWT adapter can consume Session state instead of defining authentication semantics itself.
+
+SQLAlchemy adapters persist Credentials and Sessions on SQLite/PostgreSQL while preserving caller-owned transactions.
 
 ## Installation
 
@@ -80,39 +84,52 @@ See executable examples under `examples/` and architecture notes under `docs/arc
 ## Architecture
 
 ```text
-AuthorizationRequest
-       ↓
-Identity + Tenant + Membership
-       ↓
-RoleBinding + Role Hierarchy
-       ↓
-Constraints + SoD
-       ↓
-AuthorizationDecision
-       ├── DecisionExplanation
-       └── AuditSink
+Identity
+   │
+   ├── CredentialRepository
+   │      └── Credential
+   │          ├── opaque secret reference
+   │          ├── type / fingerprint
+   │          └── validity / revocation
+   │
+   └── SessionRepository
+          └── Session
+              ├── AuthenticationContext
+              │    ├── method
+              │    ├── assurance level
+              │    ├── MFA state
+              │    └── provider/device/network
+              ├── expiration
+              └── revocation
 
-Persistence ports
+Authentication context
        ↓
-SQLAlchemy Session
+AuthorizationRequest / host application context
        ↓
-SQLite / PostgreSQL
+AuthorizationEngine
+       ↓
+AuthorizationDecision + Audit
 ```
 
-The domain contexts do not import SQLAlchemy, psycopg, PostgreSQL drivers or database models. Persistence adapters depend inward on domain contracts, never the reverse.
+The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## Persistence guarantees in 0.3.0a1
+## Authentication guarantees in 0.3.0a2
 
-- caller-owned transactions;
-- repository round-trip conformance on SQLite;
-- live PostgreSQL 16 CI qualification;
-- UUID identifiers and timezone-aware timestamps;
-- PostgreSQL JSONB for extensible payloads;
-- append-only Audit semantics;
-- foreign keys and relational role/permission/hierarchy tables;
-- no implicit commits inside repositories.
+- active Identity required before credential registration or session creation;
+- no raw secret persistence in Credential;
+- duplicate credential references rejected;
+- UTC-aware temporal invariants;
+- explicit credential validity windows;
+- explicit session expiration;
+- irreversible credential/session revocation;
+- bulk revocation of all active sessions for an Identity;
+- expired or revoked artifacts excluded from active queries;
+- authentication method, assurance level and MFA state preserved across persistence;
+- SQLite repository conformance plus live PostgreSQL qualification;
+- caller-owned SQLAlchemy transactions;
+- runtime version and wheel metadata checked for coherence.
 
-`create_schema()` and `drop_schema()` are alpha bootstrap helpers. A production migration workflow is intentionally deferred to a later persistence-hardening milestone.
+`create_schema()` and `drop_schema()` remain alpha bootstrap helpers. Production database migrations, password hashing, JWT, federation and distributed revocation are separate future milestones.
 
 ## Roadmap
 
