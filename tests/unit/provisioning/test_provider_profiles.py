@@ -7,7 +7,7 @@ from pyiamkit.identity.adapters.memory import (
     InMemoryDomainEventSink,
     InMemoryIdentityRepository,
 )
-from pyiamkit.provisioning import ProvisioningSource, ScimProvisioningService
+from pyiamkit.provisioning import InvalidScimRequest, ProvisioningSource, ScimProvisioningService
 from pyiamkit.provisioning.adapters import InMemoryProvisioningUserRepository
 from pyiamkit.provisioning.http import (
     SCIM_USER_SCHEMA,
@@ -142,10 +142,10 @@ def test_original_generic_filter_contract_remains_strict() -> None:
     assert parsed.attribute == "userName"
     assert parsed.value == "alice@example.com"
 
-    with pytest.raises(Exception, match="requires quoted"):
+    with pytest.raises(InvalidScimRequest, match="requires quoted"):
         parse_user_filter("externalId eq ext-42")
 
-    with pytest.raises(Exception, match="'and'"):
+    with pytest.raises(InvalidScimRequest, match="'and'"):
         parse_user_filter(
             'userName eq "alice@example.com" and externalId eq "ext-42"'
         )
@@ -179,7 +179,7 @@ def test_okta_profile_keeps_quoted_username_matching_behavior() -> None:
     assert quoted is not None
     assert quoted.clauses[0].attribute == "userName"
 
-    with pytest.raises(Exception, match="requires quoted"):
+    with pytest.raises(InvalidScimRequest, match="requires quoted"):
         parse_user_filter_expression(
             "userName eq alice@example.com",
             profile=OKTA_SCIM_PROFILE,
