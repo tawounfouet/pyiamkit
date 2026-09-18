@@ -8,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from pyiamkit.authentication import AccessTokenClaims, InvalidAccessToken, TokenProvider
 from pyiamkit.authorization import (
+    AuthenticationEvidence,
     AuthorizationDecision,
     AuthorizationEngine,
     AuthorizationRequest,
@@ -111,6 +112,11 @@ def require_permission(
                 permission=permission,
                 scope=scope,
                 resource=resource,
+                authentication=AuthenticationEvidence(
+                    assurance_level=claims.assurance_level,
+                    mfa=claims.mfa,
+                    authenticated_at=claims.auth_time,
+                ),
                 correlation_id=correlation_id,
             )
         )
