@@ -31,9 +31,7 @@ from .scim import (
 
 SCIM_MEDIA_TYPE = "application/scim+json"
 SCIM_ERROR_SCHEMA = "urn:ietf:params:scim:api:messages:2.0:Error"
-SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA = (
-    "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
-)
+SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
 SCIM_RESOURCE_TYPE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
 SCIM_SCHEMA_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
