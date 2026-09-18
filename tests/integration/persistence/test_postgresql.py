@@ -28,6 +28,7 @@ from pyiamkit.authorization import (
     RoleType,
 )
 from pyiamkit.identity import Identity
+from pyiamkit.provisioning import ProvisioningUser
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
     SqlAlchemyConstraintRepository,
@@ -36,6 +37,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyMembershipRepository,
     SqlAlchemyMfaFactorRepository,
     SqlAlchemyPermissionCatalogRepository,
+    SqlAlchemyProvisioningUserRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemySessionRepository,
@@ -76,6 +78,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         memberships = SqlAlchemyMembershipRepository(session)
         factors = SqlAlchemyMfaFactorRepository(session)
         permissions = SqlAlchemyPermissionCatalogRepository(session)
+        provisioning = SqlAlchemyProvisioningUserRepository(session)
         roles = SqlAlchemyRoleRepository(session)
         bindings = SqlAlchemyRoleBindingRepository(session)
         audit = SqlAlchemyAuditRepository(session)
@@ -146,6 +149,18 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         membership.pull_events()
         memberships.save(membership)
 
+        provisioning_user = ProvisioningUser.create(
+            source_id="postgres-scim",
+            identity_id=identity.id,
+            tenant_id=tenant.id,
+            membership_id=membership.id,
+            user_name="alice@example.com",
+            external_id="postgres-ext-42",
+            active=True,
+            created_at=NOW,
+        )
+        provisioning.save(provisioning_user)
+
         permission = Permission(PermissionCode("invoice.read"), "Read invoices")
         permissions.save(permission)
         role = Role.create(
@@ -212,6 +227,9 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         persisted_factor = SqlAlchemyMfaFactorRepository(session).get(factor.id)
         persisted_session = SqlAlchemySessionRepository(session).get(auth_session.id)
         persisted_binding = SqlAlchemyRoleBindingRepository(session).get(binding.id)
+        persisted_provisioning = SqlAlchemyProvisioningUserRepository(session).get(
+            provisioning_user.id
+        )
         persisted_constraints = SqlAlchemyConstraintRepository(session).list_for(
             permission.code,
             tenant.id,
@@ -227,6 +245,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         assert persisted_session.context.mfa is True
         assert persisted_session.context.mfa_factor_id == str(factor.id)
         assert persisted_binding == binding
+        assert persisted_provisioning == provisioning_user
         assert any(rule == assurance_rule for rule in persisted_constraints)
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None
