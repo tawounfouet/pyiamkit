@@ -6,6 +6,30 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b2] - 2026-09-18
+
+### Added
+
+- `AuthenticationEvidence` as a framework-neutral authorization input carrying current assurance level, MFA state and authentication time.
+- `MinimumAssuranceConstraint` as a deny-only governance rule scoped by Permission and optional Tenant.
+- `AccessGovernanceApplicationService.register_minimum_assurance()`.
+- Distinct authorization outcomes for missing authentication evidence and insufficient assurance requiring step-up.
+- `AuthorizationDecision.step_up_required`, `required_assurance_level` and `required_mfa` metadata.
+- Persistence of minimum-assurance constraints in SQLite/PostgreSQL.
+- FastAPI propagation of verified JWT assurance claims into `AuthorizationRequest`.
+- Structured FastAPI 403 response for step-up-required decisions.
+- Audit metadata for required assurance and MFA.
+- End-to-end PostgreSQL qualification of a persisted AAL2+MFA authorization constraint.
+
+### Security
+
+- The Authorization Engine does not read Session repositories; authentication evidence is supplied explicitly by the caller.
+- Minimum-assurance constraints are restrictive only and cannot create an ALLOW without an existing RBAC candidate.
+- Missing authentication evidence fails closed when a permission has an assurance requirement.
+- AAL and MFA requirements are evaluated independently: sufficient AAL does not satisfy a rule that also requires MFA.
+- Step-up-required remains HTTP 403 in the FastAPI adapter; invalid or missing bearer authentication remains HTTP 401.
+- Authorization audit records expose only required assurance metadata, not credentials, factors or secret material.
+
 ## [0.4.0b1] - 2026-09-18
 
 ### Added
