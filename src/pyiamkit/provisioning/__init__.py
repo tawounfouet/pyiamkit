@@ -28,11 +28,22 @@ from .http import (
     ScimHttpTransport,
     ScimServiceProviderConfig,
     ScimUserFilter,
+    ScimUserFilterExpression,
     parse_scim_patch_payload,
     parse_scim_user_payload,
     parse_user_filter,
+    parse_user_filter_expression,
 )
 from .ports import ProvisioningUserRepository
+from .providers import (
+    GENERIC_SCIM_PROFILE,
+    MICROSOFT_ENTRA_PROFILE,
+    OKTA_SCIM_PROFILE,
+    ScimDeprovisionMode,
+    ScimProviderKind,
+    ScimProviderProfile,
+    scim_provider_profile,
+)
 from .scim import (
     SCIM_LIST_RESPONSE_SCHEMA,
     SCIM_PATCH_SCHEMA,
@@ -49,6 +60,9 @@ from .scim import (
 )
 
 __all__ = [
+    "GENERIC_SCIM_PROFILE",
+    "MICROSOFT_ENTRA_PROFILE",
+    "OKTA_SCIM_PROFILE",
     "SCIM_ERROR_SCHEMA",
     "SCIM_LIST_RESPONSE_SCHEMA",
     "SCIM_MEDIA_TYPE",
@@ -69,6 +83,7 @@ __all__ = [
     "ProvisioningSource",
     "ProvisioningUser",
     "ProvisioningUserRepository",
+    "ScimDeprovisionMode",
     "ScimEmail",
     "ScimErrorResponse",
     "ScimErrorType",
@@ -79,9 +94,12 @@ __all__ = [
     "ScimName",
     "ScimPatchOperation",
     "ScimPatchVerb",
+    "ScimProviderKind",
+    "ScimProviderProfile",
     "ScimProvisioningService",
     "ScimServiceProviderConfig",
     "ScimUserFilter",
+    "ScimUserFilterExpression",
     "ScimUserInput",
     "ScimUserResource",
     "UnsupportedScimPatch",
@@ -89,4 +107,6 @@ __all__ = [
     "parse_scim_patch_payload",
     "parse_scim_user_payload",
     "parse_user_filter",
+    "parse_user_filter_expression",
+    "scim_provider_profile",
 ]
