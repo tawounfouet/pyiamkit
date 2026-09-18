@@ -96,9 +96,7 @@ def require_permission(
             else scope_resolver(request, claims, tenant_id)
         )
         resource = (
-            None
-            if resource_resolver is None
-            else resource_resolver(request, claims, tenant_id)
+            None if resource_resolver is None else resource_resolver(request, claims, tenant_id)
         )
         correlation_id = (
             request.headers.get("x-request-id")
