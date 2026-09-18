@@ -89,9 +89,7 @@ class InMemorySessionRepository:
         at: datetime,
     ) -> tuple[Session, ...]:
         return tuple(
-            session
-            for session in self.find_for_identity(identity_id)
-            if session.is_active(at=at)
+            session for session in self.find_for_identity(identity_id) if session.is_active(at=at)
         )
 
     @staticmethod
