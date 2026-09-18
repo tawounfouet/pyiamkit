@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[sqlalchemy,jwt,oidc,oidc-http,mfa,fastapi,django]"
-          python -m pip install build httpx mypy pytest pytest-cov ruff
+          python -m pip install build "django-stubs>=6.1,<6.2" httpx mypy pytest pytest-cov ruff
       - name: Lint
         run: ruff check .
       - name: Format check
