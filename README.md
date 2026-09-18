@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** JWT beta (`0.3.0b1`) — not yet recommended for production use.
+> **Status:** FastAPI integration beta (`0.3.0b2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,66 +10,63 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.3.0b1` adds **JWT access tokens** as an optional adapter over the Session model introduced in `0.3.0a2`.
+`0.3.0b2` adds the first **FastAPI integration** without moving HTTP concerns into the IAM core.
 
 ```text
-Identity
-   ↓
-AuthenticationContext
-   ↓
-durable Session  ← source of truth for revocation / expiry / assurance
-   ↓
-JwtTokenProvider
-   ↓
-signed access JWT
-   ↓
-verify signature + issuer + audience + algorithm
-   ↓
-reload Session and cross-check authentication state
-   ↓
-trusted AccessTokenClaims
+Authorization: Bearer <token>
+        ↓
+FastAPI HTTPBearer
+        ↓
+bearer_authentication()
+        ↓
+TokenProvider.verify_access_token()
+        ↓
+AccessTokenClaims
+        ↓
+require_permission()
+        ├── host TenantResolver
+        ├── optional ScopeResolver
+        └── optional ResourceResolver
+        ↓
+AuthorizationEngine
+        ↓
+ALLOW → endpoint
+DENY  → HTTP 403
 ```
 
-JWT does not replace server-side authentication state. A token with a valid signature is still rejected when its referenced Session is revoked, expired or missing.
-
-The JWT payload is intentionally small:
+Authentication and authorization remain distinct at the HTTP boundary:
 
 ```text
-iss        issuer
-sub        Identity ID
-aud        audience
-exp / iat  token lifetime
-jti        token ID
-sid        Session ID
-auth_time  authentication time
-aal        assurance level
-auth_method
-mfa
-amr
-token_use=access
+missing / invalid / revoked token → 401 + WWW-Authenticate: Bearer
+valid identity but denied permission → 403
 ```
 
-Roles and Permissions are **not** embedded as an authorization source of truth. The Authorization Engine continues to resolve current RoleBindings, hierarchy, constraints and SoD rules.
+A minimal protected endpoint:
 
 ```python
-from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
+from typing import Annotated
 
-tokens = JwtTokenProvider(
-    issuer="https://iam.example.com",
-    audience="api://billing",
-    signing_key=signing_key,
-    session_repository=sessions,
-    clock=clock,
-    algorithm="RS256",
+from fastapi import Depends
+from pyiamkit.authorization import AuthorizationDecision, PermissionCode
+from pyiamkit.integrations.fastapi import bearer_authentication, require_permission
+
+authenticate = bearer_authentication(token_provider)
+
+can_read_invoice = require_permission(
+    authentication=authenticate,
+    authorization_engine=authorization_engine,
+    permission=PermissionCode("invoice.read"),
+    tenant_resolver=resolve_tenant,
 )
 
-issued = tokens.issue_access_token(session)
-claims = tokens.verify_access_token(issued.token)
+@app.get("/invoices")
+def invoices(
+    decision: Annotated[AuthorizationDecision, Depends(can_read_invoice)],
+):
+    return {"decision": str(decision.id)}
 ```
 
-The allowed algorithm, issuer and audience come from trusted configuration. They are never selected from the untrusted token header. Optional `kid` lookup supports signing-key rotation.
-
-`0.3.0b1` intentionally implements **access tokens only**. Refresh-token rotation and reuse detection require durable token-family state and are not simulated in this milestone.
+PyIAMKit deliberately does not guess the active tenant from an arbitrary request header. The host application supplies its Tenant resolver, and the Authorization Engine still validates active Tenant, Membership, scope, RoleBindings and governance.
 
 ## Installation
 
@@ -97,6 +94,18 @@ JWT access-token adapter:
 
 ```bash
 python -m pip install -e ".[jwt]"
+```
+
+FastAPI integration:
+
+```bash
+python -m pip install -e ".[fastapi]"
+```
+
+FastAPI + JWT:
+
+```bash
+python -m pip install -e ".[jwt,fastapi]"
 ```
 
 Development checks:
@@ -140,20 +149,18 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## JWT guarantees in 0.3.0b1
+## FastAPI guarantees in 0.3.0b2
 
-- fixed configured JWT algorithm allowlist;
-- mandatory issuer and audience validation;
-- mandatory registered/token-link claims;
-- access-token expiration capped by Session expiration;
-- durable Session revalidation on every token verification;
-- Session revocation invalidates already-issued access JWTs;
-- subject, AAL, authentication method, MFA and `auth_time` cross-checked against Session state;
-- optional `kid`-based verification key selection;
-- unknown/missing `kid` fails closed when a key set is configured;
-- no Roles or Permissions embedded as authorization truth;
-- no refresh-token API in this milestone;
-- signing/verification keys are configuration inputs and are not persisted by PyIAMKit.
+- native HTTP Bearer/OpenAPI integration;
+- token verification delegated to `TokenProvider`;
+- generic 401 responses for missing/invalid authentication;
+- `WWW-Authenticate: Bearer` on 401;
+- permission evaluation delegated to `AuthorizationEngine`;
+- authorization denial mapped to 403, not 401;
+- Tenant resolution supplied explicitly by the host application;
+- tenant-wide scope default, with custom Scope/Resource resolvers when required;
+- existing Session revocation semantics preserved at the HTTP boundary;
+- no FastAPI dependency in the core IAM packages.
 
 ## Roadmap
 
