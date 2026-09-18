@@ -84,8 +84,7 @@ class SqlAlchemyProvisioningUserRepository:
                 select(provisioning_user_table).where(
                     provisioning_user_table.c.source_id == source_id.strip(),
                     func.lower(provisioning_user_table.c.user_name) == user_name.strip().lower(),
-                    provisioning_user_table.c.status
-                    == ProvisioningResourceStatus.ACTIVE.value,
+                    provisioning_user_table.c.status == ProvisioningResourceStatus.ACTIVE.value,
                 )
             )
             .mappings()
@@ -104,8 +103,7 @@ class SqlAlchemyProvisioningUserRepository:
                 .where(
                     provisioning_user_table.c.source_id == source_id.strip(),
                     provisioning_user_table.c.tenant_id == tenant_id.value,
-                    provisioning_user_table.c.status
-                    == ProvisioningResourceStatus.ACTIVE.value,
+                    provisioning_user_table.c.status == ProvisioningResourceStatus.ACTIVE.value,
                 )
                 .order_by(
                     func.lower(provisioning_user_table.c.user_name),
