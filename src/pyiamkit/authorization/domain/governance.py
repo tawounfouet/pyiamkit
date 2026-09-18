@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import StrEnum
 from types import MappingProxyType
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import EntityId
 from pyiamkit.tenancy import TenantId
@@ -75,6 +76,17 @@ class ResourceAttributeEqualsConstraint:
 
 
 @dataclass(frozen=True, slots=True)
+class MinimumAssuranceConstraint:
+    """Require minimum authentication assurance before a candidate RBAC allow."""
+
+    id: GovernanceRuleId
+    permission: PermissionCode
+    minimum_assurance: AssuranceLevel
+    require_mfa: bool = False
+    tenant_id: TenantId | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class MutuallyExclusiveRolesRule:
     """Static SoD rule forbidding two effective Roles on the same subject."""
 
@@ -114,11 +126,15 @@ class DistinctActorSoDRule:
         object.__setattr__(self, "resource_attribute", attribute)
 
 
-type AuthorizationConstraint = NumericMaximumConstraint | ResourceAttributeEqualsConstraint
+type AuthorizationConstraint = (
+    NumericMaximumConstraint | ResourceAttributeEqualsConstraint | MinimumAssuranceConstraint
+)
 type SeparationOfDutyRule = MutuallyExclusiveRolesRule | DistinctActorSoDRule
 
 
 class GovernanceViolationKind(StrEnum):
+    AUTHENTICATION_CONTEXT_MISSING = "authentication_context_missing"
+    ASSURANCE_STEP_UP_REQUIRED = "assurance_step_up_required"
     CONSTRAINT_CONTEXT_MISSING = "constraint_context_missing"
     CONSTRAINT_VIOLATION = "constraint_violation"
     SOD_CONTEXT_MISSING = "sod_context_missing"
@@ -131,3 +147,5 @@ class GovernanceViolation:
     kind: GovernanceViolationKind
     rule_id: GovernanceRuleId
     detail: str
+    required_assurance_level: AssuranceLevel | None = None
+    required_mfa: bool | None = None

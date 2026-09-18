@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** MFA step-up beta (`0.4.0b1`) — not yet recommended for production use.
+> **Status:** Assurance-aware authorization beta (`0.4.0b2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,39 +10,55 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b1` adds **TOTP MFA enrollment and Session step-up** without storing raw OTP secrets in the IAM database.
+`0.4.0b2` connects **authentication assurance to authorization policy** without coupling the Authorization Engine to Authentication Session persistence.
 
 ```text
-active Identity
-      ↓
-begin TOTP enrollment
-      ↓
-external MfaSecretStore
-      ├── raw secret
-      └── provisioning URI
-      ↓
-MfaFactor(PENDING)
-      ↓
-first valid code
-      ↓
-MfaFactor(ACTIVE)
-      ↓
-AAL1 Session
-      +
-valid unused TOTP
-      ↓
-Session.step_up()
-      ↓
-AAL2 + mfa=true
-      ↓
-reissue access JWT
+RBAC candidate ALLOW
+        ↓
+MinimumAssuranceConstraint
+        ↓
+AuthenticationEvidence
+   ├── AAL
+   ├── MFA
+   └── authenticated_at
+        ↓
+sufficient?
+   ├── yes → ALLOW
+   └── no  → DENY_STEP_UP_REQUIRED
+                  ↓
+                  MFA / re-authentication
+                  ↓
+                  new AAL/MFA evidence
+                  ↓
+                  retry authorization
 ```
 
-The persisted MFA factor stores only an opaque `secret_reference`. The PyOTP adapter resolves the secret through an injected store.
+The rule is restrictive only: assurance can reduce an existing RBAC candidate ALLOW, but it can never create a permission.
 
-A successful TOTP counter is recorded and cannot be replayed. TOTP step-up raises local assurance to **AAL2**, not AAL3.
+Example policy:
 
-Because JWT verification cross-checks durable Session assurance, an access token issued before step-up becomes invalid immediately after the Session changes from AAL1/MFA=false to AAL2/MFA=true. The application then issues a fresh token.
+```python
+governance.register_minimum_assurance(
+    "payment.approve",
+    minimum_assurance=AssuranceLevel.AAL2,
+    require_mfa=True,
+    tenant_id=tenant_id,
+)
+```
+
+Authorization callers provide a snapshot rather than a Session repository:
+
+```python
+AuthenticationEvidence(
+    assurance_level=AssuranceLevel.AAL2,
+    mfa=True,
+    authenticated_at=authenticated_at,
+)
+```
+
+If required evidence is missing, evaluation fails closed. If evidence is present but insufficient, the decision exposes `step_up_required=True` and the required AAL/MFA.
+
+FastAPI builds the evidence from already verified access-token claims. A step-up requirement remains HTTP 403, while missing/invalid bearer authentication remains HTTP 401.
 
 ## Installation
 
@@ -143,18 +159,19 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## MFA step-up guarantees in 0.4.0b1
+## Assurance-aware authorization guarantees in 0.4.0b2
 
-- TOTP secret material is kept behind `MfaSecretStore`;
-- database persistence stores only opaque secret references;
-- factors require first-code confirmation before becoming active;
-- accepted TOTP counters cannot be replayed;
-- factor/session Identity ownership is enforced;
-- revoked factors cannot be used for step-up;
-- TOTP elevates a Session to AAL2 at most;
-- local MFA verification time and factor ID are persisted;
-- stale pre-step-up JWTs fail the existing Session-state cross-check;
-- PyOTP remains optional and outside the Authentication core.
+- Authorization never loads or mutates Authentication Sessions;
+- authentication evidence is explicit input to `AuthorizationRequest`;
+- minimum assurance rules are deny-only governance constraints;
+- missing authentication evidence fails closed when required;
+- insufficient AAL produces a structured step-up-required decision;
+- MFA requirements are evaluated independently from AAL;
+- required assurance/MFA are included in decision audit metadata;
+- FastAPI forwards only verified token claims into authorization;
+- ordinary authorization deny remains 403 Forbidden;
+- step-up-required is also 403, with structured challenge metadata;
+- authentication failures remain 401 with `WWW-Authenticate: Bearer`.
 
 ## Roadmap
 
@@ -175,6 +192,7 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0a1    OIDC federation core + static-key ID Token verification
 0.4.0a2    OIDC Discovery / JWKS cache and rotation
 0.4.0b1    MFA enrollment / TOTP step-up
+0.4.0b2    Assurance-aware authorization / step-up requirements
 0.4.x      Django, SCIM and provider integrations
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API

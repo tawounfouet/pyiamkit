@@ -348,11 +348,13 @@ constraint_table = Table(
         nullable=False,
     ),
     Column("tenant_id", Uuid(as_uuid=True), ForeignKey("iam_tenants.id", ondelete="CASCADE")),
-    Column("resource_attribute", String(255), nullable=False),
+    Column("resource_attribute", String(255)),
     Column("maximum", Numeric(38, 18)),
     Column("expected_value", Text),
+    Column("minimum_assurance", String(16)),
+    Column("require_mfa", Boolean),
     CheckConstraint(
-        "kind IN ('numeric_maximum', 'resource_attribute_equals')",
+        "kind IN ('numeric_maximum', 'resource_attribute_equals', 'minimum_assurance')",
         name="constraint_kind",
     ),
 )

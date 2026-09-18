@@ -6,11 +6,13 @@ from sqlalchemy import delete, func, insert, or_, select
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.orm import Session
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.authorization import (
     AuthorizationConstraint,
     DistinctActorSoDRule,
     GovernanceRuleId,
     GrantSource,
+    MinimumAssuranceConstraint,
     MutuallyExclusiveRolesRule,
     NumericMaximumConstraint,
     Permission,
@@ -266,12 +268,25 @@ class SqlAlchemyConstraintRepository:
     def save(self, constraint: AuthorizationConstraint) -> None:
         if isinstance(constraint, NumericMaximumConstraint):
             kind = "numeric_maximum"
+            resource_attribute = constraint.resource_attribute
             maximum = constraint.maximum
             expected_value = None
-        else:
+            minimum_assurance = None
+            require_mfa = None
+        elif isinstance(constraint, ResourceAttributeEqualsConstraint):
             kind = "resource_attribute_equals"
+            resource_attribute = constraint.resource_attribute
             maximum = None
             expected_value = constraint.expected_value
+            minimum_assurance = None
+            require_mfa = None
+        else:
+            kind = "minimum_assurance"
+            resource_attribute = None
+            maximum = None
+            expected_value = None
+            minimum_assurance = constraint.minimum_assurance.value
+            require_mfa = constraint.require_mfa
         upsert(
             self._session,
             constraint_table,
@@ -281,9 +296,11 @@ class SqlAlchemyConstraintRepository:
                 "kind": kind,
                 "permission_code": str(constraint.permission),
                 "tenant_id": None if constraint.tenant_id is None else constraint.tenant_id.value,
-                "resource_attribute": constraint.resource_attribute,
+                "resource_attribute": resource_attribute,
                 "maximum": maximum,
                 "expected_value": expected_value,
+                "minimum_assurance": minimum_assurance,
+                "require_mfa": require_mfa,
             },
         )
 
@@ -415,8 +432,17 @@ def _constraint_from_row(row: RowMapping) -> AuthorizationConstraint:
     tenant_id = None if tenant_uuid is None else TenantId(tenant_uuid)
     rule_id = GovernanceRuleId(uuid_from_db(row["id"]))
     permission = PermissionCode(str(row["permission_code"]))
+    kind = str(row["kind"])
+    if kind == "minimum_assurance":
+        return MinimumAssuranceConstraint(
+            id=rule_id,
+            permission=permission,
+            minimum_assurance=AssuranceLevel(str(row["minimum_assurance"])),
+            require_mfa=bool(row["require_mfa"]),
+            tenant_id=tenant_id,
+        )
     resource_attribute = str(row["resource_attribute"])
-    if str(row["kind"]) == "numeric_maximum":
+    if kind == "numeric_maximum":
         return NumericMaximumConstraint(
             id=rule_id,
             permission=permission,

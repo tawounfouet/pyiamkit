@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.schema import CreateTable
 
 from pyiamkit.audit import AuditCategory, AuditEvent, AuditOutcome
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.authorization import (
     DistinctActorSoDRule,
     GovernanceRuleId,
+    MinimumAssuranceConstraint,
     MutuallyExclusiveRolesRule,
     NumericMaximumConstraint,
     Permission,
@@ -314,12 +316,29 @@ def test_constraints_and_sod_rules_round_trip(db_session: Session) -> None:
         expected_value="USD",
         tenant_id=other_tenant.id,
     )
+    assurance = MinimumAssuranceConstraint(
+        id=GovernanceRuleId.new(),
+        permission=permission.code,
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+        tenant_id=tenant.id,
+    )
     constraint_repository.save(global_limit)
     constraint_repository.save(tenant_currency)
     constraint_repository.save(excluded)
+    constraint_repository.save(assurance)
 
     constraints = constraint_repository.list_for(permission.code, tenant.id)
-    assert {rule.id for rule in constraints} == {global_limit.id, tenant_currency.id}
+    assert {rule.id for rule in constraints} == {
+        global_limit.id,
+        tenant_currency.id,
+        assurance.id,
+    }
+    persisted_assurance = next(
+        rule for rule in constraints if isinstance(rule, MinimumAssuranceConstraint)
+    )
+    assert persisted_assurance.minimum_assurance is AssuranceLevel.AAL2
+    assert persisted_assurance.require_mfa is True
 
     static_rule = MutuallyExclusiveRolesRule(
         id=GovernanceRuleId.new(),

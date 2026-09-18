@@ -22,6 +22,10 @@ class AuthorizationDecisionAuditRecorder:
             metadata["matched_role_id"] = str(decision.matched_role_id)
         if decision.matched_rule_id is not None:
             metadata["matched_rule_id"] = str(decision.matched_rule_id)
+        if decision.required_assurance_level is not None:
+            metadata["required_assurance_level"] = decision.required_assurance_level.value
+        if decision.required_mfa is not None:
+            metadata["required_mfa"] = decision.required_mfa
 
         event = AuditEvent(
             category=AuditCategory.AUTHORIZATION,

@@ -3,8 +3,10 @@ from decimal import Decimal
 
 import pytest
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.authorization import (
     AccessGovernanceApplicationService,
+    AuthenticationEvidence,
     AuthorizationEngine,
     AuthorizationReason,
     AuthorizationRequest,
@@ -120,13 +122,14 @@ def _runtime_environment():
     return engine, governance, identity, tenant
 
 
-def _request(identity, tenant, *, attributes):
+def _request(identity, tenant, *, attributes, authentication=None):
     return AuthorizationRequest(
         subject_id=identity.id,
         tenant_id=tenant.id,
         permission=PERMISSION,
         scope=TenantScope(tenant.id),
         resource=ResourceDescriptor("payment", "PAY-001", tenant.id, attributes=attributes),
+        authentication=authentication,
     )
 
 
@@ -267,3 +270,97 @@ def test_static_sod_blocks_inherited_conflicting_role_assignment() -> None:
             tenant_id=tenant.id,
             scope=TenantScope(tenant.id),
         )
+
+
+def test_minimum_assurance_constraint_fails_closed_without_authentication_evidence() -> None:
+    engine, governance, identity, tenant = _runtime_environment()
+    rule = governance.register_minimum_assurance(
+        str(PERMISSION),
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+    )
+
+    denied = engine.authorize(_request(identity, tenant, attributes={}))
+
+    assert denied.reason_code is AuthorizationReason.DENY_AUTHENTICATION_CONTEXT_MISSING
+    assert denied.matched_rule_id == rule.id
+    assert denied.required_assurance_level is AssuranceLevel.AAL2
+    assert denied.required_mfa is True
+    assert denied.step_up_required is False
+
+
+def test_minimum_assurance_constraint_returns_step_up_required_for_aal1() -> None:
+    engine, governance, identity, tenant = _runtime_environment()
+    rule = governance.register_minimum_assurance(
+        str(PERMISSION),
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+    )
+
+    denied = engine.authorize(
+        _request(
+            identity,
+            tenant,
+            attributes={},
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL1,
+                mfa=False,
+                authenticated_at=NOW,
+            ),
+        )
+    )
+
+    assert denied.reason_code is AuthorizationReason.DENY_STEP_UP_REQUIRED
+    assert denied.step_up_required is True
+    assert denied.matched_rule_id == rule.id
+    assert denied.required_assurance_level is AssuranceLevel.AAL2
+    assert denied.required_mfa is True
+
+
+def test_minimum_assurance_constraint_requires_mfa_even_with_sufficient_aal() -> None:
+    engine, governance, identity, tenant = _runtime_environment()
+    governance.register_minimum_assurance(
+        str(PERMISSION),
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+    )
+
+    denied = engine.authorize(
+        _request(
+            identity,
+            tenant,
+            attributes={},
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=False,
+                authenticated_at=NOW,
+            ),
+        )
+    )
+
+    assert denied.reason_code is AuthorizationReason.DENY_STEP_UP_REQUIRED
+
+
+def test_minimum_assurance_constraint_allows_existing_rbac_candidate_after_step_up() -> None:
+    engine, governance, identity, tenant = _runtime_environment()
+    governance.register_minimum_assurance(
+        str(PERMISSION),
+        minimum_assurance=AssuranceLevel.AAL2,
+        require_mfa=True,
+    )
+
+    allowed = engine.authorize(
+        _request(
+            identity,
+            tenant,
+            attributes={},
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=True,
+                authenticated_at=NOW,
+            ),
+        )
+    )
+
+    assert allowed.allowed is True
+    assert allowed.step_up_required is False
