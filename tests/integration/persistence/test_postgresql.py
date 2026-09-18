@@ -9,6 +9,9 @@ from pyiamkit.authentication import (
     AuthenticationMethod,
     Credential,
     CredentialType,
+    MfaFactor,
+    MfaFactorId,
+    MfaFactorType,
     Session,
 )
 from pyiamkit.authorization import (
@@ -27,6 +30,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyCredentialRepository,
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
+    SqlAlchemyMfaFactorRepository,
     SqlAlchemyPermissionCatalogRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
@@ -65,6 +69,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         sessions = SqlAlchemySessionRepository(session)
         tenants = SqlAlchemyTenantRepository(session)
         memberships = SqlAlchemyMembershipRepository(session)
+        factors = SqlAlchemyMfaFactorRepository(session)
         permissions = SqlAlchemyPermissionCatalogRepository(session)
         roles = SqlAlchemyRoleRepository(session)
         bindings = SqlAlchemyRoleBindingRepository(session)
@@ -86,17 +91,36 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         credential.pull_events()
         credentials.save(credential)
 
+        factor = MfaFactor.create(
+            factor_id=MfaFactorId.new(),
+            identity_id=identity.id,
+            factor_type=MfaFactorType.TOTP,
+            secret_reference="vault://mfa/postgres/alice",
+            label="CI Authenticator",
+            created_at=NOW,
+        )
+        factor.pull_events()
+        factor.activate(at=NOW + timedelta(seconds=30), counter=42)
+        factor.pull_events()
+        factors.save(factor)
+
         auth_session = Session.open(
             identity_id=identity.id,
             context=AuthenticationContext(
-                method=AuthenticationMethod.PASSKEY,
-                assurance_level=AssuranceLevel.AAL2,
-                mfa=True,
+                method=AuthenticationMethod.PASSWORD,
+                assurance_level=AssuranceLevel.AAL1,
+                mfa=False,
                 authenticated_at=NOW,
                 device_id="postgres-ci",
             ),
             created_at=NOW,
             expires_at=NOW + timedelta(hours=8),
+        )
+        auth_session.pull_events()
+        auth_session.step_up(
+            assurance_level=AssuranceLevel.AAL2,
+            factor_id=factor.id,
+            at=NOW + timedelta(minutes=1),
         )
         auth_session.pull_events()
         sessions.save(auth_session)
@@ -165,16 +189,19 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
     with factory() as session:
         persisted_identity = SqlAlchemyIdentityRepository(session).get(identity.id)
         persisted_credential = SqlAlchemyCredentialRepository(session).get(credential.id)
+        persisted_factor = SqlAlchemyMfaFactorRepository(session).get(factor.id)
         persisted_session = SqlAlchemySessionRepository(session).get(auth_session.id)
         persisted_binding = SqlAlchemyRoleBindingRepository(session).get(binding.id)
         audit_events = SqlAlchemyAuditRepository(session).by_correlation_id("postgres-e2e")
         assert persisted_identity is not None
         assert persisted_identity.id == identity.id
         assert persisted_credential == credential
+        assert persisted_factor == factor
         assert persisted_session == auth_session
         assert persisted_session is not None
         assert persisted_session.context.assurance_level is AssuranceLevel.AAL2
         assert persisted_session.context.mfa is True
+        assert persisted_session.context.mfa_factor_id == str(factor.id)
         assert persisted_binding == binding
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None
