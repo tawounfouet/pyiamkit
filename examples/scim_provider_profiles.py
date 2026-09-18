@@ -44,7 +44,10 @@ def build_transport(profile):
         clock=clock,
         event_sink=events,
     )
-    tenant = tenancy_service.create_tenant(name="ACME", slug=f"acme-{profile.kind.value}")
+    tenant = tenancy_service.create_tenant(
+        name="ACME",
+        slug=f"acme-{profile.kind.value.replace('_', '-')}",
+    )
     tenant = tenancy_service.activate_tenant(tenant.id)
 
     provisioning = ScimProvisioningService(
