@@ -17,7 +17,6 @@ from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
 from pyiamkit.identity import IdentityId
 from pyiamkit.integrations.django import bearer_required, get_authenticated_claims
 
-
 if not settings.configured:
     settings.configure(
         SECRET_KEY="pyiamkit-example",
