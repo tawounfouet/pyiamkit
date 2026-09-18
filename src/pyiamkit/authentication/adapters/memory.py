@@ -1,12 +1,18 @@
-"""In-memory reference adapters for Credentials and Sessions."""
+"""In-memory reference adapters for Authentication persistence ports."""
 
 from datetime import datetime
 
 from pyiamkit.identity import IdentityId
 
 from ..domain.credential import Credential
+from ..domain.mfa_factor import MfaFactor
 from ..domain.session import Session
-from ..domain.value_objects import CredentialId, SessionId
+from ..domain.value_objects import (
+    CredentialId,
+    MfaFactorId,
+    MfaFactorStatus,
+    SessionId,
+)
 
 
 class InMemoryCredentialRepository:
@@ -106,4 +112,48 @@ class InMemorySessionRepository:
             last_activity_at=session.last_activity_at,
             revoked_at=session.revoked_at,
             revocation_reason=session.revocation_reason,
+        )
+
+
+class InMemoryMfaFactorRepository:
+    def __init__(self) -> None:
+        self._items: dict[MfaFactorId, MfaFactor] = {}
+
+    def get(self, factor_id: MfaFactorId) -> MfaFactor | None:
+        factor = self._items.get(factor_id)
+        return None if factor is None else self._copy(factor)
+
+    def save(self, factor: MfaFactor) -> None:
+        self._items[factor.id] = self._copy(factor)
+
+    def find_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]:
+        return tuple(
+            self._copy(factor)
+            for factor in sorted(self._items.values(), key=lambda item: str(item.id))
+            if factor.identity_id == identity_id
+        )
+
+    def find_active_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]:
+        return tuple(
+            factor
+            for factor in self.find_for_identity(identity_id)
+            if factor.status is MfaFactorStatus.ACTIVE
+        )
+
+    @staticmethod
+    def _copy(factor: MfaFactor) -> MfaFactor:
+        return MfaFactor._rehydrate(
+            factor_id=factor.id,
+            version=factor.version,
+            identity_id=factor.identity_id,
+            factor_type=factor.type,
+            status=factor.status,
+            secret_reference=factor.secret_reference,
+            label=factor.label,
+            created_at=factor.created_at,
+            updated_at=factor.updated_at,
+            activated_at=factor.activated_at,
+            revoked_at=factor.revoked_at,
+            last_verified_at=factor.last_verified_at,
+            last_accepted_counter=factor.last_accepted_counter,
         )
