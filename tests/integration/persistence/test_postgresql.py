@@ -15,9 +15,12 @@ from pyiamkit.authentication import (
     Session,
 )
 from pyiamkit.authorization import (
+    AuthenticationEvidence,
     AuthorizationEngine,
     AuthorizationReason,
     AuthorizationRequest,
+    GovernanceRuleId,
+    MinimumAssuranceConstraint,
     Permission,
     PermissionCode,
     Role,
@@ -27,6 +30,7 @@ from pyiamkit.authorization import (
 from pyiamkit.identity import Identity
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
+    SqlAlchemyConstraintRepository,
     SqlAlchemyCredentialRepository,
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
@@ -65,6 +69,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
 
     with factory.begin() as session:
         identities = SqlAlchemyIdentityRepository(session)
+        constraints = SqlAlchemyConstraintRepository(session)
         credentials = SqlAlchemyCredentialRepository(session)
         sessions = SqlAlchemySessionRepository(session)
         tenants = SqlAlchemyTenantRepository(session)
@@ -164,6 +169,15 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         binding.pull_events()
         bindings.save(binding)
 
+        assurance_rule = MinimumAssuranceConstraint(
+            id=GovernanceRuleId.new(),
+            permission=permission.code,
+            minimum_assurance=AssuranceLevel.AAL2,
+            require_mfa=True,
+            tenant_id=tenant.id,
+        )
+        constraints.save(assurance_rule)
+
         engine_service = AuthorizationEngine(
             identity_repository=identities,
             tenant_repository=tenants,
@@ -171,6 +185,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
             permission_repository=permissions,
             role_repository=roles,
             binding_repository=bindings,
+            constraint_repository=constraints,
             audit_sink=audit,
             clock=FrozenClock(),
         )
@@ -180,6 +195,11 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
                 tenant_id=tenant.id,
                 permission=permission.code,
                 scope=TenantScope(tenant.id),
+                authentication=AuthenticationEvidence(
+                    assurance_level=auth_session.context.assurance_level,
+                    mfa=auth_session.context.mfa,
+                    authenticated_at=auth_session.context.authenticated_at,
+                ),
                 correlation_id="postgres-e2e",
             )
         )
@@ -192,6 +212,10 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         persisted_factor = SqlAlchemyMfaFactorRepository(session).get(factor.id)
         persisted_session = SqlAlchemySessionRepository(session).get(auth_session.id)
         persisted_binding = SqlAlchemyRoleBindingRepository(session).get(binding.id)
+        persisted_constraints = SqlAlchemyConstraintRepository(session).list_for(
+            permission.code,
+            tenant.id,
+        )
         audit_events = SqlAlchemyAuditRepository(session).by_correlation_id("postgres-e2e")
         assert persisted_identity is not None
         assert persisted_identity.id == identity.id
@@ -203,6 +227,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         assert persisted_session.context.mfa is True
         assert persisted_session.context.mfa_factor_id == str(factor.id)
         assert persisted_binding == binding
+        assert any(rule == assurance_rule for rule in persisted_constraints)
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None
         assert audit_events[0].outcome.value == "allow"
