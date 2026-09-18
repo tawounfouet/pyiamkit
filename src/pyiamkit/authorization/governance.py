@@ -249,10 +249,8 @@ class ConstraintEvaluator:
                 required_assurance_level=rule.minimum_assurance,
                 required_mfa=rule.require_mfa,
             )
-        if (
-            _assurance_rank(evidence.assurance_level)
-            < _assurance_rank(rule.minimum_assurance)
-            or (rule.require_mfa and not evidence.mfa)
+        if _assurance_rank(evidence.assurance_level) < _assurance_rank(rule.minimum_assurance) or (
+            rule.require_mfa and not evidence.mfa
         ):
             return GovernanceViolation(
                 GovernanceViolationKind.ASSURANCE_STEP_UP_REQUIRED,
