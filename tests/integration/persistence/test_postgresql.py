@@ -36,6 +36,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyMembershipRepository,
     SqlAlchemyMfaFactorRepository,
     SqlAlchemyPermissionCatalogRepository,
+    SqlAlchemyProvisioningGroupRepository,
     SqlAlchemyProvisioningUserRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
@@ -46,7 +47,7 @@ from pyiamkit.persistence.sqlalchemy import (
     create_sqlalchemy_engine,
     drop_schema,
 )
-from pyiamkit.provisioning import ProvisioningUser
+from pyiamkit.provisioning import ProvisioningGroup, ProvisioningUser
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import Membership, Tenant, TenantScope
 
@@ -79,6 +80,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         factors = SqlAlchemyMfaFactorRepository(session)
         permissions = SqlAlchemyPermissionCatalogRepository(session)
         provisioning = SqlAlchemyProvisioningUserRepository(session)
+        provisioning_groups = SqlAlchemyProvisioningGroupRepository(session)
         roles = SqlAlchemyRoleRepository(session)
         bindings = SqlAlchemyRoleBindingRepository(session)
         audit = SqlAlchemyAuditRepository(session)
@@ -161,6 +163,16 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         )
         provisioning.save(provisioning_user)
 
+        provisioning_group = ProvisioningGroup.create(
+            source_id="postgres-scim",
+            tenant_id=tenant.id,
+            display_name="Postgres Group",
+            external_id="postgres-group-42",
+            member_ids=(provisioning_user.id,),
+            created_at=NOW,
+        )
+        provisioning_groups.save(provisioning_group)
+
         permission = Permission(PermissionCode("invoice.read"), "Read invoices")
         permissions.save(permission)
         role = Role.create(
@@ -230,6 +242,9 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         persisted_provisioning = SqlAlchemyProvisioningUserRepository(session).get(
             provisioning_user.id
         )
+        persisted_group = SqlAlchemyProvisioningGroupRepository(session).get(
+            provisioning_group.id
+        )
         persisted_constraints = SqlAlchemyConstraintRepository(session).list_for(
             permission.code,
             tenant.id,
@@ -246,6 +261,9 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         assert persisted_session.context.mfa_factor_id == str(factor.id)
         assert persisted_binding == binding
         assert persisted_provisioning == provisioning_user
+        assert persisted_group == provisioning_group
+        assert persisted_group is not None
+        assert persisted_group.member_ids == (provisioning_user.id,)
         assert any(rule == assurance_rule for rule in persisted_constraints)
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None
