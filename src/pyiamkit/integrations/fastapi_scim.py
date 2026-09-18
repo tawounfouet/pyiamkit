@@ -120,6 +120,75 @@ def create_scim_router(
     ) -> Response:
         return _response(transport.delete_user(resource_id, if_match=if_match))
 
+    if transport.groups_enabled:
+
+        @router.post("/Groups")
+        def create_group(
+            _: Annotated[object, Depends(access_dependency)],
+            payload: Annotated[dict[str, object], Body()],
+        ) -> Response:
+            return _response(transport.create_group(payload))
+
+        @router.get("/Groups")
+        def list_groups(
+            _: Annotated[object, Depends(access_dependency)],
+            filter_expression: Annotated[str | None, Query(alias="filter")] = None,
+            start_index: Annotated[int, Query(alias="startIndex")] = 1,
+            count: Annotated[int, Query()] = 100,
+        ) -> Response:
+            return _response(
+                transport.list_groups(
+                    filter_expression=filter_expression,
+                    start_index=start_index,
+                    count=count,
+                )
+            )
+
+        @router.get("/Groups/{resource_id}")
+        def get_group(
+            resource_id: str,
+            _: Annotated[object, Depends(access_dependency)],
+        ) -> Response:
+            return _response(transport.get_group(resource_id))
+
+        @router.put("/Groups/{resource_id}")
+        def replace_group(
+            resource_id: str,
+            _: Annotated[object, Depends(access_dependency)],
+            payload: Annotated[dict[str, object], Body()],
+            if_match: Annotated[str | None, Header(alias="If-Match")] = None,
+        ) -> Response:
+            return _response(
+                transport.replace_group(
+                    resource_id,
+                    payload,
+                    if_match=if_match,
+                )
+            )
+
+        @router.patch("/Groups/{resource_id}")
+        def patch_group(
+            resource_id: str,
+            _: Annotated[object, Depends(access_dependency)],
+            payload: Annotated[dict[str, object], Body()],
+            if_match: Annotated[str | None, Header(alias="If-Match")] = None,
+        ) -> Response:
+            return _response(
+                transport.patch_group(
+                    resource_id,
+                    payload,
+                    if_match=if_match,
+                )
+            )
+
+        @router.delete("/Groups/{resource_id}")
+        def delete_group(
+            resource_id: str,
+            _: Annotated[object, Depends(access_dependency)],
+            if_match: Annotated[str | None, Header(alias="If-Match")] = None,
+        ) -> Response:
+            return _response(transport.delete_group(resource_id, if_match=if_match))
+
     return router
 
 
