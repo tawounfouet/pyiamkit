@@ -2,6 +2,45 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b3
+
+Adds the optional synchronous Django adapter from `pyiamkit.integrations.django`:
+
+```text
+DjangoAuthenticationRequired
+DjangoCorrelationIdResolver
+DjangoResourceResolver
+DjangoScopeResolver
+DjangoTenantResolver
+PyIAMKitAuthenticationMiddleware
+authenticate_request()
+bearer_required()
+get_authenticated_claims()
+get_authorization_decision()
+permission_required()
+```
+
+Install it with:
+
+```text
+pyiamkit[django]
+```
+
+Supported/qualified Django lines in this milestone:
+
+```text
+Django 5.2.x
+Django 6.1.x
+```
+
+`PYIAMKIT_TOKEN_PROVIDER` may be configured in Django settings as either a TokenProvider-compatible object or a dotted import path. Passing `token_provider=` directly to a decorator takes precedence and avoids global settings lookup.
+
+The middleware performs optional authentication and attaches verified claims when a Bearer header exists. It does not make every Django route private.
+
+The decorators are synchronous. Async views are rejected explicitly until PyIAMKit has an async-safe repository/service execution model.
+
+Django's own User/groups/permissions/superuser flags are not treated as PyIAMKit authorization inputs.
+
 ## 0.4.0b2
 
 Adds assurance-aware authorization contracts from `pyiamkit.authorization`:
