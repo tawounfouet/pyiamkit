@@ -90,9 +90,6 @@ created_okta = okta.create_user(
     }
 )
 assert created_okta.status == 201
-assert (
-    okta.list_users(filter_expression='userName eq "bob@example.com"').body["totalResults"]
-    == 1
-)
+assert okta.list_users(filter_expression='userName eq "bob@example.com"').body["totalResults"] == 1
 
 print("SCIM provider profiles OK: Entra + Okta")
