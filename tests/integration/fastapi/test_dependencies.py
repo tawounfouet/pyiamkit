@@ -54,6 +54,7 @@ def _build_app() -> tuple[
     str,
     JwtTokenProvider,
     Session,
+    InMemorySessionRepository,
 ]:
     clock = FrozenClock(NOW)
     identities = InMemoryIdentityRepository()
@@ -223,11 +224,11 @@ def _build_app() -> tuple[
             "correlation": decision.correlation_id,
         }
 
-    return TestClient(app), token, token_provider, session
+    return TestClient(app), token, token_provider, session, sessions
 
 
 def test_bearer_dependency_returns_401_without_credentials() -> None:
-    client, _, _, _ = _build_app()
+    client, _, _, _, _ = _build_app()
 
     response = client.get("/me")
 
@@ -237,7 +238,7 @@ def test_bearer_dependency_returns_401_without_credentials() -> None:
 
 
 def test_bearer_dependency_returns_401_for_invalid_token_without_leaking_reason() -> None:
-    client, _, _, _ = _build_app()
+    client, _, _, _, _ = _build_app()
 
     response = client.get("/me", headers={"Authorization": "Bearer invalid"})
 
@@ -247,7 +248,7 @@ def test_bearer_dependency_returns_401_for_invalid_token_without_leaking_reason(
 
 
 def test_valid_bearer_token_exposes_verified_subject() -> None:
-    client, token, _, session = _build_app()
+    client, token, _, session, _ = _build_app()
 
     response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
 
@@ -256,7 +257,7 @@ def test_valid_bearer_token_exposes_verified_subject() -> None:
 
 
 def test_authorization_dependency_distinguishes_allow_and_forbidden() -> None:
-    client, token, _, _ = _build_app()
+    client, token, _, _, _ = _build_app()
     headers = {"Authorization": f"Bearer {token}", "X-Request-ID": "req-123"}
 
     allowed = client.get("/invoices", headers=headers)
@@ -269,7 +270,7 @@ def test_authorization_dependency_distinguishes_allow_and_forbidden() -> None:
 
 
 def test_custom_context_resolvers_feed_authorization_request() -> None:
-    client, token, _, _ = _build_app()
+    client, token, _, _, _ = _build_app()
 
     response = client.get(
         "/contextual",
@@ -284,7 +285,7 @@ def test_custom_context_resolvers_feed_authorization_request() -> None:
 
 
 def test_openapi_contains_bearer_security_scheme() -> None:
-    client, _, _, _ = _build_app()
+    client, _, _, _, _ = _build_app()
 
     schema = client.get("/openapi.json").json()
 
@@ -293,12 +294,13 @@ def test_openapi_contains_bearer_security_scheme() -> None:
 
 
 def test_session_revocation_turns_existing_token_into_401() -> None:
-    client, token, _, session = _build_app()
+    client, token, _, session, sessions = _build_app()
 
     session.revoke(at=NOW + timedelta(minutes=1), reason="logout")
+    session.pull_events()
+    sessions.save(session)
 
     response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
 
-    # The test app stores a detached copy of Session in its repository, so mutate through
-    # the provider's repository contract is exercised in the JWT unit suite instead.
-    assert response.status_code == 200
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
