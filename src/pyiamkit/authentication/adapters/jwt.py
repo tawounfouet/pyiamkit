@@ -259,6 +259,7 @@ def _claims_from_payload(payload: Mapping[str, object]) -> AccessTokenClaims:
         raise InvalidAccessToken("JWT is not an access token")
 
     audience_value = payload.get("aud")
+    audiences: tuple[str, ...]
     if isinstance(audience_value, str):
         audiences = (audience_value,)
     elif isinstance(audience_value, list) and all(isinstance(item, str) for item in audience_value):
