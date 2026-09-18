@@ -40,8 +40,7 @@ class FakeTransport:
         responses: Mapping[str, list[Mapping[str, object]]],
     ) -> None:
         self._responses = {
-            url: [dict(item) for item in values]
-            for url, values in responses.items()
+            url: [dict(item) for item in values] for url, values in responses.items()
         }
         self.calls: dict[str, int] = {}
 
