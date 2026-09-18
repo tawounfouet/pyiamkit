@@ -1,6 +1,16 @@
 """Provisioning and SCIM public API."""
 
 from .application import ProvisioningSource, ScimProvisioningService
+from .group_application import ScimGroupProvisioningService
+from .group_domain import ProvisioningGroup
+from .group_scim import (
+    SCIM_GROUP_SCHEMA,
+    ScimGroupInput,
+    ScimGroupListResponse,
+    ScimGroupMember,
+    ScimGroupPatchOperation,
+    ScimGroupResource,
+)
 from .domain import (
     ProvisioningResourceId,
     ProvisioningResourceStatus,
@@ -34,7 +44,7 @@ from .http import (
     parse_user_filter,
     parse_user_filter_expression,
 )
-from .ports import ProvisioningUserRepository
+from .ports import ProvisioningGroupRepository, ProvisioningUserRepository
 from .providers import (
     GENERIC_SCIM_PROFILE,
     MICROSOFT_ENTRA_PROFILE,
@@ -64,6 +74,7 @@ __all__ = [
     "MICROSOFT_ENTRA_PROFILE",
     "OKTA_SCIM_PROFILE",
     "SCIM_ERROR_SCHEMA",
+    "SCIM_GROUP_SCHEMA",
     "SCIM_LIST_RESPONSE_SCHEMA",
     "SCIM_MEDIA_TYPE",
     "SCIM_PATCH_SCHEMA",
@@ -75,6 +86,8 @@ __all__ = [
     "InvalidScimRequest",
     "ProvisioningConflict",
     "ProvisioningError",
+    "ProvisioningGroup",
+    "ProvisioningGroupRepository",
     "ProvisioningManagedStateConflict",
     "ProvisioningPreconditionFailed",
     "ProvisioningResourceId",
@@ -87,6 +100,12 @@ __all__ = [
     "ScimEmail",
     "ScimErrorResponse",
     "ScimErrorType",
+    "ScimGroupInput",
+    "ScimGroupListResponse",
+    "ScimGroupMember",
+    "ScimGroupPatchOperation",
+    "ScimGroupProvisioningService",
+    "ScimGroupResource",
     "ScimHttpResponse",
     "ScimHttpTransport",
     "ScimListResponse",
