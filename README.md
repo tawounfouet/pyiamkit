@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** Assurance-aware authorization beta (`0.4.0b2`) — not yet recommended for production use.
+> **Status:** Django integration beta (`0.4.0b3`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,55 +10,34 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b2` connects **authentication assurance to authorization policy** without coupling the Authorization Engine to Authentication Session persistence.
+`0.4.0b3` adds the first **Django integration** as an optional, synchronous adapter.
 
 ```text
-RBAC candidate ALLOW
-        ↓
-MinimumAssuranceConstraint
-        ↓
-AuthenticationEvidence
-   ├── AAL
-   ├── MFA
-   └── authenticated_at
-        ↓
-sufficient?
-   ├── yes → ALLOW
-   └── no  → DENY_STEP_UP_REQUIRED
-                  ↓
-                  MFA / re-authentication
-                  ↓
-                  new AAL/MFA evidence
-                  ↓
-                  retry authorization
+Django HttpRequest
+       ↓
+Bearer token
+       ↓
+TokenProvider.verify_access_token()
+       ↓
+AccessTokenClaims
+       ↓
+explicit Tenant / Scope / Resource resolvers
+       ↓
+AuthorizationEngine
+       ↓
+view execution / 401 / 403 / step-up 403
 ```
 
-The rule is restrictive only: assurance can reduce an existing RBAC candidate ALLOW, but it can never create a permission.
+Two protection styles are available:
 
-Example policy:
+- `bearer_required()` for authentication-only views;
+- `permission_required()` for Authentication + PyIAMKit Authorization.
 
-```python
-governance.register_minimum_assurance(
-    "payment.approve",
-    minimum_assurance=AssuranceLevel.AAL2,
-    require_mfa=True,
-    tenant_id=tenant_id,
-)
-```
+An optional `PyIAMKitAuthenticationMiddleware` can attach verified claims to requests that already carry a Bearer header, but it does **not** globally make public routes private.
 
-Authorization callers provide a snapshot rather than a Session repository:
+PyIAMKit deliberately does not treat Django `request.user`, Django groups, Django permissions, `is_staff` or `is_superuser` as IAM authorization truth. Applications that need interoperability must implement explicit mapping/provisioning rules.
 
-```python
-AuthenticationEvidence(
-    assurance_level=AssuranceLevel.AAL2,
-    mfa=True,
-    authenticated_at=authenticated_at,
-)
-```
-
-If required evidence is missing, evaluation fails closed. If evidence is present but insufficient, the decision exposes `step_up_required=True` and the required AAL/MFA.
-
-FastAPI builds the evidence from already verified access-token claims. A step-up requirement remains HTTP 403, while missing/invalid bearer authentication remains HTTP 401.
+The adapter is sync-first. Async Django views are rejected explicitly until PyIAMKit exposes async-safe persistence/application services.
 
 ## Installation
 
@@ -112,6 +91,12 @@ FastAPI integration:
 python -m pip install -e ".[fastapi]"
 ```
 
+Django integration:
+
+```bash
+python -m pip install -e ".[django]"
+```
+
 FastAPI + JWT:
 
 ```bash
@@ -159,19 +144,18 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## Assurance-aware authorization guarantees in 0.4.0b2
+## Django integration guarantees in 0.4.0b3
 
-- Authorization never loads or mutates Authentication Sessions;
-- authentication evidence is explicit input to `AuthorizationRequest`;
-- minimum assurance rules are deny-only governance constraints;
-- missing authentication evidence fails closed when required;
-- insufficient AAL produces a structured step-up-required decision;
-- MFA requirements are evaluated independently from AAL;
-- required assurance/MFA are included in decision audit metadata;
-- FastAPI forwards only verified token claims into authorization;
-- ordinary authorization deny remains 403 Forbidden;
-- step-up-required is also 403, with structured challenge metadata;
-- authentication failures remain 401 with `WWW-Authenticate: Bearer`.
+- qualified against Django 5.2.x and 6.1.x;
+- Bearer verification delegated to `TokenProvider`;
+- permission decisions delegated to `AuthorizationEngine`;
+- explicit Tenant resolver required for authorization;
+- anonymous public requests remain possible with middleware installed;
+- missing/invalid protected Bearer requests return 401 + `WWW-Authenticate: Bearer`;
+- ordinary authorization denial remains generic 403;
+- step-up-required remains structured 403;
+- Django User/groups/permissions/superuser flags are not implicit IAM bypasses;
+- sync-only contract is explicit; async views fail configuration rather than running unsafe sync I/O.
 
 ## Roadmap
 
@@ -193,7 +177,8 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0a2    OIDC Discovery / JWKS cache and rotation
 0.4.0b1    MFA enrollment / TOTP step-up
 0.4.0b2    Assurance-aware authorization / step-up requirements
-0.4.x      Django, SCIM and provider integrations
+0.4.0b3    Django integration
+0.4.x      SCIM and provider integrations
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```
