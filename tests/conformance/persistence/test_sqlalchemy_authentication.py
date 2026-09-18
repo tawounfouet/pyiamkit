@@ -48,7 +48,7 @@ def _active_identity(session: SqlAlchemySession) -> Identity:
 
 
 @pytest.mark.conformance
-def test_sqlalchemy_credential_round_trip_and_temporal_filter(db_session: SqlAlchemySession) -> None:
+def test_sqlalchemy_credential_round_trip_and_temporal_filter(\n    db_session: SqlAlchemySession,\n) -> None:
     identity = _active_identity(db_session)
     repository = SqlAlchemyCredentialRepository(db_session)
     credential = Credential.create(
