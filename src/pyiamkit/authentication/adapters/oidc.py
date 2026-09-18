@@ -235,9 +235,7 @@ class StaticOidcAssuranceResolver(FederatedAssuranceResolver):
         self._acr_mapping = {
             key.strip(): value for key, value in dict(acr_mapping or {}).items() if key.strip()
         }
-        self._mfa_amr_values = frozenset(
-            value.strip() for value in mfa_amr_values if value.strip()
-        )
+        self._mfa_amr_values = frozenset(value.strip() for value in mfa_amr_values if value.strip())
         self._default_assurance = default_assurance
 
     def resolve(self, claims: FederatedIdentityClaims) -> FederatedAssurance:
@@ -254,15 +252,8 @@ def _validate_issuer(issuer: str) -> None:
     if not issuer:
         raise OidcConfigurationError("issuer must not be empty")
     parsed = urlsplit(issuer)
-    if (
-        parsed.scheme != "https"
-        or not parsed.netloc
-        or parsed.query
-        or parsed.fragment
-    ):
-        raise OidcConfigurationError(
-            "issuer must be an HTTPS URL without query or fragment"
-        )
+    if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment:
+        raise OidcConfigurationError("issuer must be an HTTPS URL without query or fragment")
 
 
 def _required_text(payload: Mapping[str, object], name: str) -> str:
