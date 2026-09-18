@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** OIDC federation alpha (`0.4.0a1`) — not yet recommended for production use.
+> **Status:** OIDC Discovery/JWKS alpha (`0.4.0a2`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,60 +10,58 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0a1` adds the first **OIDC federation** path while preserving PyIAMKit's internal Identity and authorization boundaries.
+`0.4.0a2` adds **OIDC Discovery and remote JWKS rotation** on top of the
+federation core introduced in `0.4.0a1`.
 
 ```text
-OIDC ID Token
-     ↓
-IdentityTokenVerifier
-     ├── signature
-     ├── issuer
-     ├── audience / azp
-     ├── exp / iat
-     ├── nonce
-     └── configured signing algorithm / kid
-     ↓
+configured issuer
+      ↓
+OidcDiscoveryClient
+      ↓
+.well-known/openid-configuration
+      ├── exact issuer match
+      ├── HTTPS endpoints
+      ├── jwks_uri
+      └── advertised ID Token algorithms
+      ↓
+JwksKeyResolver
+      ├── public signing keys only
+      ├── TTL cache
+      ├── kid lookup
+      └── bounded refresh on unknown kid
+      ↓
+DiscoveredOidcIdTokenVerifier
+      ↓
+StaticOidcIdTokenVerifier
+      ↓
 FederatedIdentityClaims
-     ↓
-(provider_id, sub)
-     ↓
-IdentityRepository.find_by_external_subject()
-     ↓
-existing active PyIAMKit Identity
-     ↓
-explicit ACR / AMR assurance mapping
-     ↓
-AuthenticationApplicationService.open_session()
-     ↓
-local OIDC Session
 ```
 
-The federation boundary deliberately does **not** use email as an identity key. Even a verified email claim cannot attach a new OIDC subject to an existing user. External Roles/groups/claims also do not create local RoleBindings or Permissions automatically.
-
-The initial OIDC adapter uses configured verification keys and keeps network discovery/provider SDKs out of the core:
+The configured signing algorithm still comes from trusted application
+configuration. Discovery only confirms that the provider advertises it; neither
+metadata nor the ID Token header can silently change the verification
+algorithm.
 
 ```python
-from pyiamkit.authentication.adapters.oidc import (
-    StaticOidcAssuranceResolver,
-    StaticOidcIdTokenVerifier,
+from pyiamkit.authentication.adapters.oidc_discovery import (
+    DiscoveredOidcIdTokenVerifier,
+    HttpxOidcTransport,
 )
 
-verifier = StaticOidcIdTokenVerifier(
-    provider_id="entra-prod",
-    issuer="https://login.example.com/tenant/v2.0",
-    client_id="pyiamkit-client",
-    verification_keys={"current": public_key},
-    algorithm="RS256",
-    clock=clock,
-)
-
-assurance = StaticOidcAssuranceResolver(
-    acr_mapping={"urn:example:aal2": AssuranceLevel.AAL2},
-    mfa_amr_values=("mfa",),
-)
+with HttpxOidcTransport() as transport:
+    verifier = DiscoveredOidcIdTokenVerifier(
+        provider_id="entra-prod",
+        issuer="https://login.example.com/tenant/v2.0",
+        client_id="pyiamkit-client",
+        algorithm="RS256",
+        transport=transport,
+        clock=clock,
+    )
 ```
 
-A separate `FederatedAuthenticationService` combines those adapters with the existing external identity links and Session lifecycle.
+Discovery metadata and JWKS are cached separately. A new `kid` can trigger a
+controlled JWKS refresh after a cooldown, reducing attacker-driven network
+amplification while still supporting key rotation.
 
 ## Installation
 
@@ -93,10 +91,16 @@ JWT access-token adapter:
 python -m pip install -e ".[jwt]"
 ```
 
-OIDC federation adapter:
+OIDC federation adapter with configured keys:
 
 ```bash
 python -m pip install -e ".[oidc]"
+```
+
+OIDC Discovery + remote JWKS:
+
+```bash
+python -m pip install -e ".[oidc-http]"
 ```
 
 FastAPI integration:
@@ -152,20 +156,19 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## OIDC federation guarantees in 0.4.0a1
+## OIDC Discovery/JWKS guarantees in 0.4.0a2
 
-- external identity keyed by provider ID plus OIDC subject;
-- email never used for automatic identity linking;
-- exact configured issuer and client audience validation;
-- configured signing algorithm, never token-selected;
-- nonce verification when an expected nonce is supplied;
-- `azp` required for multiple audiences and validated when present;
-- missing/unknown `kid` fails closed when a verification-key set is configured;
-- local ACR/AMR assurance mapping is explicit and provider-specific;
-- unknown ACR defaults to AAL1;
-- MFA remains false unless configured AMR evidence matches;
-- unlinked or inactive local Identities cannot establish Sessions;
-- external authorization claims never bypass local RBAC, tenancy, policies or SoD.
+- configured issuer remains the trust anchor;
+- discovered issuer must match it exactly;
+- remote OIDC endpoints must use HTTPS;
+- provider metadata must advertise the configured ID Token algorithm;
+- JWKS accepts public signing keys only;
+- symmetric and private key material is rejected;
+- `kid` is mandatory for discovered-key verification;
+- metadata and JWKS have independent TTL caches;
+- unknown-key refresh is rate-limited by a configurable cooldown;
+- token claims continue to be validated by the existing OIDC verifier;
+- network transport stays outside the Authentication core.
 
 ## Roadmap
 
@@ -184,7 +187,7 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.3.0b1    JWT
 0.3.0b2    FastAPI integration
 0.4.0a1    OIDC federation core + static-key ID Token verification
-0.4.0a2    External provider discovery / JWKS adapters
+0.4.0a2    OIDC Discovery / JWKS cache and rotation
 0.4.0b1    MFA enrollment / step-up
 0.4.x      Django, SCIM and provider integrations
 0.5.x      Distributed operations and production qualification

@@ -6,6 +6,32 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0a2] - 2026-09-18
+
+### Added
+
+- Optional `pyiamkit[oidc-http]` extra for OIDC Discovery and remote JWKS retrieval.
+- `OidcDiscoveryClient` with exact issuer validation and metadata caching.
+- `OidcProviderMetadata` validation for authorization, token and JWKS endpoints plus advertised ID Token algorithms.
+- `HttpxOidcTransport` reference HTTP adapter with bounded timeout, redirects disabled by default and strict JSON media-type handling.
+- `JwksKeyResolver` with public signing-key parsing, five-minute default cache and controlled refresh on unknown `kid`.
+- `DiscoveredOidcIdTokenVerifier` composing Discovery/JWKS infrastructure with the existing static OIDC claim verifier.
+- Support for RSA/EC/EdDSA public JWK objects through the existing static verifier boundary.
+- RSA-backed tests for real ID Token verification and signing-key rotation.
+- Discovery/JWKS architecture documentation and an offline executable example.
+
+### Security
+
+- Discovered metadata `issuer` must exactly equal the configured issuer.
+- Discovery, authorization, token and JWKS URLs must use HTTPS; URI fragments are rejected.
+- The configured ID Token signing algorithm must also be advertised by provider metadata.
+- Remote JWKS documents reject symmetric keys and private key material.
+- Only signing keys with a compatible advertised algorithm are retained.
+- Remote verification requires a non-empty `kid`.
+- Unknown `kid` values may trigger a bounded refresh only after the configured cooldown, limiting attacker-driven refresh amplification.
+- Metadata and JWKS caches use the injected Clock and explicit TTLs.
+- Discovery/JWKS network transport remains optional infrastructure and does not enter the Authentication core.
+
 ## [0.4.0a1] - 2026-09-18
 
 ### Added

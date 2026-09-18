@@ -2,6 +2,45 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0a2
+
+Adds optional OIDC Discovery/JWKS infrastructure from
+`pyiamkit.authentication.adapters.oidc_discovery`:
+
+```text
+DiscoveredOidcIdTokenVerifier
+HttpxOidcTransport
+JwksKeyResolver
+OidcDiscoveryClient
+OidcDiscoveryError
+OidcJsonTransport
+OidcJwksError
+OidcProviderMetadata
+OidcRemoteError
+```
+
+Install it with:
+
+```text
+pyiamkit[oidc-http]
+```
+
+`OidcDiscoveryClient` resolves
+`<issuer>/.well-known/openid-configuration`, requires the returned issuer to
+match the configured issuer exactly and caches validated metadata.
+
+`JwksKeyResolver` downloads and caches public signing JWKs, rejects symmetric
+or private key material and supports bounded refresh when a new `kid` appears.
+
+`DiscoveredOidcIdTokenVerifier` requires the configured algorithm to be
+advertised by provider metadata, resolves the token's `kid` through the JWKS
+cache and delegates all ID Token claim validation to
+`StaticOidcIdTokenVerifier`.
+
+The HTTP transport is explicit and optional. Applications can provide another
+`OidcJsonTransport` implementation for proxies, service meshes or controlled
+enterprise egress.
+
 ## 0.4.0a1
 
 Adds framework-neutral federation contracts from `pyiamkit.authentication`:
