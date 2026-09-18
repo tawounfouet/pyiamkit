@@ -2,6 +2,49 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b7
+
+Adds the SCIM Group provisioning surface from `pyiamkit.provisioning`:
+
+```text
+SCIM_GROUP_SCHEMA
+ProvisioningGroup
+ProvisioningGroupRepository
+ScimGroupProvisioningService
+ScimGroupInput
+ScimGroupMember
+ScimGroupResource
+ScimGroupListResponse
+ScimGroupPatchOperation
+parse_scim_group_payload()
+parse_scim_group_patch_payload()
+parse_group_filter()
+```
+
+Reference adapters:
+
+```text
+pyiamkit.provisioning.adapters.InMemoryProvisioningGroupRepository
+pyiamkit.persistence.sqlalchemy.SqlAlchemyProvisioningGroupRepository
+```
+
+When `ScimHttpTransport` receives `group_service=`, it additionally exposes Group discovery and the following transport operations:
+
+```text
+POST   /Groups
+GET    /Groups
+GET    /Groups/{id}
+PUT    /Groups/{id}
+PATCH  /Groups/{id}
+DELETE /Groups/{id}
+```
+
+FastAPI adds these routes only when Groups are configured. They use the same mandatory host-provided access dependency as User provisioning.
+
+Supported Group filters are equality lookup on `displayName` and `externalId`. Supported members reference active SCIM User resource IDs from the same provisioning source and Tenant.
+
+SCIM Group membership is intentionally independent from PyIAMKit Roles, Permissions and RoleBindings. Nested Groups and implicit Group-to-Role mapping remain outside this public milestone.
+
 ## 0.4.0b6
 
 Adds explicit SCIM provider-interoperability contracts:
