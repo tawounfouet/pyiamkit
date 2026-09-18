@@ -6,6 +6,7 @@ from typing import cast
 
 import jwt as pyjwt
 
+from pyiamkit.identity import IdentityId
 from pyiamkit.shared import Clock
 
 from ..domain.session import Session
@@ -19,6 +20,7 @@ from ..tokens import (
     TokenConfigurationError,
     TokenId,
     TokenSessionInactive,
+    TokenType,
 )
 
 JwtKey = str | bytes
@@ -158,7 +160,7 @@ class JwtTokenProvider:
             "auth_method": claims.authentication_method.value,
             "mfa": claims.mfa,
             "amr": _authentication_methods(claims),
-            "token_use": "access",
+            "token_use": TokenType.ACCESS.value,
         }
         headers: dict[str, str] = {"typ": "JWT"}
         if self._key_id is not None:
@@ -253,7 +255,7 @@ class JwtTokenProvider:
 
 
 def _claims_from_payload(payload: Mapping[str, object]) -> AccessTokenClaims:
-    if payload.get("token_use") != "access":
+    if payload.get("token_use") != TokenType.ACCESS.value:
         raise InvalidAccessToken("JWT is not an access token")
 
     audience_value = payload.get("aud")
@@ -290,9 +292,7 @@ def _claims_from_payload(payload: Mapping[str, object]) -> AccessTokenClaims:
         raise InvalidAccessToken("JWT contains invalid Authentication claims") from exc
 
 
-def _identity_id(payload: Mapping[str, object]):
-    from pyiamkit.identity import IdentityId
-
+def _identity_id(payload: Mapping[str, object]) -> IdentityId:
     return IdentityId.parse(_required_text(payload, "sub"))
 
 
