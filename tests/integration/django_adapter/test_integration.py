@@ -250,7 +250,7 @@ def test_middleware_authenticates_when_header_exists_but_keeps_public_request_op
 
 
 def test_permission_required_allows_verified_aal2_mfa_and_attaches_decision() -> None:
-    token_provider, token, engine, permission, tenant, resolve_tenant = _stack()
+    token_provider, token, engine, permission, _tenant, resolve_tenant = _stack()
 
     @permission_required(
         token_provider=token_provider,
