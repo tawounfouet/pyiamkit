@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-
 from .value_objects import AssuranceLevel, AuthenticationMethod
 
 
