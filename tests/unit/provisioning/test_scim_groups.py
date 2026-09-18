@@ -10,6 +10,7 @@ from pyiamkit.identity.adapters.memory import (
 from pyiamkit.provisioning import (
     InvalidScimRequest,
     ProvisioningConflict,
+    ProvisioningPreconditionFailed,
     ProvisioningResourceId,
     ProvisioningResourceNotFound,
     ProvisioningSource,
@@ -192,7 +193,7 @@ def test_group_replace_and_patch_cover_members_etag_and_okta_pathless_replace() 
         )
     )
 
-    with pytest.raises(Exception, match="version mismatch"):
+    with pytest.raises(ProvisioningPreconditionFailed, match="version mismatch"):
         service.replace_group(
             ProvisioningResourceId.parse(created.id),
             ScimGroupInput(display_name="Team", members=()),
