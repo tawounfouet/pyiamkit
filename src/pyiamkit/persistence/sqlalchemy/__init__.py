@@ -24,7 +24,10 @@ from .database import (
     drop_schema,
 )
 from .identity import SqlAlchemyIdentityRepository
-from .provisioning import SqlAlchemyProvisioningUserRepository
+from .provisioning import (
+    SqlAlchemyProvisioningGroupRepository,
+    SqlAlchemyProvisioningUserRepository,
+)
 from .tenancy import SqlAlchemyMembershipRepository, SqlAlchemyTenantRepository
 
 __all__ = [
@@ -35,6 +38,7 @@ __all__ = [
     "SqlAlchemyMembershipRepository",
     "SqlAlchemyMfaFactorRepository",
     "SqlAlchemyPermissionCatalogRepository",
+    "SqlAlchemyProvisioningGroupRepository",
     "SqlAlchemyProvisioningUserRepository",
     "SqlAlchemyRoleBindingRepository",
     "SqlAlchemyRoleRepository",
