@@ -286,7 +286,6 @@ def test_list_users_uses_scim_one_based_pagination() -> None:
     assert page.resources[0].user.user_name == "b@example.com"
 
 
-
 def test_provisioning_source_and_lookup_helpers_cover_optional_paths() -> None:
     _, service, _, _, _, tenant = _stack()
 
