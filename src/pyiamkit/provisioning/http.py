@@ -37,7 +37,7 @@ SCIM_RESOURCE_TYPE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
 SCIM_SCHEMA_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
 _FILTER_CLAUSE_RE = re.compile(
-    r"^\\s*(?P<attribute>userName|externalId)\\s+(?P<operator>eq)\\s+(?P<value>.+?)\\s*$",
+    r"^\s*(?P<attribute>userName|externalId)\s+(?P<operator>eq)\s+(?P<value>.+?)\s*$",
     re.IGNORECASE,
 )
 
