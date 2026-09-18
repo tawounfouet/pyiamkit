@@ -31,6 +31,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
     SqlAlchemyPermissionCatalogRepository,
+    SqlAlchemyProvisioningUserRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemySoDRuleRepository,
@@ -41,6 +42,7 @@ from pyiamkit.persistence.sqlalchemy import (
     drop_schema,
 )
 from pyiamkit.persistence.sqlalchemy.schema import identity_table
+from pyiamkit.provisioning import ProvisioningUser
 from pyiamkit.tenancy import Membership, Tenant, TenantScope
 
 NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
@@ -198,6 +200,53 @@ def test_tenant_and_membership_repositories_round_trip(db_session: Session) -> N
     )
     assert active_later is not None
     assert active_later.id == loaded_membership.id
+
+
+@pytest.mark.conformance
+def test_provisioning_repository_round_trip_tombstone_and_reprovision(
+    db_session: Session,
+) -> None:
+    identity = _active_identity(db_session)
+    tenant = _active_tenant(db_session)
+    membership = _active_membership(db_session, identity, tenant)
+    repository = SqlAlchemyProvisioningUserRepository(db_session)
+
+    resource = ProvisioningUser.create(
+        source_id="entra-scim",
+        identity_id=identity.id,
+        tenant_id=tenant.id,
+        membership_id=membership.id,
+        user_name="Alice@Example.com",
+        external_id="external-42",
+        active=True,
+        created_at=NOW,
+    )
+    repository.save(resource)
+
+    loaded = repository.get(resource.id)
+    assert loaded == resource
+    assert repository.find_by_user_name("entra-scim", "alice@example.COM") == resource
+    assert repository.find_by_external_id("entra-scim", "external-42") == resource
+    assert repository.list_for_source("entra-scim", tenant.id) == (resource,)
+
+    resource.delete(at=NOW + timedelta(minutes=1))
+    repository.save(resource)
+    assert repository.find_by_user_name("entra-scim", "alice@example.com") is None
+    assert repository.find_by_external_id("entra-scim", "external-42") is None
+    assert repository.list_for_source("entra-scim", tenant.id) == ()
+
+    reprovisioned = ProvisioningUser.create(
+        source_id="entra-scim",
+        identity_id=identity.id,
+        tenant_id=tenant.id,
+        membership_id=membership.id,
+        user_name="alice@example.com",
+        external_id="external-42",
+        active=True,
+        created_at=NOW + timedelta(minutes=2),
+    )
+    repository.save(reprovisioned)
+    assert repository.find_by_user_name("entra-scim", "ALICE@EXAMPLE.COM") == reprovisioned
 
 
 @pytest.mark.conformance
