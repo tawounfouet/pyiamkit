@@ -302,7 +302,7 @@ def test_jwks_rejects_symmetric_or_private_key_material(jwk: dict[str, object]) 
         algorithm="RS256",
     )
 
-    with pytest.raises(OidcJwksError, match="symmetric|private"):
+    with pytest.raises(OidcJwksError, match=r"symmetric|private"):
         resolver.resolve(str(jwk["kid"]))
 
 
