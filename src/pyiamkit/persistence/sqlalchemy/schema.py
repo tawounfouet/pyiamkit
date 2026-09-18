@@ -96,6 +96,38 @@ Index(
     credential_table.c.status,
 )
 
+mfa_factor_table = Table(
+    "iam_mfa_factors",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True),
+    Column("version", Integer, nullable=False),
+    Column(
+        "identity_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_identities.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("factor_type", String(32), nullable=False),
+    Column("status", String(32), nullable=False, index=True),
+    Column("secret_reference", String(512), nullable=False, unique=True),
+    Column("label", String(255)),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("activated_at", DateTime(timezone=True)),
+    Column("revoked_at", DateTime(timezone=True)),
+    Column("last_verified_at", DateTime(timezone=True)),
+    Column("last_accepted_counter", Integer),
+    CheckConstraint(
+        "last_accepted_counter IS NULL OR last_accepted_counter >= 0",
+        name="mfa_factor_counter_non_negative",
+    ),
+)
+Index(
+    "ix_iam_mfa_factors_identity_status",
+    mfa_factor_table.c.identity_id,
+    mfa_factor_table.c.status,
+)
+
 session_table = Table(
     "iam_sessions",
     metadata,
@@ -115,6 +147,12 @@ session_table = Table(
     Column("provider_id", String(255)),
     Column("device_id", String(255)),
     Column("network_zone", String(255)),
+    Column("mfa_verified_at", DateTime(timezone=True)),
+    Column(
+        "mfa_factor_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_mfa_factors.id"),
+    ),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
     Column("expires_at", DateTime(timezone=True), nullable=False),

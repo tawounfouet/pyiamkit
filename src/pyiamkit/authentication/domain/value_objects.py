@@ -13,6 +13,10 @@ class SessionId(EntityId):
     """Opaque authentication-session identifier."""
 
 
+class MfaFactorId(EntityId):
+    """Opaque multi-factor enrollment identifier."""
+
+
 class CredentialType(StrEnum):
     PASSWORD = "password"  # nosec B105
     API_KEY = "api_key"
@@ -32,6 +36,16 @@ class SessionStatus(StrEnum):
     ACTIVE = "active"
     REVOKED = "revoked"
     EXPIRED = "expired"
+
+
+class MfaFactorType(StrEnum):
+    TOTP = "totp"
+
+
+class MfaFactorStatus(StrEnum):
+    PENDING = "pending"
+    ACTIVE = "active"
+    REVOKED = "revoked"
 
 
 class AuthenticationMethod(StrEnum):

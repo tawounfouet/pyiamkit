@@ -14,6 +14,10 @@ from pyiamkit.authentication import (
     CredentialId,
     CredentialStatus,
     CredentialType,
+    MfaFactor,
+    MfaFactorId,
+    MfaFactorStatus,
+    MfaFactorType,
     Session,
     SessionId,
     SessionStatus,
@@ -28,7 +32,7 @@ from .common import (
     utc_from_db,
     uuid_from_db,
 )
-from .schema import credential_table, session_table
+from .schema import credential_table, mfa_factor_table, session_table
 
 
 class SqlAlchemyCredentialRepository:
@@ -118,6 +122,72 @@ class SqlAlchemyCredentialRepository:
         return tuple(_credential_from_row(row) for row in rows)
 
 
+class SqlAlchemyMfaFactorRepository:
+    """Database-backed MFA factor repository with opaque secret references only."""
+
+    def __init__(self, session: SqlAlchemySession) -> None:
+        self._session = session
+
+    def get(self, factor_id: MfaFactorId) -> MfaFactor | None:
+        row = (
+            self._session.execute(
+                select(mfa_factor_table).where(mfa_factor_table.c.id == factor_id.value)
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return None if row is None else _mfa_factor_from_row(row)
+
+    def save(self, factor: MfaFactor) -> None:
+        upsert(
+            self._session,
+            mfa_factor_table,
+            mfa_factor_table.c.id == factor.id.value,
+            {
+                "id": factor.id.value,
+                "version": factor.version,
+                "identity_id": factor.identity_id.value,
+                "factor_type": factor.type.value,
+                "status": factor.status.value,
+                "secret_reference": factor.secret_reference,
+                "label": factor.label,
+                "created_at": factor.created_at,
+                "updated_at": factor.updated_at,
+                "activated_at": factor.activated_at,
+                "revoked_at": factor.revoked_at,
+                "last_verified_at": factor.last_verified_at,
+                "last_accepted_counter": factor.last_accepted_counter,
+            },
+        )
+
+    def find_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]:
+        rows = (
+            self._session.execute(
+                select(mfa_factor_table)
+                .where(mfa_factor_table.c.identity_id == identity_id.value)
+                .order_by(mfa_factor_table.c.created_at, mfa_factor_table.c.id)
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(_mfa_factor_from_row(row) for row in rows)
+
+    def find_active_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]:
+        rows = (
+            self._session.execute(
+                select(mfa_factor_table)
+                .where(
+                    mfa_factor_table.c.identity_id == identity_id.value,
+                    mfa_factor_table.c.status == MfaFactorStatus.ACTIVE.value,
+                )
+                .order_by(mfa_factor_table.c.created_at, mfa_factor_table.c.id)
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(_mfa_factor_from_row(row) for row in rows)
+
+
 class SqlAlchemySessionRepository:
     """Database-backed SessionRepository."""
 
@@ -151,6 +221,12 @@ class SqlAlchemySessionRepository:
                 "provider_id": session.context.provider_id,
                 "device_id": session.context.device_id,
                 "network_zone": session.context.network_zone,
+                "mfa_verified_at": session.context.mfa_verified_at,
+                "mfa_factor_id": (
+                    None
+                    if session.context.mfa_factor_id is None
+                    else MfaFactorId.parse(session.context.mfa_factor_id).value
+                ),
                 "created_at": session.created_at,
                 "updated_at": session.updated_at,
                 "expires_at": session.expires_at,
@@ -212,6 +288,26 @@ def _credential_from_row(row: RowMapping) -> Credential:
     )
 
 
+def _mfa_factor_from_row(row: RowMapping) -> MfaFactor:
+    return MfaFactor._rehydrate(
+        factor_id=MfaFactorId(uuid_from_db(row["id"])),
+        version=int(row["version"]),
+        identity_id=IdentityId(uuid_from_db(row["identity_id"])),
+        factor_type=MfaFactorType(str(row["factor_type"])),
+        status=MfaFactorStatus(str(row["status"])),
+        secret_reference=str(row["secret_reference"]),
+        label=None if row["label"] is None else str(row["label"]),
+        created_at=utc_from_db(row["created_at"]),
+        updated_at=utc_from_db(row["updated_at"]),
+        activated_at=optional_utc_from_db(row["activated_at"]),
+        revoked_at=optional_utc_from_db(row["revoked_at"]),
+        last_verified_at=optional_utc_from_db(row["last_verified_at"]),
+        last_accepted_counter=(
+            None if row["last_accepted_counter"] is None else int(row["last_accepted_counter"])
+        ),
+    )
+
+
 def _session_from_row(row: RowMapping) -> Session:
     context = AuthenticationContext(
         method=AuthenticationMethod(str(row["authentication_method"])),
@@ -221,6 +317,10 @@ def _session_from_row(row: RowMapping) -> Session:
         provider_id=None if row["provider_id"] is None else str(row["provider_id"]),
         device_id=None if row["device_id"] is None else str(row["device_id"]),
         network_zone=None if row["network_zone"] is None else str(row["network_zone"]),
+        mfa_verified_at=optional_utc_from_db(row["mfa_verified_at"]),
+        mfa_factor_id=(
+            None if row["mfa_factor_id"] is None else str(uuid_from_db(row["mfa_factor_id"]))
+        ),
     )
     return Session._rehydrate(
         session_id=SessionId(uuid_from_db(row["id"])),

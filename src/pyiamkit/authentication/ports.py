@@ -6,8 +6,9 @@ from typing import Protocol
 from pyiamkit.identity import IdentityId
 
 from .domain.credential import Credential
+from .domain.mfa_factor import MfaFactor
 from .domain.session import Session
-from .domain.value_objects import CredentialId, SessionId
+from .domain.value_objects import CredentialId, MfaFactorId, SessionId
 from .tokens import AccessTokenClaims, IssuedAccessToken
 
 
@@ -32,6 +33,13 @@ class SessionRepository(Protocol):
         identity_id: IdentityId,
         at: datetime,
     ) -> tuple[Session, ...]: ...
+
+
+class MfaFactorRepository(Protocol):
+    def get(self, factor_id: MfaFactorId) -> MfaFactor | None: ...
+    def save(self, factor: MfaFactor) -> None: ...
+    def find_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]: ...
+    def find_active_for_identity(self, identity_id: IdentityId) -> tuple[MfaFactor, ...]: ...
 
 
 class TokenProvider(Protocol):

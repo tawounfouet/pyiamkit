@@ -57,3 +57,46 @@ class AuthenticationSubjectInactive(AuthenticationError):
 
     def __init__(self, identity_id: object) -> None:
         super().__init__(f"Identity {identity_id} is not active for authentication.")
+
+
+class InvalidMfaFactor(AuthenticationError):
+    code = "MFA_FACTOR_INVALID"
+
+
+class InvalidMfaFactorTransition(AuthenticationError):
+    code = "MFA_FACTOR_INVALID_TRANSITION"
+
+    def __init__(self, current_status: object, action: str) -> None:
+        super().__init__(f"Cannot {action} MFA factor from {current_status} status.")
+
+
+class MfaFactorNotFound(AuthenticationError):
+    code = "MFA_FACTOR_NOT_FOUND"
+
+    def __init__(self, factor_id: object) -> None:
+        super().__init__(f"MFA factor {factor_id} was not found.")
+
+
+class MfaFactorOwnershipMismatch(AuthenticationError):
+    code = "MFA_FACTOR_OWNERSHIP_MISMATCH"
+
+    def __init__(self, factor_id: object, identity_id: object) -> None:
+        super().__init__(f"MFA factor {factor_id} does not belong to Identity {identity_id}.")
+
+
+class MfaVerificationFailed(AuthenticationError):
+    code = "MFA_VERIFICATION_FAILED"
+
+
+class MfaReplayDetected(AuthenticationError):
+    code = "MFA_REPLAY_DETECTED"
+
+    def __init__(self, factor_id: object) -> None:
+        super().__init__(f"An already accepted MFA code was replayed for factor {factor_id}.")
+
+
+class MfaSecretUnavailable(AuthenticationError):
+    code = "MFA_SECRET_UNAVAILABLE"
+
+    def __init__(self, reference: str) -> None:
+        super().__init__(f"MFA secret reference {reference!r} is unavailable.")
