@@ -14,11 +14,11 @@ class SessionId(EntityId):
 
 
 class CredentialType(StrEnum):
-    PASSWORD = "password"
+    PASSWORD = "password"  # nosec B105
     API_KEY = "api_key"
     CERTIFICATE = "certificate"
     PASSKEY = "passkey"
-    CLIENT_SECRET = "client_secret"
+    CLIENT_SECRET = "client_secret"  # nosec B105
     EXTERNAL = "external"
 
 
@@ -35,7 +35,7 @@ class SessionStatus(StrEnum):
 
 
 class AuthenticationMethod(StrEnum):
-    PASSWORD = "password"
+    PASSWORD = "password"  # nosec B105
     API_KEY = "api_key"
     CERTIFICATE = "certificate"
     PASSKEY = "passkey"
