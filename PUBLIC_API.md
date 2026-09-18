@@ -2,6 +2,49 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b1
+
+Adds MFA domain/application contracts from `pyiamkit.authentication`:
+
+```text
+MfaApplicationService
+MfaFactor
+MfaFactorId
+MfaFactorRepository
+MfaFactorStatus
+MfaFactorType
+MfaSecretStore
+TotpEnrollment
+TotpEnrollmentMaterial
+TotpProvider
+MfaFactorNotFound
+MfaFactorOwnershipMismatch
+MfaReplayDetected
+MfaSecretUnavailable
+MfaVerificationFailed
+```
+
+The optional PyOTP adapter is imported explicitly:
+
+```python
+from pyiamkit.authentication.adapters.totp import (
+    InMemoryMfaSecretStore,
+    PyOtpTotpProvider,
+)
+```
+
+Install it with:
+
+```text
+pyiamkit[mfa]
+```
+
+SQLAlchemy persistence adds `SqlAlchemyMfaFactorRepository`.
+
+`Session.step_up()` records the verified local MFA factor, the MFA verification time and the resulting assurance level. TOTP step-up is capped at AAL2.
+
+The factor aggregate stores only a `secret_reference`. Production applications should provide a secret-store adapter backed by an appropriate vault/KMS/HSM-capable system rather than the InMemory reference store.
+
 ## 0.4.0a2
 
 Adds optional OIDC Discovery/JWKS infrastructure from
