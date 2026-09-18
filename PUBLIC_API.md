@@ -2,6 +2,47 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b2
+
+Adds assurance-aware authorization contracts from `pyiamkit.authorization`:
+
+```text
+AuthenticationEvidence
+MinimumAssuranceConstraint
+AuthorizationReason.DENY_AUTHENTICATION_CONTEXT_MISSING
+AuthorizationReason.DENY_STEP_UP_REQUIRED
+AuthorizationDecision.step_up_required
+AuthorizationDecision.required_assurance_level
+AuthorizationDecision.required_mfa
+```
+
+Governance registration adds:
+
+```python
+governance.register_minimum_assurance(
+    "payment.approve",
+    minimum_assurance=AssuranceLevel.AAL2,
+    require_mfa=True,
+    tenant_id=tenant_id,
+)
+```
+
+`AuthorizationRequest.authentication` accepts an `AuthenticationEvidence` snapshot. The Authorization Engine does not load or mutate Authentication Sessions.
+
+The FastAPI adapter builds this evidence from verified `AccessTokenClaims`. A step-up-required decision maps to HTTP 403 with:
+
+```json
+{
+  "detail": {
+    "code": "step_up_required",
+    "required_assurance_level": "aal2",
+    "required_mfa": true
+  }
+}
+```
+
+Ordinary authorization denials remain the existing generic 403 response.
+
 ## 0.4.0b1
 
 Adds MFA domain/application contracts from `pyiamkit.authentication`:
