@@ -1,9 +1,10 @@
 """Runtime authorization request, decision and explanation value objects."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import EntityId
 from pyiamkit.tenancy import TenantId, TenantScope
@@ -25,8 +26,10 @@ class AuthorizationResult(StrEnum):
 class AuthorizationReason(StrEnum):
     ALLOW_INHERITED_ROLE_PERMISSION_MATCH = "ALLOW_INHERITED_ROLE_PERMISSION_MATCH"
     ALLOW_ROLE_PERMISSION_MATCH = "ALLOW_ROLE_PERMISSION_MATCH"
+    DENY_AUTHENTICATION_CONTEXT_MISSING = "DENY_AUTHENTICATION_CONTEXT_MISSING"
     DENY_CONSTRAINT_CONTEXT_MISSING = "DENY_CONSTRAINT_CONTEXT_MISSING"
     DENY_CONSTRAINT_VIOLATION = "DENY_CONSTRAINT_VIOLATION"
+    DENY_STEP_UP_REQUIRED = "DENY_STEP_UP_REQUIRED"
     DENY_MEMBERSHIP_NOT_FOUND = "DENY_MEMBERSHIP_NOT_FOUND"
     DENY_NO_ACTIVE_BINDING = "DENY_NO_ACTIVE_BINDING"
     DENY_PERMISSION_NOT_GRANTED = "DENY_PERMISSION_NOT_GRANTED"
@@ -59,14 +62,31 @@ class DecisionExplanation:
 
 
 @dataclass(frozen=True, slots=True)
+class AuthenticationEvidence:
+    """Authentication facts supplied to authorization without Session coupling."""
+
+    assurance_level: AssuranceLevel
+    mfa: bool
+    authenticated_at: datetime
+
+    def __post_init__(self) -> None:
+        if (
+            self.authenticated_at.tzinfo is None
+            or self.authenticated_at.utcoffset() != timedelta(0)
+        ):
+            raise ValueError("authenticated_at must be UTC-aware")
+
+
+@dataclass(frozen=True, slots=True)
 class AuthorizationRequest:
-    """Scoped RBAC request with optional protected-resource context."""
+    """Scoped RBAC request with optional resource and authentication context."""
 
     subject_id: IdentityId
     tenant_id: TenantId
     permission: PermissionCode
     scope: TenantScope
     resource: ResourceDescriptor | None = None
+    authentication: AuthenticationEvidence | None = None
     correlation_id: str | None = None
 
     def __post_init__(self) -> None:
@@ -92,6 +112,8 @@ class AuthorizationDecision:
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
     matched_rule_id: GovernanceRuleId | None = None
+    required_assurance_level: AssuranceLevel | None = None
+    required_mfa: bool | None = None
     resource: ResourceDescriptor | None = None
     correlation_id: str | None = None
     explanation_path: tuple[str, ...] = ()
@@ -99,6 +121,10 @@ class AuthorizationDecision:
     @property
     def allowed(self) -> bool:
         return self.result is AuthorizationResult.ALLOW
+
+    @property
+    def step_up_required(self) -> bool:
+        return self.reason_code is AuthorizationReason.DENY_STEP_UP_REQUIRED
 
     def explanation(
         self,
