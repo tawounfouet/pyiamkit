@@ -141,8 +141,12 @@ def test_create_group_renders_managed_user_members_without_changing_membership_s
     assert created.group.external_id == "group-42"
     assert {member.value for member in created.group.members} == {alice.id, bob.id}
     assert all(member.ref is not None and "/Users/" in member.ref for member in created.group.members)
-    assert memberships.get(alice_mapping.membership_id).status is MembershipStatus.ACTIVE  # type: ignore[union-attr]
-    assert memberships.get(bob_mapping.membership_id).status is MembershipStatus.ACTIVE  # type: ignore[union-attr]
+    persisted_alice_membership = memberships.get(alice_mapping.membership_id)
+    persisted_bob_membership = memberships.get(bob_mapping.membership_id)
+    assert persisted_alice_membership is not None
+    assert persisted_bob_membership is not None
+    assert persisted_alice_membership.status is MembershipStatus.ACTIVE
+    assert persisted_bob_membership.status is MembershipStatus.ACTIVE
 
 
 def test_group_members_must_reference_active_users_from_same_source_and_tenant() -> None:
