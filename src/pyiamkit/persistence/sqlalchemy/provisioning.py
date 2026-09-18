@@ -139,7 +139,6 @@ def _resource_from_row(row: RowMapping) -> ProvisioningUser:
     )
 
 
-
 class SqlAlchemyProvisioningGroupRepository:
     """Database-backed SCIM Group resource repository."""
 
@@ -274,10 +273,7 @@ class SqlAlchemyProvisioningGroupRepository:
             .where(provisioning_group_member_table.c.group_id == resource_id.value)
             .order_by(provisioning_group_member_table.c.member_resource_id)
         ).all()
-        return tuple(
-            ProvisioningResourceId(uuid_from_db(row[0]))
-            for row in rows
-        )
+        return tuple(ProvisioningResourceId(uuid_from_db(row[0])) for row in rows)
 
 
 def _group_from_row(
