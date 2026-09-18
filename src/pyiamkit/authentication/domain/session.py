@@ -8,7 +8,7 @@ from pyiamkit.shared import DomainEvent
 from .context import AuthenticationContext
 from .errors import InvalidSession, InvalidSessionTransition
 from .events import AuthenticationEventType
-from .value_objects import SessionId, SessionStatus
+from .value_objects import AssuranceLevel, MfaFactorId, SessionId, SessionStatus
 
 
 class Session:
@@ -57,6 +57,8 @@ class Session:
             raise InvalidSession("expires_at must be after created_at.")
         if context.authenticated_at > created_at:
             raise InvalidSession("Authentication context cannot occur after session creation.")
+        if context.mfa_verified_at is not None and context.mfa_verified_at > updated_at:
+            raise InvalidSession("MFA verification cannot occur after session updated_at.")
         if last_activity_at < created_at or last_activity_at > updated_at:
             raise InvalidSession("last_activity_at must be inside the session lifetime.")
         revocation_reason = None if revocation_reason is None else revocation_reason.strip() or None
@@ -183,6 +185,38 @@ class Session:
         self._touch(at)
         self._record(AuthenticationEventType.SESSION_TOUCHED, at)
 
+    def step_up(
+        self,
+        *,
+        assurance_level: AssuranceLevel,
+        factor_id: MfaFactorId,
+        at: datetime,
+    ) -> None:
+        if not self.is_active(at=at):
+            raise InvalidSessionTransition(self.status.value, "step up")
+        if at < self.last_activity_at:
+            raise InvalidSession("Session step-up cannot move activity backwards in time.")
+
+        effective_assurance = (
+            self.context.assurance_level
+            if _assurance_rank(self.context.assurance_level) >= _assurance_rank(assurance_level)
+            else assurance_level
+        )
+        self._context = AuthenticationContext(
+            method=self.context.method,
+            assurance_level=effective_assurance,
+            mfa=True,
+            authenticated_at=self.context.authenticated_at,
+            provider_id=self.context.provider_id,
+            device_id=self.context.device_id,
+            network_zone=self.context.network_zone,
+            mfa_verified_at=at,
+            mfa_factor_id=str(factor_id),
+        )
+        self._last_activity_at = at
+        self._touch(at)
+        self._record(AuthenticationEventType.SESSION_STEPPED_UP, at)
+
     def revoke(self, *, at: datetime, reason: str | None = None) -> None:
         if self.status is not SessionStatus.ACTIVE:
             raise InvalidSessionTransition(self.status.value, "revoke")
@@ -223,6 +257,7 @@ class Session:
                     "identity_id": str(self.identity_id),
                     "authentication_method": self.context.method.value,
                     "assurance_level": self.context.assurance_level.value,
+                    "mfa": self.context.mfa,
                 },
             )
         )
@@ -239,3 +274,11 @@ class Session:
 
     def __hash__(self) -> int:
         return hash(self.id)
+
+
+def _assurance_rank(level: AssuranceLevel) -> int:
+    return {
+        AssuranceLevel.AAL1: 1,
+        AssuranceLevel.AAL2: 2,
+        AssuranceLevel.AAL3: 3,
+    }[level]
