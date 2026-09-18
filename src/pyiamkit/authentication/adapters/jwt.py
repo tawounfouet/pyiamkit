@@ -261,9 +261,7 @@ def _claims_from_payload(payload: Mapping[str, object]) -> AccessTokenClaims:
     audience_value = payload.get("aud")
     if isinstance(audience_value, str):
         audiences = (audience_value,)
-    elif isinstance(audience_value, list) and all(
-        isinstance(item, str) for item in audience_value
-    ):
+    elif isinstance(audience_value, list) and all(isinstance(item, str) for item in audience_value):
         audiences = tuple(cast(list[str], audience_value))
     else:
         raise InvalidAccessToken("JWT aud claim is invalid")
@@ -283,9 +281,7 @@ def _claims_from_payload(payload: Mapping[str, object]) -> AccessTokenClaims:
             session_id=SessionId.parse(_required_text(payload, "sid")),
             auth_time=_numeric_date(payload, "auth_time"),
             assurance_level=AssuranceLevel(_required_text(payload, "aal")),
-            authentication_method=AuthenticationMethod(
-                _required_text(payload, "auth_method")
-            ),
+            authentication_method=AuthenticationMethod(_required_text(payload, "auth_method")),
             mfa=mfa_value,
         )
     except (TypeError, ValueError) as exc:
