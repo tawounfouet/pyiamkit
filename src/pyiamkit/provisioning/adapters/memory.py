@@ -42,12 +42,12 @@ class InMemoryProvisioningUserRepository:
         user_name: str,
     ) -> ProvisioningUser | None:
         source = source_id.strip()
-        username = user_name.strip()
+        username = user_name.strip().casefold()
         for resource in self._items.values():
             if (
                 resource.status is ProvisioningResourceStatus.ACTIVE
                 and resource.source_id == source
-                and resource.user_name == username
+                and resource.user_name.casefold() == username
             ):
                 return self._copy(resource)
         return None
