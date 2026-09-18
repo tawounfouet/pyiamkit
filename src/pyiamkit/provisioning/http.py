@@ -357,6 +357,10 @@ class ScimHttpTransport:
         self._provider_profile = provider_profile
         self._group_service = group_service
 
+    @property
+    def groups_enabled(self) -> bool:
+        return self._group_service is not None
+
     def get_service_provider_config(self) -> ScimHttpResponse:
         return ScimHttpResponse.json(
             200,
