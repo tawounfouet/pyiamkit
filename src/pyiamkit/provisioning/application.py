@@ -1,12 +1,9 @@
 """SCIM-oriented provisioning orchestration."""
 
 from dataclasses import dataclass
-from datetime import datetime
-
 from pyiamkit.identity import (
     IdentityApplicationService,
     IdentityRepository,
-    IdentityStatus,
     User,
 )
 from pyiamkit.shared import Clock, DomainEvent, DomainEventSink
@@ -33,6 +30,7 @@ from .scim import (
     ScimEmail,
     ScimListResponse,
     ScimMeta,
+    ScimName,
     ScimPatchOperation,
     ScimUserInput,
     ScimUserResource,
@@ -326,9 +324,7 @@ class ScimProvisioningService:
         )
 
     @staticmethod
-    def _scim_name(first_name: str | None, last_name: str | None):
-        from .scim import ScimName
-
+    def _scim_name(first_name: str | None, last_name: str | None) -> ScimName:
         return ScimName(given_name=first_name, family_name=last_name)
 
     def _publish(self, event_type: str, resource: ProvisioningUser) -> None:
