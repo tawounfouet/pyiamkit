@@ -5,6 +5,7 @@ from .audit import AuthorizationDecisionAuditRecorder
 from .binding_application import RoleBindingApplicationService
 from .domain.binding_value_objects import GrantSource, RoleBindingId, RoleBindingStatus
 from .domain.decision import (
+    AuthenticationEvidence,
     AuthorizationDecision,
     AuthorizationDecisionId,
     AuthorizationReason,
@@ -44,6 +45,7 @@ from .domain.governance import (
     GovernanceRuleId,
     GovernanceViolation,
     GovernanceViolationKind,
+    MinimumAssuranceConstraint,
     MutuallyExclusiveRolesRule,
     NumericMaximumConstraint,
     ResourceAttributeEqualsConstraint,
@@ -72,6 +74,7 @@ from .ports import (
 
 __all__ = [
     "AccessGovernanceApplicationService",
+    "AuthenticationEvidence",
     "AuthorizationConstraint",
     "AuthorizationDecision",
     "AuthorizationDecisionAuditRecorder",
@@ -97,6 +100,7 @@ __all__ = [
     "InvalidRoleBinding",
     "InvalidRoleBindingTransition",
     "InvalidRoleName",
+    "MinimumAssuranceConstraint",
     "MutuallyExclusiveRolesRule",
     "NumericMaximumConstraint",
     "Permission",
