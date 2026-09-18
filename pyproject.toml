@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyiamkit"
-version = "0.3.0b2"
+version = "0.4.0a1"
 description = "Framework-agnostic Python foundations for IAM, authentication, RBAC, multi-tenancy and authorization."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,6 +28,7 @@ Issues = "https://github.com/tawounfouet/pyiamkit/issues"
 [project.optional-dependencies]
 sqlalchemy = ["sqlalchemy>=2,<3"]
 jwt = ["PyJWT[crypto]>=2.14,<3"]
+oidc = ["PyJWT[crypto]>=2.14,<3"]
 postgres = [
   "sqlalchemy>=2,<3",
   "psycopg[binary]>=3,<4",

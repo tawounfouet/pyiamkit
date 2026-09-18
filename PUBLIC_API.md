@@ -2,6 +2,46 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0a1
+
+Adds framework-neutral federation contracts from `pyiamkit.authentication`:
+
+```text
+ExternalIdentityNotLinked
+FederatedAssurance
+FederatedAssuranceResolver
+FederatedAuthenticationService
+FederatedIdentityClaims
+FederationError
+IdentityTokenVerifier
+InvalidFederationPolicy
+InvalidIdentityToken
+```
+
+The optional OIDC adapter is imported explicitly:
+
+```python
+from pyiamkit.authentication.adapters.oidc import (
+    OidcConfigurationError,
+    StaticOidcAssuranceResolver,
+    StaticOidcIdTokenVerifier,
+)
+```
+
+Install it with:
+
+```text
+pyiamkit[oidc]
+```
+
+`StaticOidcIdTokenVerifier` verifies an OIDC ID Token against a configured provider ID, exact issuer, client ID, signing algorithm and one or more verification keys. It supports expected nonce verification, `kid` key selection and OIDC authorized-party validation.
+
+`FederatedAuthenticationService` resolves the verified external subject through the existing `IdentityRepository.find_by_external_subject(provider_id, subject)` contract and then opens a local OIDC Session through `AuthenticationApplicationService`.
+
+Email claims are informational only. The service never links an external identity by email and does not auto-provision Roles, Permissions or Memberships.
+
+This milestone intentionally uses configured verification keys. OIDC Discovery/JWKS retrieval and vendor-specific provider integrations remain separate infrastructure work.
+
 ## 0.3.0b2
 
 Adds the optional FastAPI adapter from `pyiamkit.integrations.fastapi`:

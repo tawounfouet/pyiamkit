@@ -6,6 +6,31 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0a1] - 2026-09-18
+
+### Added
+
+- Framework-neutral external identity federation contracts in `pyiamkit.authentication`.
+- `FederatedIdentityClaims`, `IdentityTokenVerifier`, `FederatedAssuranceResolver` and `FederatedAuthenticationService`.
+- Local federation flow resolving trusted external identities exclusively through existing `(provider_id, external_subject)` links.
+- Optional `pyiamkit[oidc]` extra and static-key OIDC ID Token verifier.
+- OIDC validation for issuer, client audience, signature, required claims, expiration, issued-at time, optional nonce and authorized-party semantics.
+- Explicit ACR/AMR to PyIAMKit assurance mapping through `StaticOidcAssuranceResolver`.
+- OIDC-created local Sessions using `AuthenticationMethod.OIDC` and preserving provider/authentication context.
+- Security tests for issuer/audience mismatch, nonce mismatch, multiple audiences, `azp`, algorithm confusion, `kid`, subject constraints and temporal validation.
+- Federation tests proving that verified email claims never auto-link a different external subject.
+
+### Security
+
+- External identity resolution uses provider ID plus OIDC `sub`; email is never an identity key.
+- No external Role, group or arbitrary claim becomes a PyIAMKit RoleBinding or Permission automatically.
+- OIDC signing algorithm is fixed by trusted verifier configuration, not selected from the token header.
+- A configured key set requires a known `kid` and fails closed for missing or unknown key identifiers.
+- Expected OIDC nonce values are compared against the verified ID Token and mismatch fails closed.
+- Multiple-audience ID Tokens require a matching `azp`.
+- Assurance mapping is explicit and provider-configured; unrecognized ACR defaults conservatively to AAL1 and MFA is false unless configured AMR values match.
+- Unlinked or locally inactive Identities cannot establish a PyIAMKit Session.
+
 ## [0.3.0b2] - 2026-09-18
 
 ### Added

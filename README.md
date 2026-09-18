@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** FastAPI integration beta (`0.3.0b2`) — not yet recommended for production use.
+> **Status:** OIDC federation alpha (`0.4.0a1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,64 +10,60 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.3.0b2` adds the first **FastAPI integration** without moving HTTP concerns into the IAM core.
+`0.4.0a1` adds the first **OIDC federation** path while preserving PyIAMKit's internal Identity and authorization boundaries.
 
 ```text
-Authorization: Bearer <token>
-        ↓
-FastAPI HTTPBearer
-        ↓
-bearer_authentication()
-        ↓
-TokenProvider.verify_access_token()
-        ↓
-AccessTokenClaims
-        ↓
-require_permission()
-        ├── host TenantResolver
-        ├── optional ScopeResolver
-        └── optional ResourceResolver
-        ↓
-AuthorizationEngine
-        ↓
-ALLOW → endpoint
-DENY  → HTTP 403
+OIDC ID Token
+     ↓
+IdentityTokenVerifier
+     ├── signature
+     ├── issuer
+     ├── audience / azp
+     ├── exp / iat
+     ├── nonce
+     └── configured signing algorithm / kid
+     ↓
+FederatedIdentityClaims
+     ↓
+(provider_id, sub)
+     ↓
+IdentityRepository.find_by_external_subject()
+     ↓
+existing active PyIAMKit Identity
+     ↓
+explicit ACR / AMR assurance mapping
+     ↓
+AuthenticationApplicationService.open_session()
+     ↓
+local OIDC Session
 ```
 
-Authentication and authorization remain distinct at the HTTP boundary:
+The federation boundary deliberately does **not** use email as an identity key. Even a verified email claim cannot attach a new OIDC subject to an existing user. External Roles/groups/claims also do not create local RoleBindings or Permissions automatically.
 
-```text
-missing / invalid / revoked token → 401 + WWW-Authenticate: Bearer
-valid identity but denied permission → 403
-```
-
-A minimal protected endpoint:
+The initial OIDC adapter uses configured verification keys and keeps network discovery/provider SDKs out of the core:
 
 ```python
-from typing import Annotated
-
-from fastapi import Depends
-from pyiamkit.authorization import AuthorizationDecision, PermissionCode
-from pyiamkit.integrations.fastapi import bearer_authentication, require_permission
-
-authenticate = bearer_authentication(token_provider)
-
-can_read_invoice = require_permission(
-    authentication=authenticate,
-    authorization_engine=authorization_engine,
-    permission=PermissionCode("invoice.read"),
-    tenant_resolver=resolve_tenant,
+from pyiamkit.authentication.adapters.oidc import (
+    StaticOidcAssuranceResolver,
+    StaticOidcIdTokenVerifier,
 )
 
+verifier = StaticOidcIdTokenVerifier(
+    provider_id="entra-prod",
+    issuer="https://login.example.com/tenant/v2.0",
+    client_id="pyiamkit-client",
+    verification_keys={"current": public_key},
+    algorithm="RS256",
+    clock=clock,
+)
 
-@app.get("/invoices")
-def invoices(
-    decision: Annotated[AuthorizationDecision, Depends(can_read_invoice)],
-):
-    return {"decision": str(decision.id)}
+assurance = StaticOidcAssuranceResolver(
+    acr_mapping={"urn:example:aal2": AssuranceLevel.AAL2},
+    mfa_amr_values=("mfa",),
+)
 ```
 
-PyIAMKit deliberately does not guess the active tenant from an arbitrary request header. The host application supplies its Tenant resolver, and the Authorization Engine still validates active Tenant, Membership, scope, RoleBindings and governance.
+A separate `FederatedAuthenticationService` combines those adapters with the existing external identity links and Session lifecycle.
 
 ## Installation
 
@@ -95,6 +91,12 @@ JWT access-token adapter:
 
 ```bash
 python -m pip install -e ".[jwt]"
+```
+
+OIDC federation adapter:
+
+```bash
+python -m pip install -e ".[oidc]"
 ```
 
 FastAPI integration:
@@ -150,18 +152,20 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## FastAPI guarantees in 0.3.0b2
+## OIDC federation guarantees in 0.4.0a1
 
-- native HTTP Bearer/OpenAPI integration;
-- token verification delegated to `TokenProvider`;
-- generic 401 responses for missing/invalid authentication;
-- `WWW-Authenticate: Bearer` on 401;
-- permission evaluation delegated to `AuthorizationEngine`;
-- authorization denial mapped to 403, not 401;
-- Tenant resolution supplied explicitly by the host application;
-- tenant-wide scope default, with custom Scope/Resource resolvers when required;
-- existing Session revocation semantics preserved at the HTTP boundary;
-- no FastAPI dependency in the core IAM packages.
+- external identity keyed by provider ID plus OIDC subject;
+- email never used for automatic identity linking;
+- exact configured issuer and client audience validation;
+- configured signing algorithm, never token-selected;
+- nonce verification when an expected nonce is supplied;
+- `azp` required for multiple audiences and validated when present;
+- missing/unknown `kid` fails closed when a verification-key set is configured;
+- local ACR/AMR assurance mapping is explicit and provider-specific;
+- unknown ACR defaults to AAL1;
+- MFA remains false unless configured AMR evidence matches;
+- unlinked or inactive local Identities cannot establish Sessions;
+- external authorization claims never bypass local RBAC, tenancy, policies or SoD.
 
 ## Roadmap
 
@@ -179,7 +183,10 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.3.0a2    Sessions + Credentials
 0.3.0b1    JWT
 0.3.0b2    FastAPI integration
-0.4.x      Federation, MFA, Django, SCIM
+0.4.0a1    OIDC federation core + static-key ID Token verification
+0.4.0a2    External provider discovery / JWKS adapters
+0.4.0b1    MFA enrollment / step-up
+0.4.x      Django, SCIM and provider integrations
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```
