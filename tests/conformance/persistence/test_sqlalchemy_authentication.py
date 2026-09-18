@@ -71,7 +71,10 @@ def test_sqlalchemy_credential_round_trip_and_temporal_filter(db_session: SqlAlc
     assert loaded.metadata["provider"] == "internal"
     assert repository.find_by_reference(" vault://credentials/passkey-1 ") == credential
     assert repository.find_for_identity(identity.id) == (credential,)
-    assert repository.find_active_for_identity(identity.id, NOW + timedelta(days=1)) == (credential,)
+    assert repository.find_active_for_identity(
+        identity.id,
+        NOW + timedelta(days=1),
+    ) == (credential,)
     assert repository.find_active_for_identity(identity.id, NOW + timedelta(days=31)) == ()
 
     credential.revoke(at=NOW + timedelta(days=2))
@@ -110,7 +113,10 @@ def test_sqlalchemy_session_round_trip_and_expiry_filter(db_session: SqlAlchemyS
     assert loaded.context.assurance_level is AssuranceLevel.AAL2
     assert loaded.context.mfa is True
     assert repository.find_for_identity(identity.id) == (session,)
-    assert repository.find_active_for_identity(identity.id, NOW + timedelta(hours=1)) == (session,)
+    assert repository.find_active_for_identity(
+        identity.id,
+        NOW + timedelta(hours=1),
+    ) == (session,)
     assert repository.find_active_for_identity(identity.id, NOW + timedelta(hours=9)) == ()
 
     session.revoke(at=NOW + timedelta(hours=1), reason="security reset")
