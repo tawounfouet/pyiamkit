@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyiamkit"
-version = "0.4.0b2"
+version = "0.4.0b3"
 description = "Framework-agnostic Python foundations for IAM, authentication, RBAC, multi-tenancy and authorization."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -37,7 +37,7 @@ postgres = [
 ]
 redis = ["redis>=5,<7"]
 fastapi = ["fastapi>=0.141,<1"]
-django = ["django>=5"]
+django = ["django>=5.2,<6.2"]
 
 [dependency-groups]
 dev = [
