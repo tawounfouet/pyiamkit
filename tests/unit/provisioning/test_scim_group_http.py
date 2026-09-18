@@ -77,12 +77,14 @@ def _transport(*, entra: bool = False) -> ScimHttpTransport:
         clock=clock,
         event_sink=events,
     )
+    if entra:
+        return ScimHttpTransport(
+            user_service,
+            base_url="https://iam.example.com/scim/v2",
+            group_service=group_service,
+            provider_profile=MICROSOFT_ENTRA_PROFILE,
+        )
     return ScimHttpTransport(
-        user_service,
-        base_url="https://iam.example.com/scim/v2",
-        group_service=group_service,
-        provider_profile=MICROSOFT_ENTRA_PROFILE if entra else None,  # type: ignore[arg-type]
-    ) if entra else ScimHttpTransport(
         user_service,
         base_url="https://iam.example.com/scim/v2",
         group_service=group_service,
@@ -141,9 +143,7 @@ def test_group_http_lifecycle_supports_members_filters_patch_and_etag() -> None:
     alice_id = str(alice.body["id"])
     bob_id = str(bob.body["id"])
 
-    created = transport.create_group(
-        _group_payload("Finance", "group-ext", [alice_id])
-    )
+    created = transport.create_group(_group_payload("Finance", "group-ext", [alice_id]))
     assert created.status == 201
     assert created.body is not None
     group_id = str(created.body["id"])
@@ -224,9 +224,7 @@ def test_group_http_rejects_unknown_member_and_duplicate_group() -> None:
     transport = _transport()
     unknown = "00000000-0000-0000-0000-000000000001"
 
-    invalid = transport.create_group(
-        _group_payload("Invalid", "invalid-ext", [unknown])
-    )
+    invalid = transport.create_group(_group_payload("Invalid", "invalid-ext", [unknown]))
     assert invalid.status == 400
     assert invalid.body is not None
     assert invalid.body["scimType"] == "invalidValue"
