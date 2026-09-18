@@ -6,6 +6,30 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b3] - 2026-09-18
+
+### Added
+
+- Optional synchronous Django integration under `pyiamkit.integrations.django`.
+- Bearer authentication helper for Django `HttpRequest`.
+- `PyIAMKitAuthenticationMiddleware` for optional verified-claims attachment without globally protecting public views.
+- `bearer_required()` decorator for protected synchronous views.
+- `permission_required()` decorator combining verified Bearer authentication, explicit Tenant resolution and `AuthorizationEngine`.
+- Helpers for reading verified claims and the final authorization decision from a request.
+- Structured Django HTTP 403 step-up response matching the FastAPI assurance contract.
+- Optional token-provider resolution from `settings.PYIAMKIT_TOKEN_PROVIDER`.
+- Dedicated Django compatibility CI for the 5.2 and 6.1 release lines.
+
+### Security
+
+- Django authentication flags, groups, permissions and `is_superuser` do not bypass PyIAMKit authorization.
+- Tenant resolution remains an explicit host-application resolver; arbitrary headers are not trusted as tenant authority by default.
+- Missing or invalid Bearer authentication maps to HTTP 401 with `WWW-Authenticate: Bearer`.
+- Ordinary authorization denial remains generic HTTP 403.
+- Assurance step-up remains HTTP 403 with required AAL/MFA metadata.
+- Middleware does not globally reject anonymous public requests; endpoint protection remains explicit.
+- Async Django views are rejected explicitly in this sync-first adapter rather than running synchronous IAM I/O unsafely in an async context.
+
 ## [0.4.0b2] - 2026-09-18
 
 ### Added
