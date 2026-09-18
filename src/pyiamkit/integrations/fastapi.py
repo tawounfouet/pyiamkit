@@ -121,13 +121,30 @@ def require_permission(
             )
         )
         if not decision.allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden",
-            )
+            raise _authorization_denied(decision)
         return decision
 
     return dependency
+
+
+def _authorization_denied(decision: AuthorizationDecision) -> HTTPException:
+    if decision.step_up_required:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "step_up_required",
+                "required_assurance_level": (
+                    None
+                    if decision.required_assurance_level is None
+                    else decision.required_assurance_level.value
+                ),
+                "required_mfa": decision.required_mfa,
+            },
+        )
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Forbidden",
+    )
 
 
 def _not_authenticated() -> HTTPException:
