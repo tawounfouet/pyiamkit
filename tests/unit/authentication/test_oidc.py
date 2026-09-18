@@ -238,6 +238,4 @@ def test_subject_must_be_nonempty_ascii_and_at_most_255_bytes() -> None:
 
     for subject in ("", "é", "a" * 256):
         with pytest.raises(InvalidIdentityToken):
-            verifier.verify_identity_token(
-                _token(key, payload=_payload(sub=subject))
-            )
+            verifier.verify_identity_token(_token(key, payload=_payload(sub=subject)))
