@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from pyiamkit.audit import AuditSink
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.identity import IdentityRepository, IdentityStatus
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import MembershipRepository, TenantRepository, TenantStatus
@@ -275,7 +276,7 @@ class AuthorizationEngine:
         reason: AuthorizationReason,
         *,
         matched_rule_id: GovernanceRuleId | None = None,
-        required_assurance_level: object | None = None,
+        required_assurance_level: AssuranceLevel | None = None,
         required_mfa: bool | None = None,
         explanation: tuple[str, ...] = (),
     ) -> AuthorizationDecision:
