@@ -3,7 +3,6 @@
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
 from urllib.parse import urljoin
 
 from .errors import InvalidScimRequest, UnsupportedScimPatch
