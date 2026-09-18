@@ -101,9 +101,7 @@ def test_scim_resource_and_list_serialization_cover_optional_shapes() -> None:
     assert payload["externalId"] == "ext-42"
     assert payload["displayName"] == "Alice"
     assert payload["name"] == {"givenName": "Alice", "familyName": "Example"}
-    assert payload["emails"] == [
-        {"value": "alice@example.com", "type": "work", "primary": True}
-    ]
+    assert payload["emails"] == [{"value": "alice@example.com", "type": "work", "primary": True}]
     assert payload["meta"]["created"].endswith("Z")  # type: ignore[index]
     assert payload["meta"]["location"] == meta.location  # type: ignore[index]
 
@@ -181,9 +179,12 @@ def test_scim_patch_rejects_invalid_scalar_operations(
     operation: ScimPatchOperation,
     message: str,
 ) -> None:
-    error = UnsupportedScimPatch if operation.path in {"active", "userName", "unknown"} and (
-        operation.op is ScimPatchVerb.REMOVE or operation.path == "unknown"
-    ) else InvalidScimRequest
+    error = (
+        UnsupportedScimPatch
+        if operation.path in {"active", "userName", "unknown"}
+        and (operation.op is ScimPatchVerb.REMOVE or operation.path == "unknown")
+        else InvalidScimRequest
+    )
     with pytest.raises(error, match=message):
         apply_user_patch(_base_user(), (operation,))
 
