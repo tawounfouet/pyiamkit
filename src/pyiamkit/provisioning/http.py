@@ -2,9 +2,9 @@
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from collections.abc import Mapping
 
 from .application import ScimProvisioningService
 from .domain import ProvisioningResourceId
