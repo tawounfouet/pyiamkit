@@ -16,6 +16,22 @@ from .errors import (
     ProvisioningResourceNotFound,
     UnsupportedScimPatch,
 )
+from .http import (
+    SCIM_ERROR_SCHEMA,
+    SCIM_MEDIA_TYPE,
+    SCIM_RESOURCE_TYPE_SCHEMA,
+    SCIM_SCHEMA_SCHEMA,
+    SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA,
+    ScimErrorResponse,
+    ScimErrorType,
+    ScimHttpResponse,
+    ScimHttpTransport,
+    ScimServiceProviderConfig,
+    ScimUserFilter,
+    parse_scim_patch_payload,
+    parse_scim_user_payload,
+    parse_user_filter,
+)
 from .ports import ProvisioningUserRepository
 from .scim import (
     SCIM_LIST_RESPONSE_SCHEMA,
@@ -33,8 +49,13 @@ from .scim import (
 )
 
 __all__ = [
+    "SCIM_ERROR_SCHEMA",
     "SCIM_LIST_RESPONSE_SCHEMA",
+    "SCIM_MEDIA_TYPE",
     "SCIM_PATCH_SCHEMA",
+    "SCIM_RESOURCE_TYPE_SCHEMA",
+    "SCIM_SCHEMA_SCHEMA",
+    "SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA",
     "SCIM_USER_SCHEMA",
     "InvalidProvisioningResource",
     "InvalidScimRequest",
@@ -49,14 +70,23 @@ __all__ = [
     "ProvisioningUser",
     "ProvisioningUserRepository",
     "ScimEmail",
+    "ScimErrorResponse",
+    "ScimErrorType",
+    "ScimHttpResponse",
+    "ScimHttpTransport",
     "ScimListResponse",
     "ScimMeta",
     "ScimName",
     "ScimPatchOperation",
     "ScimPatchVerb",
     "ScimProvisioningService",
+    "ScimServiceProviderConfig",
+    "ScimUserFilter",
     "ScimUserInput",
     "ScimUserResource",
     "UnsupportedScimPatch",
     "apply_user_patch",
+    "parse_scim_patch_payload",
+    "parse_scim_user_payload",
+    "parse_user_filter",
 ]
