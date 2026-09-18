@@ -6,6 +6,30 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b6] - 2026-09-18
+
+### Added
+
+- Explicit immutable SCIM interoperability profiles for Generic SCIM, Microsoft Entra and Okta.
+- `ScimProviderKind`, `ScimProviderProfile`, `ScimDeprovisionMode` and `scim_provider_profile()`.
+- Provider-aware filter parsing while preserving the strict Generic SCIM default.
+- `ScimUserFilterExpression` for bounded multi-clause equality filters.
+- Microsoft Entra compatibility for unquoted `externalId`/user lookup values and bounded `and` expressions.
+- Okta compatibility preset retaining quoted `userName eq "..."` lookup behavior.
+- Quote-aware conjunction parsing so string values containing the word `and` are not split.
+- Provider-profile qualification tests and executable Entra/Okta example.
+
+### Security
+
+- Provider profiles tune protocol compatibility only; they never create Roles, Permissions, Memberships or authorization grants.
+- Generic SCIM remains strict and does not inherit Microsoft Entra parsing relaxations.
+- Okta remains strict for quoted filter values and does not inherit Entra-specific syntax.
+- Only `userName` and `externalId` equality clauses are supported; OR, NOT, arbitrary attributes and relational operators remain rejected.
+- Unquoted filter values are accepted only by profiles that opt in explicitly.
+- SCIM Groups remain unsupported, so no provider group can implicitly become a PyIAMKit Role.
+- Password provisioning remains rejected.
+- Profiles are interoperability presets, not vendor certification claims.
+
 ## [0.4.0b5] - 2026-09-18
 
 ### Added

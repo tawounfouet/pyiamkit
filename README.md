@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** SCIM HTTP transport beta (`0.4.0b5`) — not yet recommended for production use.
+> **Status:** SCIM provider interoperability beta (`0.4.0b6`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,51 +10,40 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b5` exposes the tenant-scoped provisioning core through a **SCIM 2.0 HTTP transport**.
+`0.4.0b6` adds explicit **SCIM provider interoperability profiles** without vendor SDK lock-in.
 
 ```text
 SCIM client
-    ↓
-explicit host access dependency
-    ↓
-FastAPI SCIM router
-    ↓
+    ├── Generic SCIM
+    ├── Microsoft Entra
+    └── Okta
+          ↓
+ScimProviderProfile
+          ↓
 ScimHttpTransport
-    ↓
+          ↓
 ScimProvisioningService
-    ↓
-Identity + tenant Membership + ProvisioningUser
 ```
 
-Supported discovery and User endpoints:
+The default Generic profile preserves the strict `0.4.0b5` behavior.
+
+Microsoft Entra can opt into bounded compatibility for unquoted lookup values and `and` combinations of the supported equality filters:
 
 ```text
-GET    /ServiceProviderConfig
-GET    /ResourceTypes
-GET    /ResourceTypes/User
-GET    /Schemas
-GET    /Schemas/{schema-uri}
+externalId eq ext-42
 
-POST   /Users
-GET    /Users
-GET    /Users/{id}
-PUT    /Users/{id}
-PATCH  /Users/{id}
-DELETE /Users/{id}
+userName eq "alice@example.com" and externalId eq ext-42
 ```
 
-SCIM responses use `application/scim+json`. Resource responses expose `Location` and `ETag`, and PUT/PATCH/DELETE forward `If-Match` to the provisioning core.
-
-The initial filter capability is deliberately bounded to:
+The Okta profile retains the common quoted username lookup form:
 
 ```text
-userName eq "..."
-externalId eq "..."
+userName eq "alice@example.com"
 ```
 
-The FastAPI router requires an explicit application-provided access dependency. PyIAMKit does not expose anonymous provisioning routes by default and does not decide whether the host uses OAuth2 client credentials, mTLS, a gateway identity or another service-authentication mechanism.
+Profiles affect HTTP interoperability only. They do not alter tenant isolation, Membership lifecycle, Roles, Permissions, password handling or tombstone semantics.
 
-SCIM Groups, full filter grammar, sorting, bulk operations and password provisioning remain outside this milestone.
+These presets are not vendor certification claims. SCIM Groups remain outside this milestone, so the current Entra profile should not be interpreted as Microsoft Entra App Gallery readiness and the Okta profile is not an Okta Integration Network certification.
 
 ## Installation
 
@@ -161,20 +150,19 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## SCIM HTTP guarantees in 0.4.0b5
+## SCIM provider-profile guarantees in 0.4.0b6
 
-- `application/scim+json` is used for SCIM JSON responses;
-- ServiceProviderConfig advertises only capabilities implemented by this release;
-- User create returns HTTP 201 with resource representation, Location and ETag;
-- stale `If-Match` conditions return HTTP 412;
-- duplicate `userName` / `externalId` conflicts map to SCIM `uniqueness`;
-- malformed or unsupported filters map to `invalidFilter`;
-- unsupported PATCH paths map to `invalidPath`;
-- internal Python exceptions are not exposed in SCIM 500 responses;
-- the FastAPI router requires an explicit access dependency;
+- Generic SCIM remains the strict default;
+- Microsoft Entra parsing relaxations are explicit and profile-scoped;
+- Okta does not inherit Entra-specific unquoted/AND behavior;
+- only `userName` and `externalId` equality clauses are accepted;
+- the AND parser is quote-aware;
+- malformed filters fail closed;
+- provider profiles never create authorization grants;
+- `active=false` keeps the existing tenant Membership suspension semantics;
 - password provisioning remains rejected;
-- SCIM Groups cannot implicitly grant PyIAMKit Roles or Permissions;
-- the existing tenant-scoped lifecycle semantics from `0.4.0b4` remain unchanged.
+- SCIM Groups remain unsupported;
+- no vendor SDK enters the core or transport layer.
 
 ## Roadmap
 
@@ -199,7 +187,8 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0b3    Django integration
 0.4.0b4    SCIM User provisioning core
 0.4.0b5    SCIM HTTP transport + FastAPI router
-0.4.x      Provider interoperability profiles
+0.4.0b6    SCIM provider interoperability profiles
+0.4.x      SCIM Groups / provider qualification
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```
