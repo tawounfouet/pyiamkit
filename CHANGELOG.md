@@ -6,6 +6,33 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b4] - 2026-09-18
+
+### Added
+
+- New framework-neutral `pyiamkit.provisioning` bounded context.
+- Tenant-scoped `ProvisioningUser` resource mapping with stable SCIM resource ID, source-scoped `externalId`, `userName`, Membership/Identity links, active state, tombstones and weak ETag versioning.
+- `ScimProvisioningService` covering User create, get, list, replace, PATCH subset and delete semantics.
+- SCIM core User representations, one-based list pagination and supported PATCH operations.
+- Explicit `ProvisioningSource` binding one provisioning domain to one Tenant.
+- Identity User-profile replacement for provisioned display name, primary email and name attributes.
+- Tenancy application operations for Membership suspension, reactivation and revocation.
+- InMemory and SQLAlchemy provisioning repositories.
+- Portable `iam_provisioning_users` schema with active-resource uniqueness for source + userName and source + externalId.
+- ETag / If-Match optimistic concurrency checks.
+- SQLite conformance and live PostgreSQL provisioning-resource persistence.
+
+### Security
+
+- OIDC federation links and SCIM provisioning mappings remain separate concepts.
+- SCIM `externalId` is scoped to the configured provisioning source and never used as an OIDC subject.
+- `active=false` suspends only the managed tenant Membership; it does not disable the global Identity.
+- SCIM DELETE revokes the managed Membership and tombstones the SCIM resource without deleting the internal Identity.
+- Deleted resource IDs are never reused.
+- A local revoked/expired Membership is not silently reactivated by provisioning.
+- SCIM group-to-Role mapping, password provisioning and arbitrary external authorization claims are not implemented in this milestone.
+- If-Match mismatch fails closed with a provisioning precondition error.
+
 ## [0.4.0b3] - 2026-09-18
 
 ### Added
