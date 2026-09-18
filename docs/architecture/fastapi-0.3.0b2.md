@@ -130,8 +130,7 @@ PyIAMKit does not provide a default HTTP-header tenant resolver.
 The host application must implement:
 
 ```python
-def resolve_tenant(request: Request, claims: AccessTokenClaims) -> TenantId:
-    ...
+def resolve_tenant(request: Request, claims: AccessTokenClaims) -> TenantId: ...
 ```
 
 This is deliberate because applications identify their active tenant differently:
