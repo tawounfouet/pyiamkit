@@ -284,6 +284,72 @@ Index(
     provisioning_user_table.c.status,
 )
 
+provisioning_group_table = Table(
+    "iam_provisioning_groups",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True),
+    Column("version", Integer, nullable=False),
+    Column("source_id", String(255), nullable=False),
+    Column(
+        "tenant_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("display_name", String(255), nullable=False),
+    Column("external_id", String(512)),
+    Column("status", String(32), nullable=False, index=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("deleted_at", DateTime(timezone=True)),
+)
+Index(
+    "uq_iam_provisioning_groups_source_display_active",
+    provisioning_group_table.c.source_id,
+    func.lower(provisioning_group_table.c.display_name),
+    unique=True,
+    postgresql_where=provisioning_group_table.c.status == "active",
+    sqlite_where=provisioning_group_table.c.status == "active",
+)
+Index(
+    "uq_iam_provisioning_groups_source_external_active",
+    provisioning_group_table.c.source_id,
+    provisioning_group_table.c.external_id,
+    unique=True,
+    postgresql_where=(
+        (provisioning_group_table.c.status == "active")
+        & provisioning_group_table.c.external_id.is_not(None)
+    ),
+    sqlite_where=(
+        (provisioning_group_table.c.status == "active")
+        & provisioning_group_table.c.external_id.is_not(None)
+    ),
+)
+Index(
+    "ix_iam_provisioning_groups_source_tenant_status",
+    provisioning_group_table.c.source_id,
+    provisioning_group_table.c.tenant_id,
+    provisioning_group_table.c.status,
+)
+
+provisioning_group_member_table = Table(
+    "iam_provisioning_group_members",
+    metadata,
+    Column(
+        "group_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_provisioning_groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "member_resource_id",
+        Uuid(as_uuid=True),
+        ForeignKey("iam_provisioning_users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+
 permission_table = Table(
     "iam_permissions",
     metadata,
