@@ -20,7 +20,7 @@ from ..federation import (
     InvalidIdentityToken,
 )
 
-OidcVerificationKey = str | bytes
+OidcVerificationKey = str | bytes | pyjwt.PyJWK
 
 _ALLOWED_ALGORITHMS = frozenset(
     {
