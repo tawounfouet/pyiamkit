@@ -294,6 +294,7 @@ def _subject(payload: Mapping[str, object]) -> str:
 
 def _audiences(payload: Mapping[str, object]) -> tuple[str, ...]:
     value = payload.get("aud")
+    audiences: tuple[str, ...]
     if isinstance(value, str):
         audiences = (value.strip(),)
     elif isinstance(value, list) and all(isinstance(item, str) for item in value):
