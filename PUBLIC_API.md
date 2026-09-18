@@ -2,6 +2,38 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.3.0b2
+
+Adds the optional FastAPI adapter from `pyiamkit.integrations.fastapi`:
+
+```text
+AuthenticationDependency
+CorrelationIdResolver
+ResourceResolver
+ScopeResolver
+TenantResolver
+bearer_authentication()
+require_permission()
+```
+
+Install it with:
+
+```text
+pyiamkit[fastapi]
+```
+
+JWT-backed FastAPI applications normally install both optional adapters:
+
+```text
+pyiamkit[jwt,fastapi]
+```
+
+`bearer_authentication()` returns a FastAPI dependency that reads the HTTP Bearer credential and delegates verification to a supplied `TokenProvider`. Token-provider details are never returned to the client; authentication failure maps to HTTP 401 with `WWW-Authenticate: Bearer`.
+
+`require_permission()` consumes verified `AccessTokenClaims`, resolves the application-specific Tenant/Scope/Resource context, builds an `AuthorizationRequest` and delegates the final decision to `AuthorizationEngine`. A denied decision maps to HTTP 403.
+
+Tenant resolution is deliberately not inferred from arbitrary headers by PyIAMKit. The host application supplies a `TenantResolver` suitable for its routing/session model.
+
 ## 0.3.0b1
 
 Adds framework-neutral token contracts from `pyiamkit.authentication`:
