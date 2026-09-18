@@ -228,7 +228,7 @@ def service_provider_config(
     ).to_dict()
 
 
-def resource_types_response(base_url: str | None) -> dict[str, object]:
+def resource_type_resource(base_url: str | None) -> dict[str, object]:
     endpoint = "/Users"
     location = None if base_url is None else f"{base_url.rstrip('/')}/ResourceTypes/User"
     resource: dict[str, object] = {
@@ -245,6 +245,11 @@ def resource_types_response(base_url: str | None) -> dict[str, object]:
             "resourceType": "ResourceType",
             "location": location,
         }
+    return resource
+
+
+def resource_types_response(base_url: str | None) -> dict[str, object]:
+    resource = resource_type_resource(base_url)
     return {
         "schemas": [SCIM_LIST_RESPONSE_SCHEMA],
         "totalResults": 1,
@@ -254,7 +259,7 @@ def resource_types_response(base_url: str | None) -> dict[str, object]:
     }
 
 
-def schemas_response(base_url: str | None) -> dict[str, object]:
+def schema_resource(base_url: str | None) -> dict[str, object]:
     location = None if base_url is None else f"{base_url.rstrip('/')}/Schemas/{SCIM_USER_SCHEMA}"
     resource: dict[str, object] = {
         "schemas": [SCIM_SCHEMA_SCHEMA],
@@ -291,6 +296,11 @@ def schemas_response(base_url: str | None) -> dict[str, object]:
             "resourceType": "Schema",
             "location": location,
         }
+    return resource
+
+
+def schemas_response(base_url: str | None) -> dict[str, object]:
+    resource = schema_resource(base_url)
     return {
         "schemas": [SCIM_LIST_RESPONSE_SCHEMA],
         "totalResults": 1,
@@ -330,8 +340,18 @@ class ScimHttpTransport:
     def get_resource_types(self) -> ScimHttpResponse:
         return ScimHttpResponse.json(200, resource_types_response(self._base_url))
 
+    def get_resource_type(self, resource_type: str) -> ScimHttpResponse:
+        if resource_type.casefold() != "user":
+            return self._error(404, f"SCIM ResourceType {resource_type!r} was not found")
+        return ScimHttpResponse.json(200, resource_type_resource(self._base_url))
+
     def get_schemas(self) -> ScimHttpResponse:
         return ScimHttpResponse.json(200, schemas_response(self._base_url))
+
+    def get_schema(self, schema_uri: str) -> ScimHttpResponse:
+        if schema_uri != SCIM_USER_SCHEMA:
+            return self._error(404, f"SCIM Schema {schema_uri!r} was not found")
+        return ScimHttpResponse.json(200, schema_resource(self._base_url))
 
     def create_user(self, payload: object) -> ScimHttpResponse:
         try:
