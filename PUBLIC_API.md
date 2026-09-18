@@ -2,6 +2,32 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b6
+
+Adds explicit SCIM provider-interoperability contracts:
+
+```text
+GENERIC_SCIM_PROFILE
+MICROSOFT_ENTRA_PROFILE
+OKTA_SCIM_PROFILE
+ScimDeprovisionMode
+ScimProviderKind
+ScimProviderProfile
+ScimUserFilterExpression
+scim_provider_profile()
+parse_user_filter_expression()
+```
+
+`ScimHttpTransport(..., provider_profile=...)` selects protocol parsing behavior without changing provisioning or authorization semantics.
+
+The Generic profile remains the default and preserves the strict `0.4.0b5` filter contract.
+
+The Microsoft Entra profile allows the bounded compatibility forms implemented by this release, including unquoted single-token values and conjunctions of supported equality clauses.
+
+The Okta profile keeps quoted string filters and prioritizes `userName` as its interoperability lookup convention.
+
+Only `userName` and `externalId` equality clauses are supported. These profiles are compatibility presets, not Microsoft or Okta certification claims.
+
 ## 0.4.0b5
 
 Adds the framework-neutral SCIM HTTP surface from `pyiamkit.provisioning`:
