@@ -3,6 +3,11 @@
 from .application import ProvisioningSource, ScimProvisioningService
 from .group_application import ScimGroupProvisioningService
 from .group_domain import ProvisioningGroup
+from .group_http import (
+    parse_group_filter,
+    parse_scim_group_patch_payload,
+    parse_scim_group_payload,
+)
 from .group_scim import (
     SCIM_GROUP_SCHEMA,
     ScimGroupInput,
@@ -123,6 +128,9 @@ __all__ = [
     "ScimUserResource",
     "UnsupportedScimPatch",
     "apply_user_patch",
+    "parse_group_filter",
+    "parse_scim_group_patch_payload",
+    "parse_scim_group_payload",
     "parse_scim_patch_payload",
     "parse_scim_user_payload",
     "parse_user_filter",
