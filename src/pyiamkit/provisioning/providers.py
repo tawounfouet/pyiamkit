@@ -51,6 +51,7 @@ GENERIC_SCIM_PROFILE = ScimProviderProfile(
     allow_unquoted_filter_values=False,
     allow_and_filters=False,
     preferred_user_lookup_attributes=("userName", "externalId"),
+    supports_groups=True,
 )
 
 MICROSOFT_ENTRA_PROFILE = ScimProviderProfile(
@@ -58,6 +59,7 @@ MICROSOFT_ENTRA_PROFILE = ScimProviderProfile(
     allow_unquoted_filter_values=True,
     allow_and_filters=True,
     preferred_user_lookup_attributes=("externalId", "userName"),
+    supports_groups=True,
 )
 
 OKTA_SCIM_PROFILE = ScimProviderProfile(
@@ -65,6 +67,7 @@ OKTA_SCIM_PROFILE = ScimProviderProfile(
     allow_unquoted_filter_values=False,
     allow_and_filters=False,
     preferred_user_lookup_attributes=("userName",),
+    supports_groups=True,
 )
 
 
