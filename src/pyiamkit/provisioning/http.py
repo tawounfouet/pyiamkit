@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Mapping
+from collections.abc import Mapping
 
 from .application import ScimProvisioningService
 from .domain import ProvisioningResourceId
@@ -483,11 +483,9 @@ class ScimHttpTransport:
         start_index: int,
         count: int,
     ) -> ScimListResponse:
-        resources: tuple[ScimUserResource, ...]
-        if resource is None or start_index > 1 or count == 0:
-            resources = ()
-        else:
-            resources = (resource,)
+        resources: tuple[ScimUserResource, ...] = (
+            () if resource is None or start_index > 1 or count == 0 else (resource,)
+        )
         return ScimListResponse(
             total_results=0 if resource is None else 1,
             start_index=start_index,
