@@ -158,6 +158,8 @@ class AuthorizationEngine:
                     now,
                     self._reason_for_violation(violation),
                     matched_rule_id=violation.rule_id,
+                    required_assurance_level=violation.required_assurance_level,
+                    required_mfa=violation.required_mfa,
                     explanation=(
                         f"binding:{binding.id}",
                         f"role:{role.id}",
@@ -242,6 +244,12 @@ class AuthorizationEngine:
     @staticmethod
     def _reason_for_violation(violation: GovernanceViolation) -> AuthorizationReason:
         mapping: dict[GovernanceViolationKind, AuthorizationReason] = {
+            GovernanceViolationKind.AUTHENTICATION_CONTEXT_MISSING: (
+                AuthorizationReason.DENY_AUTHENTICATION_CONTEXT_MISSING
+            ),
+            GovernanceViolationKind.ASSURANCE_STEP_UP_REQUIRED: (
+                AuthorizationReason.DENY_STEP_UP_REQUIRED
+            ),
             GovernanceViolationKind.CONSTRAINT_CONTEXT_MISSING: (
                 AuthorizationReason.DENY_CONSTRAINT_CONTEXT_MISSING
             ),
@@ -267,6 +275,8 @@ class AuthorizationEngine:
         reason: AuthorizationReason,
         *,
         matched_rule_id: GovernanceRuleId | None = None,
+        required_assurance_level: object | None = None,
+        required_mfa: bool | None = None,
         explanation: tuple[str, ...] = (),
     ) -> AuthorizationDecision:
         return self._finalize(
@@ -279,6 +289,8 @@ class AuthorizationEngine:
                 scope=request.scope,
                 evaluated_at=evaluated_at,
                 matched_rule_id=matched_rule_id,
+                required_assurance_level=required_assurance_level,
+                required_mfa=required_mfa,
                 resource=request.resource,
                 correlation_id=request.correlation_id,
                 explanation_path=(
