@@ -303,9 +303,7 @@ def _mfa_factor_from_row(row: RowMapping) -> MfaFactor:
         revoked_at=optional_utc_from_db(row["revoked_at"]),
         last_verified_at=optional_utc_from_db(row["last_verified_at"]),
         last_accepted_counter=(
-            None
-            if row["last_accepted_counter"] is None
-            else int(row["last_accepted_counter"])
+            None if row["last_accepted_counter"] is None else int(row["last_accepted_counter"])
         ),
     )
 
