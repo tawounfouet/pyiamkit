@@ -198,7 +198,7 @@ def permission_required(
             if not decision.allowed:
                 return _authorization_denied_response(decision)
 
-            setattr(request, "pyiamkit_authorization_decision", decision)
+            request.__dict__["pyiamkit_authorization_decision"] = decision
             return view(*args, **kwargs)
 
         return wrapper
@@ -217,11 +217,7 @@ def _configured_token_provider() -> TokenProvider:
             "PYIAMKIT_TOKEN_PROVIDER must be configured or token_provider supplied explicitly"
         )
     configured = settings.PYIAMKIT_TOKEN_PROVIDER
-    value: object
-    if isinstance(configured, str):
-        value = import_string(configured)
-    else:
-        value = configured
+    value: object = import_string(configured) if isinstance(configured, str) else configured
     if not hasattr(value, "verify_access_token"):
         raise ImproperlyConfigured("PYIAMKIT_TOKEN_PROVIDER does not expose verify_access_token")
     return cast(TokenProvider, value)
