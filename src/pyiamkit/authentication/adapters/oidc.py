@@ -16,6 +16,7 @@ from ..federation import (
     FederatedAssuranceResolver,
     FederatedIdentityClaims,
     IdentityTokenVerifier,
+    InvalidFederationPolicy,
     InvalidIdentityToken,
 )
 
@@ -41,7 +42,7 @@ _ALLOWED_ALGORITHMS = frozenset(
 _REQUIRED_CLAIMS = ("iss", "sub", "aud", "exp", "iat")
 
 
-class OidcConfigurationError(InvalidIdentityToken):
+class OidcConfigurationError(InvalidFederationPolicy):
     """Raised when an OIDC verifier is configured unsafely."""
 
     code = "OIDC_CONFIGURATION_INVALID"
