@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from .application import ScimProvisioningService
-from .group_application import ScimGroupProvisioningService
 from .domain import ProvisioningResourceId
 from .errors import (
     InvalidScimRequest,
@@ -17,6 +16,7 @@ from .errors import (
     ProvisioningResourceNotFound,
     UnsupportedScimPatch,
 )
+from .group_application import ScimGroupProvisioningService
 from .group_http import (
     group_resource_type_resource,
     group_schema_resource,
