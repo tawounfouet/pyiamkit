@@ -1,6 +1,6 @@
 """SCIM 2.0 User representation and supported PATCH operations."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 from urllib.parse import urljoin
@@ -42,7 +42,7 @@ class ScimUserInput:
     display_name: str | None = None
     external_id: str | None = None
     active: bool = True
-    name: ScimName = ScimName()
+    name: ScimName = field(default_factory=ScimName)
     emails: tuple[ScimEmail, ...] = ()
 
     def __post_init__(self) -> None:
