@@ -6,6 +6,27 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.3.0b2] - 2026-09-18
+
+### Added
+
+- Optional FastAPI integration under `pyiamkit.integrations.fastapi`.
+- `bearer_authentication()` dependency factory using FastAPI's HTTP Bearer security scheme and PyIAMKit's `TokenProvider`.
+- `require_permission()` dependency factory connecting verified token claims to the existing `AuthorizationEngine`.
+- Explicit application-provided Tenant, Scope, Resource and correlation-ID resolver contracts.
+- OpenAPI bearer-security integration through FastAPI's native security dependency system.
+- End-to-end FastAPI tests covering Identity, Tenant, Membership, RoleBinding, Session, JWT and Authorization.
+- FastAPI example with authenticated and authorized endpoints.
+
+### Security
+
+- Missing or invalid bearer credentials return HTTP 401 with `WWW-Authenticate: Bearer`.
+- Authentication failures expose a generic response and do not leak token-validation internals.
+- Authorization denials return HTTP 403 without converting them into authentication failures.
+- FastAPI never decodes JWTs directly; token verification remains delegated to the configured `TokenProvider`.
+- FastAPI never evaluates RBAC itself; authorization remains delegated to the existing default-deny `AuthorizationEngine`.
+- Session revocation therefore invalidates previously issued bearer JWTs at the HTTP boundary as well.
+
 ## [0.3.0b1] - 2026-09-18
 
 ### Added
