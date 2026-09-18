@@ -98,3 +98,20 @@ jobs:
           python -m pip install '${{ matrix.django-spec }}' pytest
       - name: Django integration tests
         run: pytest tests/integration/django_adapter -q
+
+
+  fastapi-scim-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install FastAPI SCIM compatibility target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[fastapi]"
+          python -m pip install httpx pytest
+      - name: FastAPI SCIM integration tests
+        run: pytest tests/integration/fastapi_scim -q
