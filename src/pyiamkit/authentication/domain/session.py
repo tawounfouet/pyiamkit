@@ -59,9 +59,7 @@ class Session:
             raise InvalidSession("Authentication context cannot occur after session creation.")
         if last_activity_at < created_at or last_activity_at > updated_at:
             raise InvalidSession("last_activity_at must be inside the session lifetime.")
-        revocation_reason = (
-            None if revocation_reason is None else revocation_reason.strip() or None
-        )
+        revocation_reason = None if revocation_reason is None else revocation_reason.strip() or None
         self._id = session_id
         self._version = version
         self._identity_id = identity_id
