@@ -16,6 +16,7 @@ from pyiamkit.authentication.adapters.oidc_discovery import (
     OidcDiscoveryClient,
     OidcDiscoveryError,
     OidcJwksError,
+    OidcProviderMetadata,
     OidcRemoteError,
 )
 
@@ -462,3 +463,234 @@ def test_httpx_transport_rejects_json_arrays_and_invalid_json() -> None:
         with pytest.raises(OidcRemoteError):
             transport.get_json("https://example.com/data")
         client.close()
+
+
+def test_provider_metadata_rejects_empty_or_duplicate_algorithms() -> None:
+    common = {
+        "issuer": ISSUER,
+        "authorization_endpoint": ISSUER + "/authorize",
+        "token_endpoint": ISSUER + "/token",
+        "jwks_uri": JWKS_URI,
+    }
+
+    with pytest.raises(OidcDiscoveryError, match="must not be empty"):
+        OidcProviderMetadata(
+            **common,
+            id_token_signing_algorithms=(),
+        )
+    with pytest.raises(OidcDiscoveryError, match="must be unique"):
+        OidcProviderMetadata(
+            **common,
+            id_token_signing_algorithms=("RS256", "RS256"),
+        )
+
+
+def test_provider_metadata_normalizes_blank_optional_userinfo_endpoint() -> None:
+    metadata = OidcProviderMetadata(
+        issuer=ISSUER,
+        authorization_endpoint=ISSUER + "/authorize",
+        token_endpoint=ISSUER + "/token",
+        jwks_uri=JWKS_URI,
+        id_token_signing_algorithms=("RS256",),
+        userinfo_endpoint="   ",
+    )
+
+    assert metadata.userinfo_endpoint is None
+
+
+def test_httpx_transport_validates_timeout_and_owned_client_lifecycle() -> None:
+    with pytest.raises(OidcRemoteError, match="timeout"):
+        HttpxOidcTransport(timeout=0)
+
+    with HttpxOidcTransport(timeout=1) as transport:
+        assert transport is not None
+
+
+def test_discovery_rejects_invalid_cache_ttl_and_naive_clock() -> None:
+    transport = FakeTransport({DISCOVERY_URL: [_metadata()]})
+
+    with pytest.raises(OidcDiscoveryError, match="cache_ttl"):
+        OidcDiscoveryClient(
+            transport=transport,
+            clock=FrozenClock(NOW),
+            cache_ttl=timedelta(0),
+        )
+
+    naive = FrozenClock(datetime(2026, 9, 18, 8, 0))
+    discovery = OidcDiscoveryClient(transport=transport, clock=naive)
+    with pytest.raises(OidcConfigurationError, match="UTC-aware"):
+        discovery.discover(ISSUER)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"algorithm": ""},
+        {"cache_ttl": timedelta(0)},
+        {"unknown_kid_refresh_cooldown": timedelta(seconds=-1)},
+    ],
+)
+def test_jwks_resolver_rejects_invalid_configuration(kwargs: dict[str, object]) -> None:
+    with pytest.raises(OidcJwksError):
+        JwksKeyResolver(
+            jwks_uri=JWKS_URI,
+            transport=FakeTransport({JWKS_URI: [{"keys": []}]}),
+            clock=FrozenClock(NOW),
+            algorithm="RS256",
+            **kwargs,
+        )
+
+
+def test_jwks_resolver_requires_nonempty_kid() -> None:
+    resolver = JwksKeyResolver(
+        jwks_uri=JWKS_URI,
+        transport=FakeTransport({JWKS_URI: [{"keys": []}]}),
+        clock=FrozenClock(NOW),
+        algorithm="RS256",
+    )
+
+    with pytest.raises(InvalidIdentityToken, match="required"):
+        resolver.resolve("  ")
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"keys": "not-array"},
+        {"keys": ["not-object"]},
+    ],
+)
+def test_jwks_rejects_invalid_document_shape(payload: dict[str, object]) -> None:
+    resolver = JwksKeyResolver(
+        jwks_uri=JWKS_URI,
+        transport=FakeTransport({JWKS_URI: [payload]}),
+        clock=FrozenClock(NOW),
+        algorithm="RS256",
+    )
+
+    with pytest.raises(OidcJwksError):
+        resolver.resolve("key-1")
+
+
+def test_jwks_skips_key_without_kid_then_fails_closed() -> None:
+    _, jwk = _rsa_pair("temporary")
+    jwk.pop("kid")
+    resolver = JwksKeyResolver(
+        jwks_uri=JWKS_URI,
+        transport=FakeTransport({JWKS_URI: [{"keys": [jwk]}]}),
+        clock=FrozenClock(NOW),
+        algorithm="RS256",
+    )
+
+    with pytest.raises(OidcJwksError, match="usable"):
+        resolver.resolve("missing")
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"provider_id": ""},
+        {"client_id": ""},
+        {"algorithm": ""},
+        {"leeway": timedelta(seconds=-1)},
+    ],
+)
+def test_discovered_verifier_rejects_invalid_local_configuration(
+    changes: dict[str, object],
+) -> None:
+    kwargs: dict[str, object] = {
+        "provider_id": "provider-1",
+        "issuer": ISSUER,
+        "client_id": CLIENT_ID,
+        "algorithm": "RS256",
+        "transport": FakeTransport({DISCOVERY_URL: [_metadata()]}),
+        "clock": FrozenClock(NOW),
+        "leeway": timedelta(0),
+    }
+    kwargs.update(changes)
+
+    with pytest.raises(OidcConfigurationError):
+        DiscoveredOidcIdTokenVerifier(**kwargs)
+
+
+def test_discovery_rejects_invalid_algorithm_metadata_and_required_strings() -> None:
+    invalid_algorithms = _metadata()
+    invalid_algorithms["id_token_signing_alg_values_supported"] = "RS256"
+    missing_endpoint = _metadata()
+    missing_endpoint["authorization_endpoint"] = ""
+    invalid_userinfo = _metadata()
+    invalid_userinfo["userinfo_endpoint"] = 42
+
+    for metadata in (invalid_algorithms, missing_endpoint, invalid_userinfo):
+        discovery = OidcDiscoveryClient(
+            transport=FakeTransport({DISCOVERY_URL: [metadata]}),
+            clock=FrozenClock(NOW),
+        )
+        with pytest.raises(OidcDiscoveryError):
+            discovery.discover(ISSUER)
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "",
+        "not-a-jwt",
+    ],
+)
+def test_discovered_verifier_rejects_empty_or_malformed_token_header(token: str) -> None:
+    verifier = DiscoveredOidcIdTokenVerifier(
+        provider_id="provider-1",
+        issuer=ISSUER,
+        client_id=CLIENT_ID,
+        algorithm="RS256",
+        transport=FakeTransport({DISCOVERY_URL: [_metadata()]}),
+        clock=FrozenClock(NOW),
+    )
+
+    with pytest.raises(InvalidIdentityToken):
+        verifier.verify_identity_token(token)
+
+
+def test_discovered_verifier_rejects_header_algorithm_mismatch_before_jwks() -> None:
+    key, _ = _rsa_pair("key-1")
+    token = pyjwt.encode(
+        {
+            "iss": ISSUER,
+            "sub": "subject-42",
+            "aud": CLIENT_ID,
+            "exp": int((NOW + timedelta(minutes=10)).timestamp()),
+            "iat": int(NOW.timestamp()),
+        },
+        key,
+        algorithm="RS512",
+        headers={"kid": "key-1"},
+    )
+    transport = FakeTransport(
+        {
+            DISCOVERY_URL: [_metadata()],
+            JWKS_URI: [{"keys": []}],
+        }
+    )
+    verifier = DiscoveredOidcIdTokenVerifier(
+        provider_id="provider-1",
+        issuer=ISSUER,
+        client_id=CLIENT_ID,
+        algorithm="RS256",
+        transport=transport,
+        clock=FrozenClock(NOW),
+    )
+
+    with pytest.raises(InvalidIdentityToken, match="algorithm"):
+        verifier.verify_identity_token(token)
+
+    assert JWKS_URI not in transport.calls
+
+
+def test_discovery_rejects_query_in_configured_issuer() -> None:
+    discovery = OidcDiscoveryClient(
+        transport=FakeTransport({}),
+        clock=FrozenClock(NOW),
+    )
+
+    with pytest.raises(OidcDiscoveryError, match="query"):
+        discovery.discover(ISSUER + "?tenant=1")
