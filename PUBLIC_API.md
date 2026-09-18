@@ -2,6 +2,56 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b5
+
+Adds the framework-neutral SCIM HTTP surface from `pyiamkit.provisioning`:
+
+```text
+SCIM_MEDIA_TYPE
+SCIM_ERROR_SCHEMA
+SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA
+SCIM_RESOURCE_TYPE_SCHEMA
+SCIM_SCHEMA_SCHEMA
+ScimErrorType
+ScimErrorResponse
+ScimHttpResponse
+ScimHttpTransport
+ScimServiceProviderConfig
+ScimUserFilter
+parse_user_filter()
+parse_scim_user_payload()
+parse_scim_patch_payload()
+```
+
+The optional FastAPI adapter is imported explicitly:
+
+```python
+from pyiamkit.integrations.fastapi_scim import (
+    ScimAccessDependency,
+    create_scim_router,
+)
+```
+
+`create_scim_router()` requires an explicit `access_dependency`; no anonymous default is provided.
+
+Supported endpoints in this milestone:
+
+```text
+GET    /ServiceProviderConfig
+GET    /ResourceTypes
+GET    /ResourceTypes/User
+GET    /Schemas
+GET    /Schemas/{schema-uri}
+POST   /Users
+GET    /Users
+GET    /Users/{id}
+PUT    /Users/{id}
+PATCH  /Users/{id}
+DELETE /Users/{id}
+```
+
+The filter subset is deliberately bounded to equality lookup for `userName` and `externalId`. Full SCIM filter grammar, Groups, sorting, bulk operations and password change remain outside this public milestone.
+
 ## 0.4.0b4
 
 Adds the framework-neutral provisioning surface from `pyiamkit.provisioning`:
