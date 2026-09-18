@@ -70,9 +70,8 @@ class AuthenticationEvidence:
     authenticated_at: datetime
 
     def __post_init__(self) -> None:
-        if (
-            self.authenticated_at.tzinfo is None
-            or self.authenticated_at.utcoffset() != timedelta(0)
+        if self.authenticated_at.tzinfo is None or self.authenticated_at.utcoffset() != timedelta(
+            0
         ):
             raise ValueError("authenticated_at must be UTC-aware")
 
