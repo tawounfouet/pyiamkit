@@ -5,7 +5,11 @@ Install with ``pyiamkit[sqlalchemy]`` for SQLite/SQLAlchemy usage or
 """
 
 from .audit import SqlAlchemyAuditRepository
-from .authentication import (\n    SqlAlchemyCredentialRepository,\n    SqlAlchemyMfaFactorRepository,\n    SqlAlchemySessionRepository,\n)
+from .authentication import (
+    SqlAlchemyCredentialRepository,
+    SqlAlchemyMfaFactorRepository,
+    SqlAlchemySessionRepository,
+)
 from .authorization import (
     SqlAlchemyConstraintRepository,
     SqlAlchemyPermissionCatalogRepository,
