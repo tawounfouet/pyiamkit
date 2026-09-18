@@ -6,6 +6,32 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b5] - 2026-09-18
+
+### Added
+
+- Framework-neutral `ScimHttpTransport` translating SCIM 2.0 HTTP semantics into the existing provisioning application service.
+- SCIM media type, error envelope, ServiceProviderConfig, ResourceTypes and Schemas discovery representations.
+- HTTP lifecycle support for User POST, GET, filtered list, PUT, PATCH and DELETE.
+- User payload parsing with explicit schema validation and rejection of unsupported password provisioning.
+- Bounded filter support for `userName eq "..."` and `externalId eq "..."`.
+- Configurable `maxResults` with one-based SCIM pagination.
+- Resource `Location` and `ETag` response headers.
+- HTTP error mapping for uniqueness, not-found, stale preconditions, invalid values and invalid PATCH paths.
+- Protected FastAPI SCIM router under `pyiamkit.integrations.fastapi_scim`.
+- Discovery and end-to-end FastAPI SCIM integration tests.
+- Executable protected FastAPI SCIM example.
+
+### Security
+
+- The FastAPI SCIM router requires an explicit host-provided access dependency and does not expose anonymous provisioning routes by default.
+- The transport does not authenticate or authorize provisioning clients implicitly; the host application owns that control.
+- Password provisioning remains rejected.
+- SCIM Groups and Group-to-Role translation remain unavailable, preventing external group names from becoming authorization truth implicitly.
+- Unexpected internal exceptions map to a generic SCIM 500 error rather than exposing Python internals.
+- Invalid resource identifiers map to not-found behavior without leaking parser details.
+- If-Match precondition failures remain fail-closed HTTP 412 responses.
+
 ## [0.4.0b4] - 2026-09-18
 
 ### Added
