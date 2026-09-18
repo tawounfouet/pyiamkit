@@ -81,9 +81,7 @@ class MfaFactorOwnershipMismatch(AuthenticationError):
     code = "MFA_FACTOR_OWNERSHIP_MISMATCH"
 
     def __init__(self, factor_id: object, identity_id: object) -> None:
-        super().__init__(
-            f"MFA factor {factor_id} does not belong to Identity {identity_id}."
-        )
+        super().__init__(f"MFA factor {factor_id} does not belong to Identity {identity_id}.")
 
 
 class MfaVerificationFailed(AuthenticationError):
