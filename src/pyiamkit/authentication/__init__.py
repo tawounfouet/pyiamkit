@@ -22,6 +22,17 @@ from .domain import (
     SessionNotFound,
     SessionStatus,
 )
+from .federation import (
+    ExternalIdentityNotLinked,
+    FederatedAssurance,
+    FederatedAssuranceResolver,
+    FederatedAuthenticationService,
+    FederatedIdentityClaims,
+    FederationError,
+    IdentityTokenVerifier,
+    InvalidFederationPolicy,
+    InvalidIdentityToken,
+)
 from .ports import CredentialRepository, SessionRepository, TokenProvider
 from .tokens import (
     AccessTokenClaims,
@@ -51,9 +62,18 @@ __all__ = [
     "CredentialStatus",
     "CredentialType",
     "ExpiredAccessToken",
+    "ExternalIdentityNotLinked",
+    "FederatedAssurance",
+    "FederatedAssuranceResolver",
+    "FederatedAuthenticationService",
+    "FederatedIdentityClaims",
+    "FederationError",
+    "IdentityTokenVerifier",
     "InvalidAccessToken",
     "InvalidCredential",
     "InvalidCredentialTransition",
+    "InvalidFederationPolicy",
+    "InvalidIdentityToken",
     "InvalidSession",
     "InvalidSessionTransition",
     "IssuedAccessToken",
