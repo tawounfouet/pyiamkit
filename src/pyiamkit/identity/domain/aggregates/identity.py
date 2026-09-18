@@ -299,6 +299,33 @@ class Identity:
         self._touch(at)
         self._record(IdentityEventType.IDENTITY_ARCHIVED, at)
 
+    def update_user_profile(
+        self,
+        *,
+        display_name: str,
+        primary_email: EmailAddress | None,
+        first_name: str | None,
+        last_name: str | None,
+        locale: str | None,
+        timezone: str | None,
+        at: datetime,
+        email_verified: bool = False,
+    ) -> None:
+        if not isinstance(self.profile, User):
+            raise InvalidIdentityTransition(self.status.value, "update user profile")
+        self._require_utc(at, "at")
+        self._display_name = self._normalize_display_name(display_name)
+        self._profile = User(
+            primary_email=primary_email,
+            email_verified=email_verified,
+            first_name=_optional_text(first_name),
+            last_name=_optional_text(last_name),
+            locale=_optional_text(locale),
+            timezone=_optional_text(timezone),
+        )
+        self._touch(at)
+        self._record(IdentityEventType.USER_PROFILE_UPDATED, at)
+
     def link_external_identity(
         self,
         *,
@@ -397,3 +424,10 @@ class Identity:
 
     def __hash__(self) -> int:
         return hash(self.id)
+
+
+def _optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None

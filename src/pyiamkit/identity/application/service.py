@@ -46,6 +46,32 @@ class IdentityApplicationService:
         )
         return self._save_and_publish(identity)
 
+    def update_user_profile(
+        self,
+        identity_id: IdentityId,
+        *,
+        display_name: str,
+        primary_email: str | None = None,
+        email_verified: bool = False,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        locale: str | None = None,
+        timezone: str | None = None,
+    ) -> Identity:
+        identity = self._get_required(identity_id)
+        email = None if primary_email is None else EmailAddress.parse(primary_email)
+        identity.update_user_profile(
+            display_name=display_name,
+            primary_email=email,
+            email_verified=email_verified,
+            first_name=first_name,
+            last_name=last_name,
+            locale=locale,
+            timezone=timezone,
+            at=self._clock.now(),
+        )
+        return self._save_and_publish(identity)
+
     def create_service_account(
         self,
         *,

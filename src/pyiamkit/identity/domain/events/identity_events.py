@@ -10,6 +10,7 @@ class IdentityEventType(StrEnum):
     IDENTITY_REACTIVATED = "IdentityReactivated"
     IDENTITY_DISABLED = "IdentityDisabled"
     IDENTITY_ARCHIVED = "IdentityArchived"
+    USER_PROFILE_UPDATED = "UserProfileUpdated"
     SERVICE_ACCOUNT_CREATED = "ServiceAccountCreated"
     EXTERNAL_IDENTITY_LINKED = "ExternalIdentityLinked"
     EXTERNAL_IDENTITY_UNLINKED = "ExternalIdentityUnlinked"
