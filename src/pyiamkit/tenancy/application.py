@@ -107,6 +107,21 @@ class TenancyApplicationService:
         membership.activate(at=self._clock.now())
         return self._save_membership(membership)
 
+    def suspend_membership(self, membership_id: MembershipId) -> Membership:
+        membership = self._require_membership(membership_id)
+        membership.suspend(at=self._clock.now())
+        return self._save_membership(membership)
+
+    def reactivate_membership(self, membership_id: MembershipId) -> Membership:
+        membership = self._require_membership(membership_id)
+        membership.reactivate(at=self._clock.now())
+        return self._save_membership(membership)
+
+    def revoke_membership(self, membership_id: MembershipId) -> Membership:
+        membership = self._require_membership(membership_id)
+        membership.revoke(at=self._clock.now())
+        return self._save_membership(membership)
+
     def resolve_context(self, *, identity_id: IdentityId, tenant_id: TenantId) -> TenantContext:
         identity = self._identities.get(identity_id)
         if identity is None or identity.status is not IdentityStatus.ACTIVE:
