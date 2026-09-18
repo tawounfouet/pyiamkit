@@ -242,9 +242,7 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         persisted_provisioning = SqlAlchemyProvisioningUserRepository(session).get(
             provisioning_user.id
         )
-        persisted_group = SqlAlchemyProvisioningGroupRepository(session).get(
-            provisioning_group.id
-        )
+        persisted_group = SqlAlchemyProvisioningGroupRepository(session).get(provisioning_group.id)
         persisted_constraints = SqlAlchemyConstraintRepository(session).list_for(
             permission.code,
             tenant.id,
