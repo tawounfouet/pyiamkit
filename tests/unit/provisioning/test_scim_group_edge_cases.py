@@ -2,19 +2,16 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from pyiamkit.identity import IdentityId
 from pyiamkit.provisioning import (
     InvalidProvisioningResource,
     InvalidScimRequest,
     ProvisioningManagedStateConflict,
     ProvisioningResourceId,
     ProvisioningResourceStatus,
-    ProvisioningUser,
     ScimGroupInput,
     ScimGroupMember,
     ScimGroupPatchOperation,
     ScimPatchVerb,
-    UnsupportedScimPatch,
 )
 from pyiamkit.provisioning.group_domain import ProvisioningGroup
 from pyiamkit.provisioning.group_http import (
@@ -32,9 +29,9 @@ from pyiamkit.provisioning.group_scim import (
     group_resource_location,
     require_group_patch_schema,
 )
-from pyiamkit.provisioning.scim import SCIM_PATCH_SCHEMA, ScimMeta
 from pyiamkit.provisioning.providers import MICROSOFT_ENTRA_PROFILE
-from pyiamkit.tenancy import MembershipId, TenantId
+from pyiamkit.provisioning.scim import SCIM_PATCH_SCHEMA, ScimMeta
+from pyiamkit.tenancy import TenantId
 
 NOW = datetime(2026, 9, 18, 12, 30, tzinfo=UTC)
 
