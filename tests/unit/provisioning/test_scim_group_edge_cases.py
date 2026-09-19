@@ -246,7 +246,7 @@ def test_group_payload_parser_rejects_malformed_inputs() -> None:
                 "members": [{"value": "u1", "display": 7}],
             }
         )
-    with pytest.raises(InvalidScimRequest, match=r"member $ref"):
+    with pytest.raises(InvalidScimRequest, match=r"member \$ref"):
         parse_scim_group_payload(
             {
                 "schemas": [SCIM_GROUP_SCHEMA],
