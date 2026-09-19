@@ -270,13 +270,9 @@ def test_group_patch_parser_rejects_malformed_operations() -> None:
     with pytest.raises(InvalidScimRequest, match="non-empty array"):
         parse_scim_group_patch_payload({"schemas": [SCIM_PATCH_SCHEMA], "Operations": []})
     with pytest.raises(InvalidScimRequest, match="JSON object"):
-        parse_scim_group_patch_payload(
-            {"schemas": [SCIM_PATCH_SCHEMA], "Operations": [1]}
-        )
+        parse_scim_group_patch_payload({"schemas": [SCIM_PATCH_SCHEMA], "Operations": [1]})
     with pytest.raises(InvalidScimRequest, match="op must be a string"):
-        parse_scim_group_patch_payload(
-            {"schemas": [SCIM_PATCH_SCHEMA], "Operations": [{"op": 7}]}
-        )
+        parse_scim_group_patch_payload({"schemas": [SCIM_PATCH_SCHEMA], "Operations": [{"op": 7}]})
     with pytest.raises(InvalidScimRequest, match="path must be a string"):
         parse_scim_group_patch_payload(
             {"schemas": [SCIM_PATCH_SCHEMA], "Operations": [{"op": "replace", "path": 7}]}
