@@ -45,6 +45,11 @@ SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Ser
 SCIM_RESOURCE_TYPE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
 SCIM_SCHEMA_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:Schema"
 
+_USER_PROJECTION_ATTRIBUTES = frozenset(
+    {"userName", "externalId", "displayName", "active", "name", "emails"}
+)
+_GROUP_PROJECTION_ATTRIBUTES = frozenset({"displayName", "externalId", "members"})
+
 _FILTER_CLAUSE_RE = re.compile(
     r"^\s*(?P<attribute>userName|externalId)\s+(?P<operator>eq)\s+(?P<value>.+?)\s*$",
     re.IGNORECASE,
@@ -116,6 +121,12 @@ class ScimUserFilterExpression:
 
 
 @dataclass(frozen=True, slots=True)
+class ScimAttributeSelection:
+    attributes: frozenset[str] | None
+    excluded_attributes: frozenset[str]
+
+
+@dataclass(frozen=True, slots=True)
 class ScimServiceProviderConfig:
     max_results: int = 200
     documentation_uri: str | None = None
@@ -134,6 +145,64 @@ class ScimServiceProviderConfig:
         if self.documentation_uri is not None:
             result["documentationUri"] = self.documentation_uri
         return result
+
+
+def parse_attribute_selection(
+    *,
+    attributes: str | None = None,
+    excluded_attributes: str | None = None,
+    allowed_attributes: frozenset[str],
+) -> ScimAttributeSelection:
+    selected = _parse_attribute_names(
+        attributes,
+        parameter="attributes",
+        allowed_attributes=allowed_attributes,
+    )
+    excluded = _parse_attribute_names(
+        excluded_attributes,
+        parameter="excludedAttributes",
+        allowed_attributes=allowed_attributes,
+    )
+    return ScimAttributeSelection(
+        attributes=None if attributes is None or not attributes.strip() else selected,
+        excluded_attributes=excluded,
+    )
+
+
+def project_scim_resource(
+    payload: Mapping[str, object],
+    *,
+    selection: ScimAttributeSelection,
+) -> dict[str, object]:
+    always_returned = {"schemas", "id", "meta"}
+    if selection.attributes is None:
+        projected = dict(payload)
+    else:
+        included = always_returned.union(selection.attributes)
+        projected = {key: value for key, value in payload.items() if key in included}
+
+    for attribute in selection.excluded_attributes:
+        if attribute not in always_returned:
+            projected.pop(attribute, None)
+    return projected
+
+
+def _project_list_response(
+    payload: dict[str, object],
+    *,
+    selection: ScimAttributeSelection,
+) -> dict[str, object]:
+    resources = payload.get("Resources")
+    if not isinstance(resources, list):
+        return payload
+    projected = dict(payload)
+    projected["Resources"] = [
+        project_scim_resource(resource, selection=selection)
+        if isinstance(resource, Mapping)
+        else resource
+        for resource in resources
+    ]
+    return projected
 
 
 def parse_user_filter(value: str | None) -> ScimUserFilter | None:
@@ -428,10 +497,21 @@ class ScimHttpTransport:
         except Exception as exc:
             return self._error_response(exc)
 
-    def get_user(self, resource_id: str) -> ScimHttpResponse:
+    def get_user(
+        self,
+        resource_id: str,
+        *,
+        attributes: str | None = None,
+        excluded_attributes: str | None = None,
+    ) -> ScimHttpResponse:
         try:
+            selection = parse_attribute_selection(
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
+                allowed_attributes=_USER_PROJECTION_ATTRIBUTES,
+            )
             resource = self._service.get_user(ProvisioningResourceId.parse(resource_id))
-            return self._resource_response(200, resource)
+            return self._resource_response(200, resource, selection=selection)
         except (ValueError, TypeError):
             return self._error(
                 404,
@@ -446,6 +526,8 @@ class ScimHttpTransport:
         filter_expression: str | None = None,
         start_index: int = 1,
         count: int = 100,
+        attributes: str | None = None,
+        excluded_attributes: str | None = None,
     ) -> ScimHttpResponse:
         try:
             if start_index < 1:
@@ -455,6 +537,11 @@ class ScimHttpTransport:
             expression = parse_user_filter_expression(
                 filter_expression,
                 profile=self._provider_profile,
+            )
+            selection = parse_attribute_selection(
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
+                allowed_attributes=_USER_PROJECTION_ATTRIBUTES,
             )
             effective_count = min(count, self._max_results)
 
@@ -470,7 +557,10 @@ class ScimHttpTransport:
                     start_index=start_index,
                     count=effective_count,
                 )
-            return ScimHttpResponse.json(200, result.to_dict())
+            return ScimHttpResponse.json(
+                200,
+                _project_list_response(result.to_dict(), selection=selection),
+            )
         except InvalidScimRequest as exc:
             return self._error(
                 400,
@@ -545,13 +635,24 @@ class ScimHttpTransport:
         except Exception as exc:
             return self._error_response(exc)
 
-    def get_group(self, resource_id: str) -> ScimHttpResponse:
+    def get_group(
+        self,
+        resource_id: str,
+        *,
+        attributes: str | None = None,
+        excluded_attributes: str | None = None,
+    ) -> ScimHttpResponse:
         service = self._group_service
         if service is None:
             return self._error(404, "SCIM Group resource type is not configured")
         try:
+            selection = parse_attribute_selection(
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
+                allowed_attributes=_GROUP_PROJECTION_ATTRIBUTES,
+            )
             resource = service.get_group(ProvisioningResourceId.parse(resource_id))
-            return self._group_resource_response(200, resource)
+            return self._group_resource_response(200, resource, selection=selection)
         except (ValueError, TypeError):
             return self._error(404, f"SCIM Group {resource_id!r} was not found")
         except Exception as exc:
@@ -563,6 +664,8 @@ class ScimHttpTransport:
         filter_expression: str | None = None,
         start_index: int = 1,
         count: int = 100,
+        attributes: str | None = None,
+        excluded_attributes: str | None = None,
     ) -> ScimHttpResponse:
         service = self._group_service
         if service is None:
@@ -575,6 +678,11 @@ class ScimHttpTransport:
             group_filter = parse_group_filter(
                 filter_expression,
                 profile=self._provider_profile,
+            )
+            selection = parse_attribute_selection(
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
+                allowed_attributes=_GROUP_PROJECTION_ATTRIBUTES,
             )
             effective_count = min(count, self._max_results)
             if group_filter is None:
@@ -594,7 +702,10 @@ class ScimHttpTransport:
                     start_index=start_index,
                     count=effective_count,
                 )
-            return ScimHttpResponse.json(200, result.to_dict())
+            return ScimHttpResponse.json(
+                200,
+                _project_list_response(result.to_dict(), selection=selection),
+            )
         except InvalidScimRequest as exc:
             return self._error(
                 400,
@@ -672,10 +783,15 @@ class ScimHttpTransport:
     def _group_resource_response(
         status: int,
         resource: ScimGroupResource,
+        *,
+        selection: ScimAttributeSelection | None = None,
     ) -> ScimHttpResponse:
+        payload = resource.to_dict()
+        if selection is not None:
+            payload = project_scim_resource(payload, selection=selection)
         return ScimHttpResponse.json(
             status,
-            resource.to_dict(),
+            payload,
             location=resource.meta.location,
             etag=resource.meta.version,
         )
@@ -697,10 +813,19 @@ class ScimHttpTransport:
             resources=resources,
         )
 
-    def _resource_response(self, status: int, resource: ScimUserResource) -> ScimHttpResponse:
+    def _resource_response(
+        self,
+        status: int,
+        resource: ScimUserResource,
+        *,
+        selection: ScimAttributeSelection | None = None,
+    ) -> ScimHttpResponse:
+        payload = resource.to_dict()
+        if selection is not None:
+            payload = project_scim_resource(payload, selection=selection)
         return ScimHttpResponse.json(
             status,
-            resource.to_dict(),
+            payload,
             location=resource.meta.location,
             etag=resource.meta.version,
         )
@@ -884,6 +1009,34 @@ def _attribute(
     if sub_attributes is not None:
         result["subAttributes"] = sub_attributes
     return result
+
+
+def _parse_attribute_names(
+    value: str | None,
+    *,
+    parameter: str,
+    allowed_attributes: frozenset[str],
+) -> frozenset[str]:
+    if value is None or not value.strip():
+        return frozenset()
+
+    canonical = {attribute.casefold(): attribute for attribute in allowed_attributes}
+    parsed: set[str] = set()
+    for raw in value.split(","):
+        normalized = raw.strip()
+        if not normalized:
+            raise InvalidScimRequest(f"SCIM {parameter} contains an empty attribute")
+        if "." in normalized or "[" in normalized:
+            raise InvalidScimRequest(
+                f"SCIM {parameter} supports top-level attributes only in this release"
+            )
+        attribute = canonical.get(normalized.casefold())
+        if attribute is None:
+            raise InvalidScimRequest(
+                f"Unsupported SCIM {parameter} attribute: {normalized!r}"
+            )
+        parsed.add(attribute)
+    return frozenset(parsed)
 
 
 def _require_mapping(value: object) -> Mapping[str, object]:
