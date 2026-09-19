@@ -31,6 +31,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
     SqlAlchemyPermissionCatalogRepository,
+    SqlAlchemyProvisioningGroupRepository,
     SqlAlchemyProvisioningUserRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
@@ -42,7 +43,7 @@ from pyiamkit.persistence.sqlalchemy import (
     drop_schema,
 )
 from pyiamkit.persistence.sqlalchemy.schema import identity_table
-from pyiamkit.provisioning import ProvisioningUser
+from pyiamkit.provisioning import ProvisioningGroup, ProvisioningUser
 from pyiamkit.tenancy import Membership, Tenant, TenantScope
 
 NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
@@ -247,6 +248,58 @@ def test_provisioning_repository_round_trip_tombstone_and_reprovision(
     )
     repository.save(reprovisioned)
     assert repository.find_by_user_name("entra-scim", "ALICE@EXAMPLE.COM") == reprovisioned
+
+
+@pytest.mark.conformance
+def test_provisioning_group_repository_round_trip_membership_and_tombstone(
+    db_session: Session,
+) -> None:
+    identity = _active_identity(db_session)
+    tenant = _active_tenant(db_session)
+    membership = _active_membership(db_session, identity, tenant)
+    users = SqlAlchemyProvisioningUserRepository(db_session)
+    groups = SqlAlchemyProvisioningGroupRepository(db_session)
+
+    user = ProvisioningUser.create(
+        source_id="entra-scim",
+        identity_id=identity.id,
+        tenant_id=tenant.id,
+        membership_id=membership.id,
+        user_name="alice@example.com",
+        external_id="external-user-42",
+        active=True,
+        created_at=NOW,
+    )
+    users.save(user)
+
+    group = ProvisioningGroup.create(
+        source_id="entra-scim",
+        tenant_id=tenant.id,
+        display_name="Finance",
+        external_id="external-group-42",
+        member_ids=(user.id,),
+        created_at=NOW,
+    )
+    groups.save(group)
+
+    loaded = groups.get(group.id)
+    assert loaded == group
+    assert loaded is not None
+    assert loaded.member_ids == (user.id,)
+    assert groups.find_by_display_name("entra-scim", "finance") == group
+    assert groups.find_by_external_id("entra-scim", "external-group-42") == group
+    assert groups.list_for_source("entra-scim", tenant.id) == (group,)
+
+    group.replace_members((), at=NOW + timedelta(minutes=1))
+    groups.save(group)
+    assert groups.get(group.id).member_ids == ()  # type: ignore[union-attr]
+
+    group.delete(at=NOW + timedelta(minutes=2))
+    groups.save(group)
+    assert groups.find_by_display_name("entra-scim", "Finance") is None
+    assert groups.find_by_external_id("entra-scim", "external-group-42") is None
+    assert groups.list_for_source("entra-scim", tenant.id) == ()
+    assert users.get(user.id) == user
 
 
 @pytest.mark.conformance

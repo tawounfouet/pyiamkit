@@ -16,6 +16,15 @@ from .errors import (
     ProvisioningResourceNotFound,
     UnsupportedScimPatch,
 )
+from .group_application import ScimGroupProvisioningService
+from .group_http import (
+    group_resource_type_resource,
+    group_schema_resource,
+    parse_group_filter,
+    parse_scim_group_patch_payload,
+    parse_scim_group_payload,
+)
+from .group_scim import SCIM_GROUP_SCHEMA, ScimGroupListResponse, ScimGroupResource
 from .providers import GENERIC_SCIM_PROFILE, ScimProviderProfile
 from .scim import (
     SCIM_LIST_RESPONSE_SCHEMA,
@@ -337,6 +346,7 @@ class ScimHttpTransport:
         max_results: int = 200,
         documentation_uri: str | None = None,
         provider_profile: ScimProviderProfile = GENERIC_SCIM_PROFILE,
+        group_service: ScimGroupProvisioningService | None = None,
     ) -> None:
         if max_results < 1:
             raise ValueError("max_results must be at least 1")
@@ -345,6 +355,11 @@ class ScimHttpTransport:
         self._max_results = max_results
         self._documentation_uri = documentation_uri
         self._provider_profile = provider_profile
+        self._group_service = group_service
+
+    @property
+    def groups_enabled(self) -> bool:
+        return self._group_service is not None
 
     def get_service_provider_config(self) -> ScimHttpResponse:
         return ScimHttpResponse.json(
@@ -356,20 +371,55 @@ class ScimHttpTransport:
         )
 
     def get_resource_types(self) -> ScimHttpResponse:
-        return ScimHttpResponse.json(200, resource_types_response(self._base_url))
+        if self._group_service is None:
+            return ScimHttpResponse.json(200, resource_types_response(self._base_url))
+        resources = (
+            resource_type_resource(self._base_url),
+            group_resource_type_resource(self._base_url),
+        )
+        return ScimHttpResponse.json(
+            200,
+            {
+                "schemas": [SCIM_LIST_RESPONSE_SCHEMA],
+                "totalResults": len(resources),
+                "startIndex": 1,
+                "itemsPerPage": len(resources),
+                "Resources": list(resources),
+            },
+        )
 
     def get_resource_type(self, resource_type: str) -> ScimHttpResponse:
-        if resource_type.casefold() != "user":
-            return self._error(404, f"SCIM ResourceType {resource_type!r} was not found")
-        return ScimHttpResponse.json(200, resource_type_resource(self._base_url))
+        normalized = resource_type.casefold()
+        if normalized == "user":
+            return ScimHttpResponse.json(200, resource_type_resource(self._base_url))
+        if normalized == "group" and self._group_service is not None:
+            return ScimHttpResponse.json(200, group_resource_type_resource(self._base_url))
+        return self._error(404, f"SCIM ResourceType {resource_type!r} was not found")
 
     def get_schemas(self) -> ScimHttpResponse:
-        return ScimHttpResponse.json(200, schemas_response(self._base_url))
+        if self._group_service is None:
+            return ScimHttpResponse.json(200, schemas_response(self._base_url))
+        resources = (
+            schema_resource(self._base_url),
+            group_schema_resource(self._base_url),
+        )
+        return ScimHttpResponse.json(
+            200,
+            {
+                "schemas": [SCIM_LIST_RESPONSE_SCHEMA],
+                "totalResults": len(resources),
+                "startIndex": 1,
+                "itemsPerPage": len(resources),
+                "Resources": list(resources),
+            },
+        )
 
     def get_schema(self, schema_uri: str) -> ScimHttpResponse:
-        if schema_uri != SCIM_USER_SCHEMA:
-            return self._error(404, f"SCIM Schema {schema_uri!r} was not found")
-        return ScimHttpResponse.json(200, schema_resource(self._base_url))
+        if schema_uri == SCIM_USER_SCHEMA:
+            return ScimHttpResponse.json(200, schema_resource(self._base_url))
+        if schema_uri == SCIM_GROUP_SCHEMA and self._group_service is not None:
+            return ScimHttpResponse.json(200, group_schema_resource(self._base_url))
+        return self._error(404, f"SCIM Schema {schema_uri!r} was not found")
 
     def create_user(self, payload: object) -> ScimHttpResponse:
         try:
@@ -484,6 +534,168 @@ class ScimHttpTransport:
             return self._error(404, f"SCIM User {resource_id!r} was not found")
         except Exception as exc:
             return self._error_response(exc)
+
+    def create_group(self, payload: object) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            resource = service.create_group(parse_scim_group_payload(payload))
+            return self._group_resource_response(201, resource)
+        except Exception as exc:
+            return self._error_response(exc)
+
+    def get_group(self, resource_id: str) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            resource = service.get_group(ProvisioningResourceId.parse(resource_id))
+            return self._group_resource_response(200, resource)
+        except (ValueError, TypeError):
+            return self._error(404, f"SCIM Group {resource_id!r} was not found")
+        except Exception as exc:
+            return self._error_response(exc)
+
+    def list_groups(
+        self,
+        *,
+        filter_expression: str | None = None,
+        start_index: int = 1,
+        count: int = 100,
+    ) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            if start_index < 1:
+                raise InvalidScimRequest("SCIM startIndex must be at least 1")
+            if count < 0:
+                raise InvalidScimRequest("SCIM count must not be negative")
+            group_filter = parse_group_filter(
+                filter_expression,
+                profile=self._provider_profile,
+            )
+            effective_count = min(count, self._max_results)
+            if group_filter is None:
+                result = service.list_groups(
+                    start_index=start_index,
+                    count=effective_count,
+                )
+            else:
+                attribute, value = group_filter
+                match = (
+                    service.find_by_display_name(value)
+                    if attribute == "displayName"
+                    else service.find_by_external_id(value)
+                )
+                result = self._filtered_group_list(
+                    match,
+                    start_index=start_index,
+                    count=effective_count,
+                )
+            return ScimHttpResponse.json(200, result.to_dict())
+        except InvalidScimRequest as exc:
+            return self._error(
+                400,
+                str(exc),
+                ScimErrorType.INVALID_FILTER
+                if filter_expression is not None
+                else ScimErrorType.INVALID_VALUE,
+            )
+
+    def replace_group(
+        self,
+        resource_id: str,
+        payload: object,
+        *,
+        if_match: str | None = None,
+    ) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            parsed_id = ProvisioningResourceId.parse(resource_id)
+            resource = service.replace_group(
+                parsed_id,
+                parse_scim_group_payload(payload),
+                if_match=if_match,
+            )
+            return self._group_resource_response(200, resource)
+        except (ValueError, TypeError):
+            return self._error(404, f"SCIM Group {resource_id!r} was not found")
+        except Exception as exc:
+            return self._error_response(exc)
+
+    def patch_group(
+        self,
+        resource_id: str,
+        payload: object,
+        *,
+        if_match: str | None = None,
+    ) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            parsed_id = ProvisioningResourceId.parse(resource_id)
+            resource = service.patch_group(
+                parsed_id,
+                parse_scim_group_patch_payload(payload),
+                if_match=if_match,
+            )
+            return self._group_resource_response(200, resource)
+        except (ValueError, TypeError):
+            return self._error(404, f"SCIM Group {resource_id!r} was not found")
+        except Exception as exc:
+            return self._error_response(exc)
+
+    def delete_group(
+        self,
+        resource_id: str,
+        *,
+        if_match: str | None = None,
+    ) -> ScimHttpResponse:
+        service = self._group_service
+        if service is None:
+            return self._error(404, "SCIM Group resource type is not configured")
+        try:
+            parsed_id = ProvisioningResourceId.parse(resource_id)
+            service.delete_group(parsed_id, if_match=if_match)
+            return ScimHttpResponse.empty(204)
+        except (ValueError, TypeError):
+            return self._error(404, f"SCIM Group {resource_id!r} was not found")
+        except Exception as exc:
+            return self._error_response(exc)
+
+    @staticmethod
+    def _group_resource_response(
+        status: int,
+        resource: ScimGroupResource,
+    ) -> ScimHttpResponse:
+        return ScimHttpResponse.json(
+            status,
+            resource.to_dict(),
+            location=resource.meta.location,
+            etag=resource.meta.version,
+        )
+
+    @staticmethod
+    def _filtered_group_list(
+        resource: ScimGroupResource | None,
+        *,
+        start_index: int,
+        count: int,
+    ) -> ScimGroupListResponse:
+        resources: tuple[ScimGroupResource, ...] = (
+            () if resource is None or start_index > 1 or count == 0 else (resource,)
+        )
+        return ScimGroupListResponse(
+            total_results=0 if resource is None else 1,
+            start_index=start_index,
+            items_per_page=len(resources),
+            resources=resources,
+        )
 
     def _resource_response(self, status: int, resource: ScimUserResource) -> ScimHttpResponse:
         return ScimHttpResponse.json(

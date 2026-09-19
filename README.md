@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** SCIM provider interoperability beta (`0.4.0b6`) — not yet recommended for production use.
+> **Status:** SCIM Group provisioning beta (`0.4.0b7`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,40 +10,45 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b6` adds explicit **SCIM provider interoperability profiles** without vendor SDK lock-in.
+`0.4.0b7` adds **SCIM Group provisioning** without turning external groups into authorization Roles.
 
 ```text
-SCIM client
-    ├── Generic SCIM
-    ├── Microsoft Entra
-    └── Okta
-          ↓
-ScimProviderProfile
-          ↓
-ScimHttpTransport
-          ↓
-ScimProvisioningService
+SCIM User resources
+        ↓
+ProvisioningUser
+        ↓
+member resource IDs
+        ↓
+ProvisioningGroup
+        ↓
+SCIM /Groups transport
 ```
 
-The default Generic profile preserves the strict `0.4.0b5` behavior.
-
-Microsoft Entra can opt into bounded compatibility for unquoted lookup values and `and` combinations of the supported equality filters:
+When Group provisioning is configured, PyIAMKit exposes:
 
 ```text
-externalId eq ext-42
-
-userName eq "alice@example.com" and externalId eq ext-42
+POST   /Groups
+GET    /Groups
+GET    /Groups/{id}
+PUT    /Groups/{id}
+PATCH  /Groups/{id}
+DELETE /Groups/{id}
 ```
 
-The Okta profile retains the common quoted username lookup form:
+Group discovery is then added to `/ResourceTypes` and `/Schemas`. The FastAPI router adds `/Groups` only when a Group service is explicitly configured.
+
+Every Group member must reference an active SCIM User resource managed by the same provisioning source and Tenant. Group DELETE tombstones the Group but preserves its Users, Identities and Tenant Memberships.
+
+Supported Group filters are:
 
 ```text
-userName eq "alice@example.com"
+displayName eq "..."
+externalId eq "..."
 ```
 
-Profiles affect HTTP interoperability only. They do not alter tenant isolation, Membership lifecycle, Roles, Permissions, password handling or tombstone semantics.
+Generic SCIM, Microsoft Entra and Okta profiles are now Group-capable. Nested Groups are intentionally disabled in this milestone.
 
-These presets are not vendor certification claims. SCIM Groups remain outside this milestone, so the current Entra profile should not be interpreted as Microsoft Entra App Gallery readiness and the Okta profile is not an Okta Integration Network certification.
+A SCIM Group does **not** become a PyIAMKit Role, does not grant Permissions and does not create RoleBindings. Any future external Group → Role feature must use an explicit mapping policy rather than name equality.
 
 ## Installation
 
@@ -150,19 +155,19 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## SCIM provider-profile guarantees in 0.4.0b6
+## SCIM Group guarantees in 0.4.0b7
 
-- Generic SCIM remains the strict default;
-- Microsoft Entra parsing relaxations are explicit and profile-scoped;
-- Okta does not inherit Entra-specific unquoted/AND behavior;
-- only `userName` and `externalId` equality clauses are accepted;
-- the AND parser is quote-aware;
-- malformed filters fail closed;
-- provider profiles never create authorization grants;
-- `active=false` keeps the existing tenant Membership suspension semantics;
-- password provisioning remains rejected;
-- SCIM Groups remain unsupported;
-- no vendor SDK enters the core or transport layer.
+- Group resources are source- and Tenant-scoped;
+- member IDs must resolve to active managed `ProvisioningUser` resources;
+- Group membership has no implicit RBAC meaning;
+- Group names never map to Role names automatically;
+- nested Groups are unsupported in this milestone;
+- Group PUT/PATCH/DELETE support ETag / `If-Match`;
+- member add/remove operations are idempotent;
+- Group DELETE preserves Users, Identities and Tenant Memberships;
+- SQLAlchemy/PostgreSQL persist Group membership independently from authorization tables;
+- Group HTTP routes remain protected by the host-provided SCIM access dependency;
+- password provisioning remains rejected.
 
 ## Roadmap
 
@@ -188,7 +193,8 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0b4    SCIM User provisioning core
 0.4.0b5    SCIM HTTP transport + FastAPI router
 0.4.0b6    SCIM provider interoperability profiles
-0.4.x      SCIM Groups / provider qualification
+0.4.0b7    SCIM Group provisioning + HTTP transport
+0.4.x      Provider qualification / explicit Group mapping policy
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```

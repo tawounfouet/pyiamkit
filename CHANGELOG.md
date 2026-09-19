@@ -6,6 +6,34 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b7] - 2026-09-18
+
+### Added
+
+- Framework-neutral SCIM Group provisioning with a dedicated `ProvisioningGroup` aggregate.
+- Source- and Tenant-scoped Group membership referencing active managed `ProvisioningUser` resource IDs.
+- `ScimGroupProvisioningService` for create, get, list, replace, PATCH and delete lifecycle orchestration.
+- SCIM Group representations for `displayName`, `externalId`, `members.value`, rendered `members.$ref` and member display values.
+- Group PATCH support for display-name changes, external ID changes, add/replace/remove members, filtered member removal and pathless replace payloads.
+- Conditional SCIM discovery of Group through `/ResourceTypes` and `/Schemas`.
+- Conditional protected FastAPI `/Groups` routes when a Group provisioning service is configured.
+- InMemory and SQLAlchemy Group repositories.
+- Portable `iam_provisioning_groups` and `iam_provisioning_group_members` persistence schema.
+- SQLite repository conformance and live PostgreSQL Group/member persistence qualification.
+- Generic SCIM, Microsoft Entra and Okta provider profiles marked Group-capable.
+- Executable SCIM Group provisioning example and dedicated Group conformance coverage.
+
+### Security
+
+- A SCIM Group is a provisioning resource and never becomes a PyIAMKit Role implicitly.
+- Group membership does not grant Permissions or create RoleBindings.
+- Every Group member must resolve to an active managed User from the same provisioning source and Tenant.
+- Nested SCIM Groups are deliberately unsupported in this milestone.
+- Group DELETE tombstones the Group and clears its membership set without deleting Users, disabling Identities or changing Tenant Membership state.
+- External Group names are never matched to Role names as an authorization shortcut.
+- Provider-specific schema extensions are not interpreted as authorization truth.
+- Group PUT, PATCH and DELETE preserve fail-closed ETag / If-Match behavior.
+
 ## [0.4.0b6] - 2026-09-18
 
 ### Added
