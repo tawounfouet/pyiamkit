@@ -116,7 +116,6 @@ class InMemorySecurityStateStore(SecurityStateReader, SecurityStateWriter):
         return StateVersion(value + 1)
 
 
-
 class InMemoryAuthorizationCache(AuthorizationCache):
     """Thread-safe process-local authorization cache with exact stamp validation."""
 
