@@ -28,29 +28,38 @@ def test_state_version_rejects_non_integer_values(value: object) -> None:
 
 def test_security_state_stamp_preserves_independent_dimensions() -> None:
     stamp = SecurityStateStamp(
-        identity=StateVersion(1),
-        tenant=StateVersion(2),
-        membership=StateVersion(3),
-        authorization=StateVersion(4),
-        governance=StateVersion(5),
-        authentication=StateVersion(6),
+        runtime_generation=StateVersion(1),
+        identity=StateVersion(2),
+        tenant=StateVersion(3),
+        membership=StateVersion(4),
+        subject_authorization=StateVersion(5),
+        tenant_authorization=StateVersion(6),
+        global_authorization=StateVersion(7),
+        governance=StateVersion(8),
+        authentication=StateVersion(9),
     )
 
-    assert stamp.identity == StateVersion(1)
-    assert stamp.tenant == StateVersion(2)
-    assert stamp.membership == StateVersion(3)
-    assert stamp.authorization == StateVersion(4)
-    assert stamp.governance == StateVersion(5)
-    assert stamp.authentication == StateVersion(6)
+    assert stamp.runtime_generation == StateVersion(1)
+    assert stamp.identity == StateVersion(2)
+    assert stamp.tenant == StateVersion(3)
+    assert stamp.membership == StateVersion(4)
+    assert stamp.subject_authorization == StateVersion(5)
+    assert stamp.tenant_authorization == StateVersion(6)
+    assert stamp.global_authorization == StateVersion(7)
+    assert stamp.governance == StateVersion(8)
+    assert stamp.authentication == StateVersion(9)
 
 
 def test_security_state_stamp_rejects_untyped_dimensions() -> None:
     with pytest.raises(TypeError, match="identity must be a StateVersion"):
         SecurityStateStamp(
+            runtime_generation=StateVersion(0),
             identity=0,  # type: ignore[arg-type]
             tenant=StateVersion(0),
             membership=StateVersion(0),
-            authorization=StateVersion(0),
+            subject_authorization=StateVersion(0),
+            tenant_authorization=StateVersion(0),
+            global_authorization=StateVersion(0),
             governance=StateVersion(0),
             authentication=StateVersion(0),
         )
