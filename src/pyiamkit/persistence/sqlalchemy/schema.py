@@ -511,6 +511,22 @@ Index(
     sod_rule_table.c.tenant_id,
 )
 
+security_state_table = Table(
+    "iam_security_state",
+    metadata,
+    Column("dimension", String(64), primary_key=True),
+    Column("scope_key", String(255), primary_key=True),
+    Column("version", Integer, nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    CheckConstraint("version >= 0", name="security_state_version_non_negative"),
+)
+Index(
+    "ix_iam_security_state_dimension_scope",
+    security_state_table.c.dimension,
+    security_state_table.c.scope_key,
+)
+
+
 audit_event_table = Table(
     "iam_audit_events",
     metadata,
