@@ -1,10 +1,12 @@
 """Ports for authoritative security-state version reads and mutations."""
 
+from datetime import datetime
 from typing import Protocol
 
 from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
+from .cache import AuthorizationCacheEntry, AuthorizationCacheKey
 from .state import SecurityStateStamp, StateVersion
 
 
@@ -47,3 +49,22 @@ class SecurityStateWriter(Protocol):
     def bump_governance(self, tenant_id: TenantId) -> StateVersion: ...
 
     def bump_authentication(self, identity_id: IdentityId) -> StateVersion: ...
+
+
+
+class AuthorizationCache(Protocol):
+    """Derived authorization cache validated against authoritative security state."""
+
+    def get(
+        self,
+        key: AuthorizationCacheKey,
+        *,
+        current_state: SecurityStateStamp,
+        at: datetime,
+    ) -> AuthorizationCacheEntry | None: ...
+
+    def put(self, entry: AuthorizationCacheEntry) -> None: ...
+
+    def delete(self, key: AuthorizationCacheKey) -> None: ...
+
+    def clear(self) -> None: ...
