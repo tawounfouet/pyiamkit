@@ -1,11 +1,13 @@
 """In-memory reference adapter for security-state version contracts."""
 
+from datetime import datetime
 from threading import RLock
 
 from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
-from ..ports import SecurityStateReader, SecurityStateWriter
+from ..cache import AuthorizationCacheEntry, AuthorizationCacheKey
+from ..ports import AuthorizationCache, SecurityStateReader, SecurityStateWriter
 from ..state import SecurityStateStamp, StateVersion
 
 _ZERO = StateVersion(0)
@@ -112,3 +114,43 @@ class InMemorySecurityStateStore(SecurityStateReader, SecurityStateWriter):
     def _next(current: StateVersion | None) -> StateVersion:
         value = 0 if current is None else current.value
         return StateVersion(value + 1)
+
+
+
+class InMemoryAuthorizationCache(AuthorizationCache):
+    """Thread-safe process-local authorization cache with exact stamp validation."""
+
+    def __init__(self, *, cache_denials: bool = False) -> None:
+        self._lock = RLock()
+        self._cache_denials = cache_denials
+        self._entries: dict[AuthorizationCacheKey, AuthorizationCacheEntry] = {}
+
+    def get(
+        self,
+        key: AuthorizationCacheKey,
+        *,
+        current_state: SecurityStateStamp,
+        at: datetime,
+    ) -> AuthorizationCacheEntry | None:
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None:
+                return None
+            if not entry.is_valid_for(current_state, at=at):
+                self._entries.pop(key, None)
+                return None
+            return entry
+
+    def put(self, entry: AuthorizationCacheEntry) -> None:
+        if not self._cache_denials and not entry.decision.result.value == "allow":
+            return
+        with self._lock:
+            self._entries[entry.key] = entry
+
+    def delete(self, key: AuthorizationCacheKey) -> None:
+        with self._lock:
+            self._entries.pop(key, None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._entries.clear()
