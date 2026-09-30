@@ -1,13 +1,22 @@
 """Public distributed-operations primitives."""
 
-from .cache import CacheNamespace
+from .cache import (
+    AuthorizationCacheEntry,
+    AuthorizationCacheKey,
+    CachedAuthorizationDecision,
+    CacheNamespace,
+)
 from .invalidation import InvalidationKind
-from .ports import SecurityStateReader, SecurityStateWriter
+from .ports import AuthorizationCache, SecurityStateReader, SecurityStateWriter
 from .revocation import RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
 __all__ = [
+    "AuthorizationCache",
+    "AuthorizationCacheEntry",
+    "AuthorizationCacheKey",
     "CacheNamespace",
+    "CachedAuthorizationDecision",
     "InvalidationKind",
     "RevocationTargetType",
     "SecurityStateReader",
