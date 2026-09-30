@@ -90,9 +90,7 @@ class AuthorizationCacheKey:
                 "resource_id": request.resource.resource_id,
                 "tenant_id": str(request.resource.tenant_id),
                 "owner_id": (
-                    None
-                    if request.resource.owner_id is None
-                    else str(request.resource.owner_id)
+                    None if request.resource.owner_id is None else str(request.resource.owner_id)
                 ),
                 "attributes": _canonicalize_mapping(request.resource.attributes),
             }
