@@ -1,7 +1,7 @@
 """SQLAlchemy adapter for authoritative security-state versions."""
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select, tuple_
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -138,8 +138,8 @@ class SqlAlchemySecurityStateStore(SecurityStateReader, SecurityStateWriter):
         }
         statement: Any
         if dialect == "postgresql":
-            insert_statement = postgresql_insert(security_state_table).values(**values)
-            statement = insert_statement.on_conflict_do_update(
+            postgresql_statement = postgresql_insert(security_state_table).values(**values)
+            statement = postgresql_statement.on_conflict_do_update(
                 index_elements=[
                     security_state_table.c.dimension,
                     security_state_table.c.scope_key,
@@ -150,8 +150,8 @@ class SqlAlchemySecurityStateStore(SecurityStateReader, SecurityStateWriter):
                 },
             ).returning(security_state_table.c.version)
         elif dialect == "sqlite":
-            insert_statement = sqlite_insert(security_state_table).values(**values)
-            statement = insert_statement.on_conflict_do_update(
+            sqlite_statement = sqlite_insert(security_state_table).values(**values)
+            statement = sqlite_statement.on_conflict_do_update(
                 index_elements=[
                     security_state_table.c.dimension,
                     security_state_table.c.scope_key,
@@ -165,8 +165,8 @@ class SqlAlchemySecurityStateStore(SecurityStateReader, SecurityStateWriter):
             raise NotImplementedError(
                 "SqlAlchemySecurityStateStore supports PostgreSQL and SQLite."
             )
-        persisted = self._session.execute(statement).scalar_one()
-        return StateVersion(int(persisted))
+        persisted: int = cast(int, self._session.execute(statement).scalar_one())
+        return StateVersion(persisted)
 
     @staticmethod
     def _subject_tenant_scope(identity_id: IdentityId, tenant_id: TenantId) -> str:
