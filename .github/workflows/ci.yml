@@ -154,3 +154,36 @@ jobs:
           tests/unit/provisioning/test_scim_group_http.py
           tests/integration/fastapi_scim/test_groups.py
           -q
+
+
+  scim-entra-qualification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Microsoft Entra qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[fastapi]"
+          python -m pip install httpx pytest
+      - name: Microsoft Entra offline qualification
+        run: pytest tests/qualification/scim_providers/test_microsoft_entra.py -q
+
+  scim-okta-qualification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Okta qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[fastapi]"
+          python -m pip install httpx pytest
+      - name: Okta offline qualification
+        run: pytest tests/qualification/scim_providers/test_okta.py -q

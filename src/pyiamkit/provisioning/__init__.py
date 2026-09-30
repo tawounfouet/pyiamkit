@@ -37,6 +37,7 @@ from .http import (
     SCIM_RESOURCE_TYPE_SCHEMA,
     SCIM_SCHEMA_SCHEMA,
     SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA,
+    ScimAttributeSelection,
     ScimErrorResponse,
     ScimErrorType,
     ScimHttpResponse,
@@ -44,10 +45,12 @@ from .http import (
     ScimServiceProviderConfig,
     ScimUserFilter,
     ScimUserFilterExpression,
+    parse_attribute_selection,
     parse_scim_patch_payload,
     parse_scim_user_payload,
     parse_user_filter,
     parse_user_filter_expression,
+    project_scim_resource,
 )
 from .ports import ProvisioningGroupRepository, ProvisioningUserRepository
 from .providers import (
@@ -101,6 +104,7 @@ __all__ = [
     "ProvisioningSource",
     "ProvisioningUser",
     "ProvisioningUserRepository",
+    "ScimAttributeSelection",
     "ScimDeprovisionMode",
     "ScimEmail",
     "ScimErrorResponse",
@@ -128,6 +132,7 @@ __all__ = [
     "ScimUserResource",
     "UnsupportedScimPatch",
     "apply_user_patch",
+    "parse_attribute_selection",
     "parse_group_filter",
     "parse_scim_group_patch_payload",
     "parse_scim_group_payload",
@@ -135,5 +140,6 @@ __all__ = [
     "parse_scim_user_payload",
     "parse_user_filter",
     "parse_user_filter_expression",
+    "project_scim_resource",
     "scim_provider_profile",
 ]

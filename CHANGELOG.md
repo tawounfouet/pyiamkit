@@ -6,6 +6,29 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.4.0b8] - 2026-09-19
+
+### Added
+
+- Bounded top-level SCIM attribute projection with `attributes` and `excludedAttributes`.
+- `ScimAttributeSelection`, `parse_attribute_selection()` and `project_scim_resource()`.
+- FastAPI forwarding of User/Group attribute projection query parameters.
+- Microsoft Entra offline qualification scenario covering discovery, externalId User lookup, Group creation, `excludedAttributes=members`, member add/remove and User deactivation.
+- Okta offline qualification scenario covering pre-create userName lookup, User creation, Group Push-style creation, pathless Group rename, member add/remove and User deactivation.
+- Dedicated `scim-entra-qualification` and `scim-okta-qualification` CI gates.
+- SCIM provider compatibility matrix and provider-qualification architecture documentation.
+- Executable attribute-projection qualification example.
+
+### Security
+
+- Provider qualification remains offline and deterministic; no vendor credential or SDK dependency is introduced.
+- Provider qualification is not presented as Microsoft App Gallery or Okta OIN certification.
+- Projection is representation-only and never mutates Identity, Membership, Group, Role, Permission or RoleBinding state.
+- Only implemented top-level SCIM attributes may be selected or excluded; unknown and nested projection paths fail closed.
+- `schemas`, `id` and `meta` remain always returned by PyIAMKit projections.
+- SCIM Groups remain provisioning resources and never become authorization Roles implicitly.
+- Password provisioning remains rejected.
+
 ## [0.4.0b7] - 2026-09-18
 
 ### Added

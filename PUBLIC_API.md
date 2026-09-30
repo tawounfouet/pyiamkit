@@ -2,6 +2,26 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.4.0b8
+
+Adds bounded SCIM representation projection:
+
+```text
+ScimAttributeSelection
+parse_attribute_selection()
+project_scim_resource()
+```
+
+The FastAPI SCIM adapter forwards `attributes` and `excludedAttributes` on User and Group GET/list routes.
+
+Projection accepts only top-level attributes implemented by PyIAMKit. `schemas`, `id` and `meta` remain always returned. Unknown attributes and nested attribute paths fail closed.
+
+The release also adds offline provider-qualification suites for Microsoft Entra and Okta. These suites exercise the public protected FastAPI SCIM router and do not bypass the normal transport or provisioning services.
+
+Microsoft Entra qualification includes `excludedAttributes=members` Group reads and documented Group member PATCH patterns. Okta qualification includes quoted pre-create userName lookup and pathless Group PATCH rename behavior.
+
+Qualification means deterministic local compatibility tests pass; it does not mean external vendor certification.
+
 ## 0.4.0b7
 
 Adds the SCIM Group provisioning surface from `pyiamkit.provisioning`:

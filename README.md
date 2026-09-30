@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** SCIM Group provisioning beta (`0.4.0b7`) — not yet recommended for production use.
+> **Status:** SCIM provider qualification beta (`0.4.0b8`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,45 +10,34 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b7` adds **SCIM Group provisioning** without turning external groups into authorization Roles.
+`0.4.0b8` adds **offline SCIM provider qualification** for Microsoft Entra and Okta on top of the existing provider profiles.
 
 ```text
-SCIM User resources
-        ↓
-ProvisioningUser
-        ↓
-member resource IDs
-        ↓
-ProvisioningGroup
-        ↓
-SCIM /Groups transport
+Provider profile
+     ↓
+documented provider request pattern
+     ↓
+protected FastAPI SCIM router
+     ↓
+ScimHttpTransport
+     ↓
+User / Group provisioning core
 ```
 
-When Group provisioning is configured, PyIAMKit exposes:
+The Entra qualification scenario covers discovery, unquoted `externalId` lookup, Group creation, `excludedAttributes=members`, Group member add/remove and User deactivation.
+
+The Okta qualification scenario covers quoted pre-create `userName` lookup, User creation, Group creation, pathless Group PATCH rename, member add/remove and User deactivation.
+
+`0.4.0b8` also adds bounded top-level SCIM projection through:
 
 ```text
-POST   /Groups
-GET    /Groups
-GET    /Groups/{id}
-PUT    /Groups/{id}
-PATCH  /Groups/{id}
-DELETE /Groups/{id}
+attributes
+excludedAttributes
 ```
 
-Group discovery is then added to `/ResourceTypes` and `/Schemas`. The FastAPI router adds `/Groups` only when a Group service is explicitly configured.
+Unknown attributes and nested projection paths fail closed. The canonical provisioning resources remain complete internally; projection only changes outbound SCIM representations.
 
-Every Group member must reference an active SCIM User resource managed by the same provisioning source and Tenant. Group DELETE tombstones the Group but preserves its Users, Identities and Tenant Memberships.
-
-Supported Group filters are:
-
-```text
-displayName eq "..."
-externalId eq "..."
-```
-
-Generic SCIM, Microsoft Entra and Okta profiles are now Group-capable. Nested Groups are intentionally disabled in this milestone.
-
-A SCIM Group does **not** become a PyIAMKit Role, does not grant Permissions and does not create RoleBindings. Any future external Group → Role feature must use an explicit mapping policy rather than name equality.
+These scenarios are **offline interoperability qualification**, not Microsoft App Gallery or Okta OIN certification. No vendor SDK or live provider credentials enter the PyIAMKit core.
 
 ## Installation
 
@@ -155,18 +144,17 @@ AuthorizationDecision + Audit
 
 The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, FastAPI, Django or an external IdP SDK. Persistence and future token/federation integrations depend inward on Authentication contracts.
 
-## SCIM Group guarantees in 0.4.0b7
+## SCIM provider qualification guarantees in 0.4.0b8
 
-- Group resources are source- and Tenant-scoped;
-- member IDs must resolve to active managed `ProvisioningUser` resources;
-- Group membership has no implicit RBAC meaning;
-- Group names never map to Role names automatically;
-- nested Groups are unsupported in this milestone;
-- Group PUT/PATCH/DELETE support ETag / `If-Match`;
-- member add/remove operations are idempotent;
-- Group DELETE preserves Users, Identities and Tenant Memberships;
-- SQLAlchemy/PostgreSQL persist Group membership independently from authorization tables;
-- Group HTTP routes remain protected by the host-provided SCIM access dependency;
+- provider qualification exercises the public protected FastAPI SCIM path;
+- Entra and Okta have separate visible CI gates;
+- `excludedAttributes=members` is qualified for Entra Group reads;
+- projection supports only implemented top-level attributes;
+- `schemas`, `id` and `meta` remain always returned;
+- Group membership remains independent from RBAC;
+- no vendor SDK is required;
+- no live provider secret is stored or used;
+- qualification is not described as external certification;
 - password provisioning remains rejected.
 
 ## Roadmap
@@ -194,7 +182,8 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0b5    SCIM HTTP transport + FastAPI router
 0.4.0b6    SCIM provider interoperability profiles
 0.4.0b7    SCIM Group provisioning + HTTP transport
-0.4.x      Provider qualification / explicit Group mapping policy
+0.4.0b8    SCIM provider offline qualification
+0.4.x      Explicit Group mapping policy
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```

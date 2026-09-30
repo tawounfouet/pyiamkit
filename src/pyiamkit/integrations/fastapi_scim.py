@@ -66,12 +66,16 @@ def create_scim_router(
         filter_expression: Annotated[str | None, Query(alias="filter")] = None,
         start_index: Annotated[int, Query(alias="startIndex")] = 1,
         count: Annotated[int, Query()] = 100,
+        attributes: Annotated[str | None, Query()] = None,
+        excluded_attributes: Annotated[str | None, Query(alias="excludedAttributes")] = None,
     ) -> Response:
         return _response(
             transport.list_users(
                 filter_expression=filter_expression,
                 start_index=start_index,
                 count=count,
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
             )
         )
 
@@ -79,8 +83,16 @@ def create_scim_router(
     def get_user(
         resource_id: str,
         _: Annotated[object, Depends(access_dependency)],
+        attributes: Annotated[str | None, Query()] = None,
+        excluded_attributes: Annotated[str | None, Query(alias="excludedAttributes")] = None,
     ) -> Response:
-        return _response(transport.get_user(resource_id))
+        return _response(
+            transport.get_user(
+                resource_id,
+                attributes=attributes,
+                excluded_attributes=excluded_attributes,
+            )
+        )
 
     @router.put("/Users/{resource_id}")
     def replace_user(
@@ -135,12 +147,16 @@ def create_scim_router(
             filter_expression: Annotated[str | None, Query(alias="filter")] = None,
             start_index: Annotated[int, Query(alias="startIndex")] = 1,
             count: Annotated[int, Query()] = 100,
+            attributes: Annotated[str | None, Query()] = None,
+            excluded_attributes: Annotated[str | None, Query(alias="excludedAttributes")] = None,
         ) -> Response:
             return _response(
                 transport.list_groups(
                     filter_expression=filter_expression,
                     start_index=start_index,
                     count=count,
+                    attributes=attributes,
+                    excluded_attributes=excluded_attributes,
                 )
             )
 
@@ -148,8 +164,16 @@ def create_scim_router(
         def get_group(
             resource_id: str,
             _: Annotated[object, Depends(access_dependency)],
+            attributes: Annotated[str | None, Query()] = None,
+            excluded_attributes: Annotated[str | None, Query(alias="excludedAttributes")] = None,
         ) -> Response:
-            return _response(transport.get_group(resource_id))
+            return _response(
+                transport.get_group(
+                    resource_id,
+                    attributes=attributes,
+                    excluded_attributes=excluded_attributes,
+                )
+            )
 
         @router.put("/Groups/{resource_id}")
         def replace_group(
