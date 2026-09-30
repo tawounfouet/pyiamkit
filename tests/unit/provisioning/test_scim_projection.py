@@ -7,7 +7,6 @@ from pyiamkit.provisioning.http import (
     project_scim_resource,
 )
 
-
 ALLOWED = frozenset({"displayName", "externalId", "members"})
 
 
