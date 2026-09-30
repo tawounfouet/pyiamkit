@@ -1032,9 +1032,7 @@ def _parse_attribute_names(
             )
         attribute = canonical.get(normalized.casefold())
         if attribute is None:
-            raise InvalidScimRequest(
-                f"Unsupported SCIM {parameter} attribute: {normalized!r}"
-            )
+            raise InvalidScimRequest(f"Unsupported SCIM {parameter} attribute: {normalized!r}")
         parsed.add(attribute)
     return frozenset(parsed)
 
