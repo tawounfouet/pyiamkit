@@ -51,7 +51,6 @@ class SecurityStateWriter(Protocol):
     def bump_authentication(self, identity_id: IdentityId) -> StateVersion: ...
 
 
-
 class AuthorizationCache(Protocol):
     """Derived authorization cache validated against authoritative security state."""
 
