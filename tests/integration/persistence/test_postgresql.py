@@ -274,7 +274,6 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
     engine.dispose()
 
 
-
 @pytest.mark.integration
 def test_postgresql_security_state_atomic_bumps_under_contention() -> None:
     database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
