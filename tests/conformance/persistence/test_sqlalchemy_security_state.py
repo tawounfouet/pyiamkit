@@ -114,10 +114,9 @@ def test_sqlalchemy_security_state_follows_caller_transaction_boundary(
     with factory() as session:
         store = SqlAlchemySecurityStateStore(session)
         assert store.bump_identity(identity_id) == StateVersion(1)
-        assert (
-            store.stamp_for(identity_id=identity_id, tenant_id=tenant_id).identity
-            == StateVersion(1)
-        )
+        assert store.stamp_for(
+            identity_id=identity_id, tenant_id=tenant_id
+        ).identity == StateVersion(1)
         session.rollback()
 
     with factory() as session:
