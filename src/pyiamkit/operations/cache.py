@@ -137,6 +137,10 @@ class CachedAuthorizationDecision:
     required_mfa: bool | None = None
     explanation_path: tuple[str, ...] = ()
 
+    @property
+    def allowed(self) -> bool:
+        return self.result is AuthorizationResult.ALLOW
+
     @classmethod
     def from_decision(cls, decision: AuthorizationDecision) -> "CachedAuthorizationDecision":
         return cls(
