@@ -6,7 +6,7 @@ import math
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -249,5 +249,5 @@ def _canonical_datetime(value: datetime) -> str:
 
 
 def _require_utc(value: datetime, *, field_name: str) -> None:
-    if value.tzinfo is None or value.utcoffset() is None or value.utcoffset().total_seconds() != 0:
+    if value.tzinfo is None or value.utcoffset() != timedelta(0):
         raise ValueError(f"{field_name} must be UTC-aware")
