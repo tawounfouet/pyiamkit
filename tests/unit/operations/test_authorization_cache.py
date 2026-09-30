@@ -374,11 +374,14 @@ def test_in_memory_cache_can_explicitly_enable_deny_caching() -> None:
 
     cache.put(denial)
 
-    assert cache.get(
-        key,
-        current_state=_zero_stamp(),
-        at=NOW + timedelta(seconds=1),
-    ) == denial
+    assert (
+        cache.get(
+            key,
+            current_state=_zero_stamp(),
+            at=NOW + timedelta(seconds=1),
+        )
+        == denial
+    )
 
 
 def test_in_memory_cache_delete_and_clear_are_idempotent() -> None:
