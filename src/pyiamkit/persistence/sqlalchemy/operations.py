@@ -70,8 +70,7 @@ class SqlAlchemySecurityStateStore(SecurityStateReader, SecurityStateWriter):
             )
         ).all()
         versions = {
-            (str(row.dimension), str(row.scope_key)): StateVersion(int(row.version))
-            for row in rows
+            (str(row.dimension), str(row.scope_key)): StateVersion(int(row.version)) for row in rows
         }
 
         def version(dimension: str, scope_key: str) -> StateVersion:
