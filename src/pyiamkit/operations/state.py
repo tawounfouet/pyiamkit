@@ -20,19 +20,25 @@ class StateVersion:
 class SecurityStateStamp:
     """Version vector covering state that can affect an authorization decision."""
 
+    runtime_generation: StateVersion
     identity: StateVersion
     tenant: StateVersion
     membership: StateVersion
-    authorization: StateVersion
+    subject_authorization: StateVersion
+    tenant_authorization: StateVersion
+    global_authorization: StateVersion
     governance: StateVersion
     authentication: StateVersion
 
     def __post_init__(self) -> None:
         for name, value in (
+            ("runtime_generation", self.runtime_generation),
             ("identity", self.identity),
             ("tenant", self.tenant),
             ("membership", self.membership),
-            ("authorization", self.authorization),
+            ("subject_authorization", self.subject_authorization),
+            ("tenant_authorization", self.tenant_authorization),
+            ("global_authorization", self.global_authorization),
             ("governance", self.governance),
             ("authentication", self.authentication),
         ):
