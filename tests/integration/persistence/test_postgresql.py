@@ -28,7 +28,8 @@ from pyiamkit.authorization import (
     RoleBinding,
     RoleType,
 )
-from pyiamkit.identity import Identity
+from pyiamkit.identity import Identity, IdentityId
+from pyiamkit.operations import StateVersion
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
     SqlAlchemyConstraintRepository,
@@ -49,10 +50,9 @@ from pyiamkit.persistence.sqlalchemy import (
     create_sqlalchemy_engine,
     drop_schema,
 )
-from pyiamkit.operations import StateVersion
 from pyiamkit.provisioning import ProvisioningGroup, ProvisioningUser
 from pyiamkit.shared import Clock
-from pyiamkit.tenancy import Membership, Tenant, TenantScope
+from pyiamkit.tenancy import Membership, Tenant, TenantId, TenantScope
 
 NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
 
