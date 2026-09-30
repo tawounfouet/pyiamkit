@@ -145,22 +145,22 @@ class SqlAlchemyRoleRepository:
 
     def _rehydrate(self, row: RowMapping) -> Role:
         role_uuid = uuid_from_db(row["id"])
-        permissions = frozenset(
-            PermissionCode(str(value))
-            for value in self._session.execute(
+        permission_values: list[object] = list(
+            self._session.execute(
                 select(role_permission_table.c.permission_code)
                 .where(role_permission_table.c.role_id == role_uuid)
                 .order_by(role_permission_table.c.permission_code)
             ).scalars()
         )
-        parents = frozenset(
-            RoleId(uuid_from_db(value))
-            for value in self._session.execute(
+        permissions = frozenset(PermissionCode(str(value)) for value in permission_values)
+        parent_values: list[object] = list(
+            self._session.execute(
                 select(role_parent_table.c.parent_role_id)
                 .where(role_parent_table.c.role_id == role_uuid)
                 .order_by(role_parent_table.c.parent_role_id)
             ).scalars()
         )
+        parents = frozenset(RoleId(uuid_from_db(value)) for value in parent_values)
         tenant_uuid = optional_uuid_from_db(row["tenant_id"])
         return Role._rehydrate(
             role_id=RoleId(role_uuid),
