@@ -28,10 +28,7 @@ class CacheNamespace:
     def prefix(self) -> str:
         """Return the canonical namespace prefix used by operational adapters."""
 
-        return (
-            f"pyiamkit:{self.application}:{self.environment}:"
-            f"v{self.schema_version}"
-        )
+        return f"pyiamkit:{self.application}:{self.environment}:v{self.schema_version}"
 
     @staticmethod
     def _normalize_part(value: str, *, field_name: str) -> str:
@@ -41,7 +38,5 @@ class CacheNamespace:
         if not normalized:
             raise ValueError(f"CacheNamespace.{field_name} must not be empty")
         if not _NAMESPACE_PART_PATTERN.fullmatch(normalized):
-            raise ValueError(
-                f"CacheNamespace.{field_name} contains unsupported characters"
-            )
+            raise ValueError(f"CacheNamespace.{field_name} contains unsupported characters")
         return normalized
