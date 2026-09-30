@@ -70,7 +70,7 @@ def test_empty_projection_parameters_preserve_default_resource_shape() -> None:
     [
         ("attributes", "displayName,,members", "empty attribute"),
         ("attributes", "members.value", "top-level"),
-        ("excludedAttributes", "members[value eq \"x\"]", "top-level"),
+        ("excludedAttributes", 'members[value eq "x"]', "top-level"),
         ("excludedAttributes", "unknown", "Unsupported"),
     ],
 )
