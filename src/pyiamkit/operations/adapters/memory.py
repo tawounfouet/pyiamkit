@@ -142,7 +142,7 @@ class InMemoryAuthorizationCache(AuthorizationCache):
             return entry
 
     def put(self, entry: AuthorizationCacheEntry) -> None:
-        if not self._cache_denials and not entry.decision.result.value == "allow":
+        if not self._cache_denials and not entry.decision.allowed:
             return
         with self._lock:
             self._entries[entry.key] = entry
