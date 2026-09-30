@@ -8,7 +8,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import TypeAlias
 from uuid import UUID
 
 from pyiamkit.authentication import AssuranceLevel
@@ -27,9 +26,9 @@ from .state import SecurityStateStamp
 _NAMESPACE_PART_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
-type _CanonicalScalar = None | bool | int | str
+type _CanonicalScalar = bool | int | str | None
 type _CanonicalValue = _CanonicalScalar | list["_CanonicalValue"] | dict[str, "_CanonicalValue"]
-_CanonicalMapping: TypeAlias = Mapping[str, object]
+type _CanonicalMapping = Mapping[str, object]
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,7 +89,11 @@ class AuthorizationCacheKey:
                 "resource_type": request.resource.resource_type,
                 "resource_id": request.resource.resource_id,
                 "tenant_id": str(request.resource.tenant_id),
-                "owner_id": None if request.resource.owner_id is None else str(request.resource.owner_id),
+                "owner_id": (
+                    None
+                    if request.resource.owner_id is None
+                    else str(request.resource.owner_id)
+                ),
                 "attributes": _canonicalize_mapping(request.resource.attributes),
             }
 
