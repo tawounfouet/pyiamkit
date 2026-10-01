@@ -40,7 +40,12 @@ class OperationalJsonCodec:
 
     def decode_security_state(self, data: bytes) -> SecurityStateStamp:
         payload = self._decode(data, "security_state_stamp")
-        return _state_from_payload(payload)
+        try:
+            return _state_from_payload(payload)
+        except (ValueError, TypeError) as exc:
+            raise OperationalSerializationError(
+                "Security state payload contains invalid domain values."
+            ) from exc
 
     def encode_authorization_cache_entry(self, entry: AuthorizationCacheEntry) -> bytes:
         return self._encode("authorization_cache_entry", _cache_entry_to_payload(entry))
