@@ -228,9 +228,7 @@ def _cache_entry_from_payload(payload: dict[str, object]) -> AuthorizationCacheE
         decision = CachedAuthorizationDecision(
             result=AuthorizationResult(_require_str(decision_payload, "result")),
             reason_code=AuthorizationReason(_require_str(decision_payload, "reason_code")),
-            valid_until=(
-                None if valid_until_raw is None else _datetime_from_wire(valid_until_raw)
-            ),
+            valid_until=(None if valid_until_raw is None else _datetime_from_wire(valid_until_raw)),
             matched_membership_id=_optional_entity_id(
                 decision_payload,
                 "matched_membership_id",
