@@ -161,7 +161,6 @@ class InMemoryAuthorizationCache(AuthorizationCache):
             self._entries.clear()
 
 
-
 class InMemoryRevocationRegistry(RevocationRegistry):
     """Thread-safe process-local deny-fast revocation registry."""
 
