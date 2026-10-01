@@ -7,8 +7,13 @@ from .cache import (
     CacheNamespace,
 )
 from .invalidation import InvalidationKind
-from .ports import AuthorizationCache, SecurityStateReader, SecurityStateWriter
-from .revocation import RevocationTargetType
+from .ports import (
+    AuthorizationCache,
+    RevocationRegistry,
+    SecurityStateReader,
+    SecurityStateWriter,
+)
+from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
 __all__ = [
@@ -18,6 +23,8 @@ __all__ = [
     "CacheNamespace",
     "CachedAuthorizationDecision",
     "InvalidationKind",
+    "RevocationMarker",
+    "RevocationRegistry",
     "RevocationTargetType",
     "SecurityStateReader",
     "SecurityStateStamp",
