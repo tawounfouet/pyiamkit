@@ -14,6 +14,7 @@ from .errors import (
 from .handlers import AuthorizationCacheInvalidationHandler
 from .invalidation import InvalidationEvent, InvalidationKind
 from .keyspace import RedisKeyspace
+from .mutations import SecurityStateMutationEventSink
 from .ports import (
     AuthorizationCache,
     InvalidationHandler,
@@ -50,6 +51,7 @@ __all__ = [
     "RevocationRegistry",
     "RevocationRegistryUnavailable",
     "RevocationTargetType",
+    "SecurityStateMutationEventSink",
     "SecurityStateProjection",
     "SecurityStateReader",
     "SecurityStateStamp",
