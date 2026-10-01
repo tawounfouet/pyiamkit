@@ -167,9 +167,7 @@ def test_redis_authorization_cache_put_uses_absolute_expiry() -> None:
 
     cache.put(entry)
 
-    redis_key = RedisKeyspace(
-        CacheNamespace("billing-api", "test")
-    ).authorization_cache(entry.key)
+    redis_key = RedisKeyspace(CacheNamespace("billing-api", "test")).authorization_cache(entry.key)
     assert redis_key in client.values
     assert client.pxat[redis_key] == int(entry.expires_at.timestamp() * 1000)
 
@@ -246,9 +244,9 @@ def test_redis_authorization_cache_rejects_wrong_embedded_key() -> None:
     cache = _cache(client)
     requested = AuthorizationCacheKey("a" * 64)
     wrong_entry = _entry(key=AuthorizationCacheKey("b" * 64))
-    requested_redis_key = RedisKeyspace(
-        CacheNamespace("billing-api", "test")
-    ).authorization_cache(requested)
+    requested_redis_key = RedisKeyspace(CacheNamespace("billing-api", "test")).authorization_cache(
+        requested
+    )
     client.values[requested_redis_key] = OperationalJsonCodec().encode_authorization_cache_entry(
         wrong_entry
     )
