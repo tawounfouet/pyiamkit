@@ -87,12 +87,8 @@ class DistributedAuthorizationRuntime:
                     else:
                         if revoked is not None:
                             self._cache.delete(key)
-                            return self._record(
-                                self._revocation_denial(request, revoked, at=now)
-                            )
-                        return self._record(
-                            cached.decision.to_decision(request, evaluated_at=now)
-                        )
+                            return self._record(self._revocation_denial(request, revoked, at=now))
+                        return self._record(cached.decision.to_decision(request, evaluated_at=now))
 
             decision = self._engine.authorize(request)
             after = self._stamp(request)
