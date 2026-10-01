@@ -288,9 +288,21 @@ def test_unknown_domain_event_is_forwarded_without_security_bump() -> None:
 
     assert downstream.events == [event]
     assert publisher.events == []
-    assert state.stamp_for(identity_id=identity_id, tenant_id=tenant_id) == (
-        state.stamp_for(identity_id=identity_id, tenant_id=tenant_id)
-    )
+    stamp = state.stamp_for(identity_id=identity_id, tenant_id=tenant_id)
+    assert {
+        version.value
+        for version in (
+            stamp.runtime_generation,
+            stamp.identity,
+            stamp.tenant,
+            stamp.membership,
+            stamp.subject_authorization,
+            stamp.tenant_authorization,
+            stamp.global_authorization,
+            stamp.governance,
+            stamp.authentication,
+        )
+    } == {0}
 
 
 def test_known_security_event_requires_scope_metadata_before_forwarding() -> None:
