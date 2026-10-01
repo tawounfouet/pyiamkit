@@ -369,11 +369,11 @@ def _id_to_wire(value: object | None) -> str | None:
     return None if value is None else str(value)
 
 
-def _optional_entity_id[_EntityIdT: EntityId](
+def _optional_entity_id[EntityIdT: EntityId](
     payload: dict[str, object],
     key: str,
-    identifier_type: type[_EntityIdT],
-) -> _EntityIdT | None:
+    identifier_type: type[EntityIdT],
+) -> EntityIdT | None:
     raw = _optional_str(payload, key)
     if raw is None:
         return None
