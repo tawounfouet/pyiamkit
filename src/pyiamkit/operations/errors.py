@@ -15,7 +15,6 @@ class OperationalSerializationError(PyIAMKitError):
     code = "OPERATIONAL_SERIALIZATION_ERROR"
 
 
-
 class RevocationRegistryUnavailable(PyIAMKitError):
     """Raised when revocation state cannot be read with sufficient confidence."""
 
