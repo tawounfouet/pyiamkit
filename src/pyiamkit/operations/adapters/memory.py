@@ -7,7 +7,13 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
 from ..cache import AuthorizationCacheEntry, AuthorizationCacheKey
-from ..ports import AuthorizationCache, SecurityStateReader, SecurityStateWriter
+from ..ports import (
+    AuthorizationCache,
+    RevocationRegistry,
+    SecurityStateReader,
+    SecurityStateWriter,
+)
+from ..revocation import RevocationMarker, RevocationTargetType
 from ..state import SecurityStateStamp, StateVersion
 
 _ZERO = StateVersion(0)
@@ -153,3 +159,80 @@ class InMemoryAuthorizationCache(AuthorizationCache):
     def clear(self) -> None:
         with self._lock:
             self._entries.clear()
+
+
+
+class InMemoryRevocationRegistry(RevocationRegistry):
+    """Thread-safe process-local deny-fast revocation registry."""
+
+    def __init__(self) -> None:
+        self._lock = RLock()
+        self._markers: dict[tuple[RevocationTargetType, str], RevocationMarker] = {}
+
+    def record(self, marker: RevocationMarker) -> None:
+        key = self._key(marker.target_type, marker.target_id)
+        with self._lock:
+            existing = self._markers.get(key)
+            if existing is None or existing == marker:
+                self._markers[key] = marker
+                return
+            if self._is_older(marker, existing):
+                return
+            if self._same_revision(marker, existing):
+                raise ValueError(
+                    "Conflicting revocation markers cannot share the same target revision"
+                )
+            self._markers[key] = marker
+
+    def get(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+    ) -> RevocationMarker | None:
+        key = self._key(target_type, target_id)
+        with self._lock:
+            return self._markers.get(key)
+
+    def is_revoked(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+        *,
+        at: datetime,
+    ) -> bool:
+        self._require_utc(at)
+        marker = self.get(target_type, target_id)
+        return marker is not None and marker.is_active(at=at)
+
+    @staticmethod
+    def _key(
+        target_type: RevocationTargetType,
+        target_id: str,
+    ) -> tuple[RevocationTargetType, str]:
+        if not isinstance(target_type, RevocationTargetType):
+            raise TypeError("target_type must be a RevocationTargetType")
+        if not isinstance(target_id, str):
+            raise TypeError("target_id must be a string")
+        normalized = target_id.strip()
+        if not normalized:
+            raise ValueError("target_id must not be empty")
+        return target_type, normalized
+
+    @staticmethod
+    def _is_older(candidate: RevocationMarker, existing: RevocationMarker) -> bool:
+        if candidate.source_version is not None and existing.source_version is not None:
+            return candidate.source_version < existing.source_version
+        return candidate.revoked_at < existing.revoked_at
+
+    @staticmethod
+    def _same_revision(candidate: RevocationMarker, existing: RevocationMarker) -> bool:
+        if candidate.source_version is not None and existing.source_version is not None:
+            return candidate.source_version == existing.source_version
+        return candidate.revoked_at == existing.revoked_at
+
+    @staticmethod
+    def _require_utc(value: datetime) -> None:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("at must be UTC-aware")
+        if value.utcoffset().total_seconds() != 0:
+            raise ValueError("at must be UTC-aware")
