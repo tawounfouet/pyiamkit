@@ -1,6 +1,6 @@
 """Distributed authorization orchestration over authoritative IAM semantics."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from pyiamkit.authorization import (
     AuthorizationDecision,
@@ -132,7 +132,7 @@ class DistributedAuthorizationRuntime:
         request: AuthorizationRequest,
         stamp: SecurityStateStamp,
         *,
-        at: object,
+        at: datetime,
     ) -> RevocationMarker | None:
         marker = self._active_marker(
             RevocationTargetType.IDENTITY,
@@ -154,7 +154,7 @@ class DistributedAuthorizationRuntime:
         entry: AuthorizationCacheEntry,
         stamp: SecurityStateStamp,
         *,
-        at: object,
+        at: datetime,
     ) -> RevocationMarker | None:
         return self._semantic_revocation(entry.decision, stamp, at=at)
 
@@ -163,7 +163,7 @@ class DistributedAuthorizationRuntime:
         decision: AuthorizationDecision,
         stamp: SecurityStateStamp,
         *,
-        at: object,
+        at: datetime,
     ) -> RevocationMarker | None:
         return self._semantic_revocation(
             CachedAuthorizationDecision.from_decision(decision),
@@ -176,7 +176,7 @@ class DistributedAuthorizationRuntime:
         decision: CachedAuthorizationDecision,
         stamp: SecurityStateStamp,
         *,
-        at: object,
+        at: datetime,
     ) -> RevocationMarker | None:
         if decision.matched_membership_id is not None:
             marker = self._active_marker(
@@ -202,7 +202,7 @@ class DistributedAuthorizationRuntime:
         target_id: str,
         *,
         current_version: StateVersion,
-        at: object,
+        at: datetime,
     ) -> RevocationMarker | None:
         marker = self._revocations.get(target_type, target_id)
         if marker is None:
@@ -219,7 +219,7 @@ class DistributedAuthorizationRuntime:
         decision: AuthorizationDecision,
         stamp: SecurityStateStamp,
         *,
-        at: object,
+        at: datetime,
     ) -> None:
         expires_at = at + self._cache_ttl
         if decision.valid_until is not None and decision.valid_until < expires_at:
@@ -241,7 +241,7 @@ class DistributedAuthorizationRuntime:
         request: AuthorizationRequest,
         marker: RevocationMarker,
         *,
-        at: object,
+        at: datetime,
     ) -> AuthorizationDecision:
         reasons = {
             RevocationTargetType.IDENTITY: AuthorizationReason.DENY_SUBJECT_INACTIVE,
