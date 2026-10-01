@@ -224,9 +224,7 @@ def test_redis_authorization_cache_corrupt_payload_is_safe_miss() -> None:
     client = FakeRedisClient()
     cache = _cache(client)
     entry = _entry()
-    redis_key = RedisKeyspace(
-        CacheNamespace("billing-api", "test")
-    ).authorization_cache(entry.key)
+    redis_key = RedisKeyspace(CacheNamespace("billing-api", "test")).authorization_cache(entry.key)
     client.values[redis_key] = b"{not-json"
 
     loaded = cache.get(
@@ -265,9 +263,7 @@ def test_redis_authorization_cache_rejects_decode_responses_text_payload() -> No
     client = FakeRedisClient()
     cache = _cache(client)
     entry = _entry()
-    redis_key = RedisKeyspace(
-        CacheNamespace("billing-api", "test")
-    ).authorization_cache(entry.key)
+    redis_key = RedisKeyspace(CacheNamespace("billing-api", "test")).authorization_cache(entry.key)
     client.values[redis_key] = "{}"
 
     assert cache.get(entry.key, current_state=entry.state_stamp, at=NOW) is None
