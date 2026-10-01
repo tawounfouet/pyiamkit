@@ -327,3 +327,30 @@ def test_revocation_registry_outage_does_not_block_authoritative_bump() -> None:
     assert stamp.identity == StateVersion(1)
     assert downstream.events == [event]
     assert publisher.events[0].state_version == StateVersion(1)
+
+
+
+def test_session_revoked_records_terminal_marker_and_bumps_authentication() -> None:
+    revocations = InMemoryRevocationRegistry()
+    sink, state, _, publisher = _sink(revocations=revocations)
+    identity_id = IdentityId.new()
+    tenant_id = TenantId.new()
+    session_id = "session-123"
+    expires_at = NOW.replace(hour=20)
+    event = _event(
+        "SessionRevoked",
+        identity_id=str(identity_id),
+        session_id=session_id,
+        expires_at=expires_at.isoformat(),
+    )
+
+    sink.publish((event,))
+
+    stamp = state.stamp_for(identity_id=identity_id, tenant_id=tenant_id)
+    marker = revocations.get(RevocationTargetType.SESSION, session_id)
+    assert stamp.authentication == StateVersion(1)
+    assert marker is not None
+    assert marker.source_version is None
+    assert marker.expires_at == expires_at
+    assert marker.reason_code == "SessionRevoked"
+    assert publisher.events[0].kind is InvalidationKind.AUTHENTICATION
