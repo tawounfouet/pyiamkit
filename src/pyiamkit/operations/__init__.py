@@ -6,8 +6,9 @@ from .cache import (
     CachedAuthorizationDecision,
     CacheNamespace,
 )
-from .errors import AuthorizationRuntimeUnavailable
-from .invalidation import InvalidationKind
+from .errors import AuthorizationRuntimeUnavailable, OperationalSerializationError
+from .invalidation import InvalidationEvent, InvalidationKind
+from .keyspace import RedisKeyspace
 from .ports import (
     AuthorizationCache,
     RevocationRegistry,
@@ -16,6 +17,7 @@ from .ports import (
 )
 from .revocation import RevocationMarker, RevocationTargetType
 from .runtime import DistributedAuthorizationRuntime
+from .serialization import OperationalJsonCodec
 from .state import SecurityStateStamp, StateVersion
 
 __all__ = [
@@ -26,7 +28,11 @@ __all__ = [
     "CacheNamespace",
     "CachedAuthorizationDecision",
     "DistributedAuthorizationRuntime",
+    "InvalidationEvent",
     "InvalidationKind",
+    "OperationalJsonCodec",
+    "OperationalSerializationError",
+    "RedisKeyspace",
     "RevocationMarker",
     "RevocationRegistry",
     "RevocationTargetType",
