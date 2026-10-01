@@ -269,9 +269,7 @@ def test_role_binding_revocation_wins_over_cached_allow() -> None:
 
 def test_cache_never_outlives_role_binding_validity() -> None:
     valid_until = NOW + timedelta(seconds=5)
-    runtime, engine, _, _, clock, request, _, _ = _setup(
-        binding_valid_until=valid_until
-    )
+    runtime, engine, _, _, clock, request, _, _ = _setup(binding_valid_until=valid_until)
     first = runtime.authorize(request)
     assert first.valid_until == valid_until
 
