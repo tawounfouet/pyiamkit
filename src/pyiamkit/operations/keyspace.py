@@ -21,6 +21,10 @@ class RedisKeyspace:
             raise TypeError("key must be an AuthorizationCacheKey")
         return f"{self.namespace.prefix}:authz:{key.digest}"
 
+    @property
+    def authorization_cache_pattern(self) -> str:
+        return f"{self.namespace.prefix}:authz:*"
+
     def revocation(self, target_type: RevocationTargetType, target_id: str) -> str:
         if not isinstance(target_type, RevocationTargetType):
             raise TypeError("target_type must be a RevocationTargetType")
