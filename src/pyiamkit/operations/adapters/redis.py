@@ -1,11 +1,13 @@
 """Redis-backed authorization cache adapter."""
 
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Protocol
 
 from redis.exceptions import RedisError
 
 from ..cache import AuthorizationCacheEntry, AuthorizationCacheKey
+from ..errors import OperationalSerializationError
 from ..keyspace import RedisKeyspace
 from ..ports import AuthorizationCache
 from ..serialization import OperationalJsonCodec
@@ -65,7 +67,7 @@ class RedisAuthorizationCache(AuthorizationCache):
         key: AuthorizationCacheKey,
         *,
         current_state: SecurityStateStamp,
-        at: object,
+        at: datetime,
     ) -> AuthorizationCacheEntry | None:
         redis_key = self._keyspace.authorization_cache(key)
         try:
@@ -81,7 +83,7 @@ class RedisAuthorizationCache(AuthorizationCache):
 
         try:
             entry = self._codec.decode_authorization_cache_entry(raw)
-        except (TypeError, ValueError):
+        except OperationalSerializationError:
             self._best_effort_delete(redis_key)
             return None
 
