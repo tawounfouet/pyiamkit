@@ -17,8 +17,51 @@ from pyiamkit.authentication import (
 from pyiamkit.authentication.adapters import InMemorySessionRepository
 from pyiamkit.authentication.adapters.jwt import JwtTokenProvider
 from pyiamkit.identity import IdentityId
+from pyiamkit.operations import (
+    RevocationMarker,
+    RevocationRegistry,
+    RevocationRegistryUnavailable,
+    RevocationTargetType,
+)
+from pyiamkit.operations.adapters import InMemoryRevocationRegistry
 
 NOW = datetime(2026, 9, 18, 1, 0, tzinfo=UTC)
+
+
+class CountingSessionRepository(InMemorySessionRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_calls = 0
+        self.fail_on_get = False
+
+    def get(self, session_id):
+        self.get_calls += 1
+        if self.fail_on_get:
+            raise AssertionError("SessionRepository.get() must not be called on revocation hit")
+        return super().get(session_id)
+
+
+class UnavailableRevocationRegistry:
+    def record(self, marker: RevocationMarker) -> None:
+        del marker
+
+    def get(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+    ) -> RevocationMarker | None:
+        del target_type, target_id
+        raise RevocationRegistryUnavailable("redis unavailable")
+
+    def is_revoked(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+        *,
+        at: datetime,
+    ) -> bool:
+        del target_type, target_id, at
+        raise RevocationRegistryUnavailable("redis unavailable")
 
 
 class FrozenClock:
@@ -64,6 +107,7 @@ def _provider(
     verification_keys: dict[str, bytes] | None = None,
     ttl: timedelta = timedelta(minutes=15),
     leeway: timedelta = timedelta(0),
+    revocation_registry: RevocationRegistry | None = None,
 ) -> JwtTokenProvider:
     signing_key = key or token_bytes(32)
     return JwtTokenProvider(
@@ -77,6 +121,7 @@ def _provider(
         leeway=leeway,
         key_id=key_id,
         verification_keys=verification_keys,
+        revocation_registry=revocation_registry,
     )
 
 
@@ -259,3 +304,78 @@ def test_unsafe_or_incomplete_configuration_is_rejected() -> None:
             algorithm="HS256",
             verification_keys={"old": token_bytes(32)},
         )
+
+
+
+def test_session_revocation_registry_hit_rejects_before_repository_lookup() -> None:
+    repository = CountingSessionRepository()
+    clock = FrozenClock(NOW)
+    key = token_bytes(32)
+    session = _session(repository)
+    issuer = _provider(repository, clock, key=key)
+    issued = issuer.issue_access_token(session)
+    registry = InMemoryRevocationRegistry()
+    clock.value = NOW + timedelta(minutes=1)
+    registry.record(
+        RevocationMarker(
+            target_type=RevocationTargetType.SESSION,
+            target_id=str(session.id),
+            revoked_at=clock.now(),
+            reason_code="logout",
+            expires_at=session.expires_at,
+        )
+    )
+    repository.get_calls = 0
+    repository.fail_on_get = True
+    verifier = _provider(
+        repository,
+        clock,
+        key=key,
+        revocation_registry=registry,
+    )
+
+    with pytest.raises(TokenSessionInactive, match="revoked"):
+        verifier.verify_access_token(issued.token)
+
+    assert repository.get_calls == 0
+
+
+def test_session_revocation_registry_miss_still_checks_authoritative_repository() -> None:
+    repository = CountingSessionRepository()
+    clock = FrozenClock(NOW)
+    key = token_bytes(32)
+    session = _session(repository)
+    registry = InMemoryRevocationRegistry()
+    provider = _provider(
+        repository,
+        clock,
+        key=key,
+        revocation_registry=registry,
+    )
+    issued = provider.issue_access_token(session)
+    repository.get_calls = 0
+
+    verified = provider.verify_access_token(issued.token)
+
+    assert verified.session_id == session.id
+    assert repository.get_calls == 1
+
+
+def test_session_revocation_registry_outage_falls_back_to_authoritative_repository() -> None:
+    repository = CountingSessionRepository()
+    clock = FrozenClock(NOW)
+    key = token_bytes(32)
+    session = _session(repository)
+    provider = _provider(
+        repository,
+        clock,
+        key=key,
+        revocation_registry=UnavailableRevocationRegistry(),
+    )
+    issued = provider.issue_access_token(session)
+    repository.get_calls = 0
+
+    verified = provider.verify_access_token(issued.token)
+
+    assert verified.session_id == session.id
+    assert repository.get_calls == 1
