@@ -42,6 +42,7 @@ def test_revocation_marker_normalizes_and_preserves_metadata() -> None:
     [
         RevocationTargetType.IDENTITY,
         RevocationTargetType.MEMBERSHIP,
+        RevocationTargetType.ROLE_BINDING,
         RevocationTargetType.TENANT,
     ],
 )
@@ -234,6 +235,7 @@ def test_registry_isolates_same_target_id_by_target_type() -> None:
         target_id="shared-id",
         revoked_at=NOW,
         reason_code="revoked",
+        source_version=StateVersion(1),
     )
 
     registry.record(session_marker)
