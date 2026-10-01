@@ -17,15 +17,23 @@ class RedisKeyspace:
     namespace: CacheNamespace
 
     def authorization_cache(self, key: AuthorizationCacheKey) -> str:
+        if not isinstance(key, AuthorizationCacheKey):
+            raise TypeError("key must be an AuthorizationCacheKey")
         return f"{self.namespace.prefix}:authz:{key.digest}"
 
     def revocation(self, target_type: RevocationTargetType, target_id: str) -> str:
+        if not isinstance(target_type, RevocationTargetType):
+            raise TypeError("target_type must be a RevocationTargetType")
         return (
             f"{self.namespace.prefix}:revocation:{target_type.value}:"
             f"{self._opaque(target_type.value, target_id)}"
         )
 
     def security_state(self, identity_id: IdentityId, tenant_id: TenantId) -> str:
+        if not isinstance(identity_id, IdentityId):
+            raise TypeError("identity_id must be an IdentityId")
+        if not isinstance(tenant_id, TenantId):
+            raise TypeError("tenant_id must be a TenantId")
         subject = self._opaque("identity", str(identity_id))
         tenant = self._opaque("tenant", str(tenant_id))
         return f"{self.namespace.prefix}:state:{subject}:{tenant}"
