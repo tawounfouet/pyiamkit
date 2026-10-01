@@ -220,18 +220,18 @@ class SecurityStateMutationEventSink(DomainEventSink):
             )
 
         if event.event_type in _ROLE_EVENTS:
-            tenant_id = self._optional_tenant_id(event)
-            if tenant_id is None:
+            role_tenant_id = self._optional_tenant_id(event)
+            if role_tenant_id is None:
                 version = self._state_writer.bump_global_authorization()
                 target_id = "global"
             else:
-                version = self._state_writer.bump_tenant_authorization(tenant_id)
-                target_id = str(tenant_id)
+                version = self._state_writer.bump_tenant_authorization(role_tenant_id)
+                target_id = str(role_tenant_id)
             return self._invalidation(
                 event,
                 kind=InvalidationKind.AUTHORIZATION,
                 target_id=target_id,
-                tenant_id=tenant_id,
+                tenant_id=role_tenant_id,
                 version=version,
             )
 
@@ -245,18 +245,18 @@ class SecurityStateMutationEventSink(DomainEventSink):
             )
 
         if event.event_type in _GOVERNANCE_EVENTS:
-            tenant_id = self._optional_tenant_id(event)
-            if tenant_id is None:
+            governance_tenant_id = self._optional_tenant_id(event)
+            if governance_tenant_id is None:
                 version = self._state_writer.bump_runtime_generation()
                 target_id = "global"
             else:
-                version = self._state_writer.bump_governance(tenant_id)
-                target_id = str(tenant_id)
+                version = self._state_writer.bump_governance(governance_tenant_id)
+                target_id = str(governance_tenant_id)
             return self._invalidation(
                 event,
                 kind=InvalidationKind.GOVERNANCE,
                 target_id=target_id,
-                tenant_id=tenant_id,
+                tenant_id=governance_tenant_id,
                 version=version,
             )
 
