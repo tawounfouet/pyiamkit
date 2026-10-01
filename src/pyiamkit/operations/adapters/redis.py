@@ -53,22 +53,41 @@ class _RedisRevocationClient(Protocol):
 
 
 _REVOCATION_RECORD_SCRIPT = """
+local function compare_decimal(left, right)
+    if string.match(left, "^%d+$") == nil or string.match(right, "^%d+$") == nil then
+        return nil
+    end
+    if string.len(left) < string.len(right) then
+        return -1
+    end
+    if string.len(left) > string.len(right) then
+        return 1
+    end
+    if left < right then
+        return -1
+    end
+    if left > right then
+        return 1
+    end
+    return 0
+end
+
 local current_kind = redis.call("HGET", KEYS[1], "order_kind")
 if current_kind then
-    local current_value = tonumber(redis.call("HGET", KEYS[1], "order_value"))
+    local current_value = redis.call("HGET", KEYS[1], "order_value")
     local current_payload = redis.call("HGET", KEYS[1], "payload")
-    if current_kind ~= ARGV[1] or current_value == nil or current_payload == false then
+    if current_kind ~= ARGV[1] or current_value == false or current_payload == false then
         return -3
     end
 
-    local candidate_value = tonumber(ARGV[2])
-    if candidate_value == nil then
+    local comparison = compare_decimal(ARGV[2], current_value)
+    if comparison == nil then
         return -3
     end
-    if candidate_value < current_value then
+    if comparison < 0 then
         return 0
     end
-    if candidate_value == current_value then
+    if comparison == 0 then
         if current_payload == ARGV[3] then
             return 1
         end
@@ -180,10 +199,10 @@ class RedisRevocationRegistry(RevocationRegistry):
         return marker is not None and marker.is_active(at=at)
 
     @staticmethod
-    def _ordering(marker: RevocationMarker) -> tuple[str, int]:
+    def _ordering(marker: RevocationMarker) -> tuple[str, str]:
         if marker.source_version is not None:
-            return "state_version", marker.source_version.value
-        return "revoked_at", int(marker.revoked_at.timestamp() * 1_000_000)
+            return "state_version", str(marker.source_version.value)
+        return "revoked_at", str(int(marker.revoked_at.timestamp() * 1_000_000))
 
     def _best_effort_delete(self, redis_key: str) -> None:
         try:
