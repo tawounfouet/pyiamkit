@@ -306,7 +306,6 @@ def test_unsafe_or_incomplete_configuration_is_rejected() -> None:
         )
 
 
-
 def test_session_revocation_registry_hit_rejects_before_repository_lookup() -> None:
     repository = CountingSessionRepository()
     clock = FrozenClock(NOW)
