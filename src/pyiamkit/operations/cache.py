@@ -20,6 +20,8 @@ from pyiamkit.authorization import (
     RoleBindingId,
     RoleId,
 )
+from pyiamkit.tenancy import MembershipId
+
 
 from .state import SecurityStateStamp
 
@@ -131,7 +133,7 @@ class CachedAuthorizationDecision:
     result: AuthorizationResult
     reason_code: AuthorizationReason
     valid_until: datetime | None = None
-    matched_membership_id: object | None = None
+    matched_membership_id: MembershipId | None = None
     bound_role_id: RoleId | None = None
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
