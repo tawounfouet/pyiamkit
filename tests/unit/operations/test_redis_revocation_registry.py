@@ -38,31 +38,32 @@ class FakeRedisRevocationClient:
         redis_key, order_kind, order_value, payload = keys_and_args
         assert isinstance(redis_key, str)
         assert isinstance(order_kind, str)
-        assert isinstance(order_value, int)
+        assert isinstance(order_value, str)
+        assert order_value.isdecimal()
         assert isinstance(payload, bytes)
 
         current = self.hashes.get(redis_key)
         if current is not None:
             current_kind = current.get("order_kind")
-            current_value_raw = current.get("order_value")
+            current_value = current.get("order_value")
             current_payload = current.get("payload")
             if (
                 not isinstance(current_kind, str)
-                or not isinstance(current_value_raw, str)
+                or not isinstance(current_value, str)
+                or not current_value.isdecimal()
                 or not isinstance(current_payload, bytes)
             ):
                 return -3
-            current_value = int(current_value_raw)
             if current_kind != order_kind:
                 return -3
-            if order_value < current_value:
+            if (len(order_value), order_value) < (len(current_value), current_value):
                 return 0
             if order_value == current_value:
                 return 1 if current_payload == payload else -2
 
         self.hashes[redis_key] = {
             "order_kind": order_kind,
-            "order_value": str(order_value),
+            "order_value": order_value,
             "payload": payload,
         }
         return 1
