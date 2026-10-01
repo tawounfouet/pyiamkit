@@ -66,6 +66,7 @@ class DistributedAuthorizationRuntime:
             except RevocationRegistryUnavailable:
                 revocations_available = False
                 revoked = None
+                self._cache.delete(key)
             if revoked is not None:
                 self._cache.delete(key)
                 return self._record(self._revocation_denial(request, revoked, at=now))
