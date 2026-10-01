@@ -1,6 +1,7 @@
 """Translate domain mutations into authoritative security-state version changes."""
 
 from collections.abc import Sequence
+from datetime import UTC
 
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import DomainEvent, DomainEventSink
@@ -317,7 +318,7 @@ class SecurityStateMutationEventSink(DomainEventSink):
                 RevocationMarker(
                     target_type=target_type,
                     target_id=target_id,
-                    revoked_at=event.occurred_at,
+                    revoked_at=event.occurred_at.astimezone(UTC),
                     reason_code=event.event_type,
                     tenant_id=tenant_id,
                     source_version=version,
@@ -341,5 +342,5 @@ class SecurityStateMutationEventSink(DomainEventSink):
             target_id=target_id,
             tenant_id=tenant_id,
             state_version=version,
-            occurred_at=event.occurred_at,
+            occurred_at=event.occurred_at.astimezone(UTC),
         )
