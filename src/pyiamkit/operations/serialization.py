@@ -425,7 +425,6 @@ def _require_int(payload: dict[str, object], key: str) -> int:
     return value
 
 
-
 def _reject_duplicate_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:
