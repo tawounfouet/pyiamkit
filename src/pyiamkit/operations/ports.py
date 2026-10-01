@@ -70,7 +70,6 @@ class AuthorizationCache(Protocol):
     def clear(self) -> None: ...
 
 
-
 class RevocationRegistry(Protocol):
     """Distributed deny-fast overlay that never replaces authoritative state."""
 
