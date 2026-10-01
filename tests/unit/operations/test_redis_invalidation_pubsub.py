@@ -104,12 +104,13 @@ def _event(
     target_id: str = "subject-1",
     kind: InvalidationKind = InvalidationKind.AUTHORIZATION,
     event_id: UUID | None = None,
+    tenant_id: TenantId | None = None,
 ) -> InvalidationEvent:
     return InvalidationEvent(
         event_id=event_id or uuid4(),
         kind=kind,
         target_id=target_id,
-        tenant_id=TenantId.new(),
+        tenant_id=tenant_id or TenantId.new(),
         state_version=StateVersion(version),
         occurred_at=NOW,
     )
@@ -184,9 +185,10 @@ def test_subscriber_rejects_stale_or_equal_stream_version() -> None:
     pubsub = FakePubSub()
     handler = RecordingHandler()
     subscriber = _subscriber(pubsub, handler)
-    current = _event(version=5)
-    stale = _event(version=4, target_id=current.target_id)
-    equal = _event(version=5, target_id=current.target_id)
+    tenant_id = TenantId.new()
+    current = _event(version=5, tenant_id=tenant_id)
+    stale = _event(version=4, target_id=current.target_id, tenant_id=tenant_id)
+    equal = _event(version=5, target_id=current.target_id, tenant_id=tenant_id)
 
     assert subscriber.handle_event(current) is True
     assert subscriber.handle_event(stale) is False
@@ -198,12 +200,14 @@ def test_subscriber_accepts_newer_version_and_separate_kind_stream() -> None:
     pubsub = FakePubSub()
     handler = RecordingHandler()
     subscriber = _subscriber(pubsub, handler)
-    first = _event(version=2)
-    newer = _event(version=3, target_id=first.target_id)
+    tenant_id = TenantId.new()
+    first = _event(version=2, tenant_id=tenant_id)
+    newer = _event(version=3, target_id=first.target_id, tenant_id=tenant_id)
     separate = _event(
         version=1,
         target_id=first.target_id,
         kind=InvalidationKind.AUTHENTICATION,
+        tenant_id=tenant_id,
     )
 
     assert subscriber.handle_event(first) is True
