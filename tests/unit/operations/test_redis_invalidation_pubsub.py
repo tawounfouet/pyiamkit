@@ -1,18 +1,21 @@
 from collections import deque
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from redis.exceptions import RedisError
 
 from pyiamkit.operations import (
+    AuthorizationCacheEntry,
     AuthorizationCacheInvalidationHandler,
+    AuthorizationCacheKey,
     CacheNamespace,
     InvalidationEvent,
     InvalidationHandler,
     InvalidationKind,
     OperationalJsonCodec,
     RedisKeyspace,
+    SecurityStateStamp,
     StateVersion,
 )
 from pyiamkit.operations.adapters.redis import (
@@ -75,14 +78,20 @@ class FakeCache:
     def __init__(self) -> None:
         self.clears = 0
 
-    def get(self, *args: object, **kwargs: object) -> None:
-        del args, kwargs
+    def get(
+        self,
+        key: AuthorizationCacheKey,
+        *,
+        current_state: SecurityStateStamp,
+        at: datetime,
+    ) -> AuthorizationCacheEntry | None:
+        del key, current_state, at
         return None
 
-    def put(self, entry: object) -> None:
+    def put(self, entry: AuthorizationCacheEntry) -> None:
         del entry
 
-    def delete(self, key: object) -> None:
+    def delete(self, key: AuthorizationCacheKey) -> None:
         del key
 
     def clear(self) -> None:
@@ -94,7 +103,7 @@ def _event(
     version: int,
     target_id: str = "subject-1",
     kind: InvalidationKind = InvalidationKind.AUTHORIZATION,
-    event_id=None,
+    event_id: UUID | None = None,
 ) -> InvalidationEvent:
     return InvalidationEvent(
         event_id=event_id or uuid4(),
@@ -264,7 +273,7 @@ def test_subscriber_validates_configuration_and_timeout() -> None:
 
 def test_authorization_cache_invalidation_handler_clears_cache() -> None:
     cache = FakeCache()
-    handler = AuthorizationCacheInvalidationHandler(cache)  # type: ignore[arg-type]
+    handler = AuthorizationCacheInvalidationHandler(cache)
 
     assert handler.handle(_event(version=1)) is True
     assert cache.clears == 1
