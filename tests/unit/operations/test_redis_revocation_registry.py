@@ -368,3 +368,38 @@ def test_best_effort_eviction_failure_keeps_unavailability_explicit() -> None:
 
     with pytest.raises(RevocationRegistryUnavailable):
         registry.get(RevocationTargetType.SESSION, "session-1")
+
+
+
+def test_redis_registry_validates_utc_for_missing_target() -> None:
+    registry = _registry(FakeRedisRevocationClient())
+
+    with pytest.raises(ValueError, match="at must be UTC-aware"):
+        registry.is_revoked(
+            RevocationTargetType.SESSION,
+            "missing-session",
+            at=NOW.replace(tzinfo=None),
+        )
+
+
+def test_redis_registry_preserves_order_for_large_state_versions() -> None:
+    registry = _registry(FakeRedisRevocationClient())
+    older = RevocationMarker(
+        target_type=RevocationTargetType.IDENTITY,
+        target_id="identity-large",
+        revoked_at=NOW,
+        reason_code="suspended",
+        source_version=StateVersion(10**30),
+    )
+    newer = RevocationMarker(
+        target_type=RevocationTargetType.IDENTITY,
+        target_id="identity-large",
+        revoked_at=NOW + timedelta(seconds=1),
+        reason_code="suspended_again",
+        source_version=StateVersion(10**30 + 1),
+    )
+
+    registry.record(older)
+    registry.record(newer)
+
+    assert registry.get(RevocationTargetType.IDENTITY, "identity-large") == newer
