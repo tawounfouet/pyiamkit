@@ -375,7 +375,6 @@ def test_runtime_validates_retry_and_cache_ttl_configuration() -> None:
         )
 
 
-
 def test_redis_outage_falls_back_to_authoritative_engine() -> None:
     _, engine, state, revocations, clock, request, _, _ = _setup()
     runtime = DistributedAuthorizationRuntime(
