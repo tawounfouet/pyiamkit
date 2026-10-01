@@ -1,4 +1,4 @@
-"""Redis-backed authorization cache adapter."""
+"""Redis-backed operational adapters."""
 
 from collections import deque
 from collections.abc import Iterator, Mapping
