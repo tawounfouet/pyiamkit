@@ -151,11 +151,14 @@ def test_in_memory_registry_records_gets_and_checks_revocation() -> None:
     registry.record(marker)
 
     assert registry.get(RevocationTargetType.SESSION, " session-1 ") == marker
-    assert registry.is_revoked(
-        RevocationTargetType.SESSION,
-        "session-1",
-        at=NOW + timedelta(minutes=1),
-    ) is True
+    assert (
+        registry.is_revoked(
+            RevocationTargetType.SESSION,
+            "session-1",
+            at=NOW + timedelta(minutes=1),
+        )
+        is True
+    )
 
 
 def test_registry_duplicate_record_is_idempotent() -> None:
@@ -272,11 +275,14 @@ def test_expired_marker_remains_inspectable_but_is_not_active() -> None:
     registry.record(marker)
 
     assert registry.get(RevocationTargetType.SESSION, "session-1") == marker
-    assert registry.is_revoked(
-        RevocationTargetType.SESSION,
-        "session-1",
-        at=NOW + timedelta(minutes=5),
-    ) is False
+    assert (
+        registry.is_revoked(
+            RevocationTargetType.SESSION,
+            "session-1",
+            at=NOW + timedelta(minutes=5),
+        )
+        is False
+    )
 
 
 def test_registry_validates_utc_even_when_target_is_unknown() -> None:
