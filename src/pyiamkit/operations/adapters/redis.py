@@ -137,16 +137,12 @@ class RedisRevocationRegistry(RevocationRegistry):
                 payload,
             )
         except RedisError as exc:
-            raise RevocationRegistryUnavailable(
-                "Redis revocation registry write failed."
-            ) from exc
+            raise RevocationRegistryUnavailable("Redis revocation registry write failed.") from exc
 
         if result in (0, 1):
             return
         if result == -2:
-            raise ValueError(
-                "Conflicting revocation markers cannot share the same target revision"
-            )
+            raise ValueError("Conflicting revocation markers cannot share the same target revision")
         raise RevocationRegistryUnavailable(
             "Redis revocation registry contains invalid ordering metadata."
         )
@@ -160,9 +156,7 @@ class RedisRevocationRegistry(RevocationRegistry):
         try:
             raw = self._client.hget(redis_key, "payload")
         except RedisError as exc:
-            raise RevocationRegistryUnavailable(
-                "Redis revocation registry read failed."
-            ) from exc
+            raise RevocationRegistryUnavailable("Redis revocation registry read failed.") from exc
 
         if raw is None:
             return None
