@@ -1,7 +1,7 @@
 """Redis-backed authorization cache adapter."""
 
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol
 
 from redis.exceptions import RedisError
@@ -195,6 +195,8 @@ class RedisRevocationRegistry(RevocationRegistry):
         *,
         at: datetime,
     ) -> bool:
+        if at.tzinfo is None or at.utcoffset() != timedelta(0):
+            raise ValueError("at must be UTC-aware")
         marker = self.get(target_type, target_id)
         return marker is not None and marker.is_active(at=at)
 
