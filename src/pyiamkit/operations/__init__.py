@@ -6,7 +6,11 @@ from .cache import (
     CachedAuthorizationDecision,
     CacheNamespace,
 )
-from .errors import AuthorizationRuntimeUnavailable, OperationalSerializationError
+from .errors import (
+    AuthorizationRuntimeUnavailable,
+    OperationalSerializationError,
+    RevocationRegistryUnavailable,
+)
 from .invalidation import InvalidationEvent, InvalidationKind
 from .keyspace import RedisKeyspace
 from .ports import (
@@ -34,6 +38,7 @@ __all__ = [
     "OperationalSerializationError",
     "RedisKeyspace",
     "RevocationMarker",
+    "RevocationRegistryUnavailable",
     "RevocationRegistry",
     "RevocationTargetType",
     "SecurityStateReader",
