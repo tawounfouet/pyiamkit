@@ -9,7 +9,6 @@ class AuthorizationRuntimeUnavailable(PyIAMKitError):
     code = "AUTHORIZATION_RUNTIME_UNAVAILABLE"
 
 
-
 class OperationalSerializationError(PyIAMKitError):
     """Raised when an operational wire payload is malformed or incompatible."""
 
