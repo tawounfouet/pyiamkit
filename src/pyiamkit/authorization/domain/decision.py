@@ -7,7 +7,7 @@ from enum import StrEnum
 from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import EntityId
-from pyiamkit.tenancy import TenantId, TenantScope
+from pyiamkit.tenancy import MembershipId, TenantId, TenantScope
 
 from .binding_value_objects import RoleBindingId
 from .governance import GovernanceRuleId, ResourceDescriptor
@@ -107,6 +107,8 @@ class AuthorizationDecision:
     scope: TenantScope
     evaluated_at: datetime
     id: AuthorizationDecisionId = field(default_factory=AuthorizationDecisionId.new)
+    valid_until: datetime | None = None
+    matched_membership_id: MembershipId | None = None
     bound_role_id: RoleId | None = None
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
@@ -116,6 +118,15 @@ class AuthorizationDecision:
     resource: ResourceDescriptor | None = None
     correlation_id: str | None = None
     explanation_path: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.evaluated_at.tzinfo is None or self.evaluated_at.utcoffset() != timedelta(0):
+            raise ValueError("evaluated_at must be UTC-aware")
+        if self.valid_until is not None:
+            if self.valid_until.tzinfo is None or self.valid_until.utcoffset() != timedelta(0):
+                raise ValueError("valid_until must be UTC-aware")
+            if self.valid_until <= self.evaluated_at:
+                raise ValueError("valid_until must be after evaluated_at")
 
     @property
     def allowed(self) -> bool:
