@@ -7,3 +7,10 @@ class AuthorizationRuntimeUnavailable(PyIAMKitError):
     """Raised when a stable authoritative authorization snapshot cannot be obtained."""
 
     code = "AUTHORIZATION_RUNTIME_UNAVAILABLE"
+
+
+
+class OperationalSerializationError(PyIAMKitError):
+    """Raised when an operational wire payload is malformed or incompatible."""
+
+    code = "OPERATIONAL_SERIALIZATION_ERROR"
