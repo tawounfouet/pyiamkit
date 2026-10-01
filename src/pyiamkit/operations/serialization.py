@@ -87,7 +87,14 @@ class OperationalJsonCodec:
         if not isinstance(data, bytes):
             raise TypeError("Operational payload must be bytes")
         try:
-            raw = cast(object, json.loads(data.decode("utf-8")))
+            raw = cast(
+                object,
+                json.loads(
+                    data.decode("utf-8"),
+                    object_pairs_hook=_reject_duplicate_pairs,
+                    parse_constant=_reject_json_constant,
+                ),
+            )
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise OperationalSerializationError("Operational payload is not valid UTF-8 JSON.") from exc
         envelope = _require_mapping(raw, "envelope")
@@ -415,3 +422,17 @@ def _require_int(payload: dict[str, object], key: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise OperationalSerializationError(f"{key} must be an integer.")
     return value
+
+
+
+def _reject_duplicate_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise OperationalSerializationError(f"Duplicate JSON field: {key!r}.")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> object:
+    raise OperationalSerializationError(f"Unsupported JSON constant: {value}.")
