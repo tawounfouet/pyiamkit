@@ -63,9 +63,7 @@ class RevocationMarker:
         if self.source_version is not None and not isinstance(self.source_version, StateVersion):
             raise TypeError("RevocationMarker.source_version must be a StateVersion")
         if self.target_type in _REACTIVABLE_TARGETS and self.source_version is None:
-            raise ValueError(
-                "RevocationMarker.source_version is required for reactivable targets"
-            )
+            raise ValueError("RevocationMarker.source_version is required for reactivable targets")
         object.__setattr__(self, "target_id", target_id)
         object.__setattr__(self, "reason_code", reason_code)
 
