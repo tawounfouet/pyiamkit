@@ -1,7 +1,7 @@
 """Translate domain mutations into authoritative security-state version changes."""
 
 from collections.abc import Sequence
-from datetime import UTC
+from datetime import UTC, datetime
 
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import DomainEvent, DomainEventSink
@@ -263,6 +263,13 @@ class SecurityStateMutationEventSink(DomainEventSink):
         if event.event_type in _AUTHENTICATION_EVENTS:
             identity_id = self._identity_id(event)
             version = self._state_writer.bump_authentication(identity_id)
+            if event.event_type == "SessionRevoked":
+                self._record_revocation(
+                    event,
+                    target_type=RevocationTargetType.SESSION,
+                    target_id=self._required_text(event, "session_id"),
+                    expires_at=self._required_datetime(event, "expires_at"),
+                )
             return self._invalidation(
                 event,
                 kind=InvalidationKind.AUTHENTICATION,
@@ -300,14 +307,30 @@ class SecurityStateMutationEventSink(DomainEventSink):
             raise ValueError(f"{event.event_type} metadata {key} must be a non-empty string")
         return raw
 
+    @staticmethod
+    def _required_datetime(event: DomainEvent, key: str) -> datetime:
+        raw = SecurityStateMutationEventSink._required_text(event, key)
+        try:
+            value = datetime.fromisoformat(raw)
+        except ValueError as exc:
+            raise ValueError(
+                f"{event.event_type} metadata {key} must be an ISO-8601 datetime"
+            ) from exc
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(
+                f"{event.event_type} metadata {key} must be timezone-aware"
+            )
+        return value.astimezone(UTC)
+
     def _record_revocation(
         self,
         event: DomainEvent,
         *,
         target_type: RevocationTargetType,
         target_id: str,
-        version: StateVersion,
+        version: StateVersion | None = None,
         tenant_id: TenantId | None = None,
+        expires_at: datetime | None = None,
     ) -> None:
         if self._revocations is None:
             return
@@ -319,6 +342,7 @@ class SecurityStateMutationEventSink(DomainEventSink):
                     revoked_at=event.occurred_at.astimezone(UTC),
                     reason_code=event.event_type,
                     tenant_id=tenant_id,
+                    expires_at=expires_at,
                     source_version=version,
                 )
             )
