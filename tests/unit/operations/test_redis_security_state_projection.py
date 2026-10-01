@@ -1,5 +1,3 @@
-from collections.abc import Iterator
-
 from redis.exceptions import RedisError
 
 from pyiamkit.identity import IdentityId
