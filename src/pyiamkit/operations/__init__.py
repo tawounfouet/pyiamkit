@@ -32,8 +32,8 @@ from .state import SecurityStateStamp, StateVersion
 __all__ = [
     "AuthorizationCache",
     "AuthorizationCacheEntry",
-    "AuthorizationCacheKey",
     "AuthorizationCacheInvalidationHandler",
+    "AuthorizationCacheKey",
     "AuthorizationRuntimeUnavailable",
     "CacheNamespace",
     "CachedAuthorizationDecision",
