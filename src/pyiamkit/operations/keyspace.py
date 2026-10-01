@@ -43,6 +43,10 @@ class RedisKeyspace:
         return f"{self.namespace.prefix}:state:{subject}:{tenant}"
 
     @property
+    def security_state_pattern(self) -> str:
+        return f"{self.namespace.prefix}:state:*"
+
+    @property
     def invalidation_channel(self) -> str:
         return f"{self.namespace.prefix}:invalidation"
 
