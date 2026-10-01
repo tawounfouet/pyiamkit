@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from fnmatch import fnmatch
 
+import pytest
 from redis.exceptions import RedisError
 
 from pyiamkit.authorization import AuthorizationReason, AuthorizationResult
@@ -10,6 +11,7 @@ from pyiamkit.operations import (
     AuthorizationCacheKey,
     CacheNamespace,
     CachedAuthorizationDecision,
+    OperationalJsonCodec,
     RedisKeyspace,
     SecurityStateStamp,
     StateVersion,
@@ -247,10 +249,6 @@ def test_redis_authorization_cache_rejects_wrong_embedded_key() -> None:
     requested_redis_key = RedisKeyspace(
         CacheNamespace("billing-api", "test")
     ).authorization_cache(requested)
-    codec_payload_cache = _cache(FakeRedisClient())
-    del codec_payload_cache
-    from pyiamkit.operations import OperationalJsonCodec
-
     client.values[requested_redis_key] = OperationalJsonCodec().encode_authorization_cache_entry(
         wrong_entry
     )
@@ -338,9 +336,5 @@ def test_redis_cache_validates_scan_count() -> None:
     client = FakeRedisClient()
     keyspace = RedisKeyspace(CacheNamespace("billing-api", "test"))
 
-    try:
+    with pytest.raises(ValueError, match="greater than or equal to one"):
         RedisAuthorizationCache(client, keyspace=keyspace, scan_count=0)
-    except ValueError as exc:
-        assert "greater than or equal to one" in str(exc)
-    else:
-        raise AssertionError("scan_count=0 must fail")
