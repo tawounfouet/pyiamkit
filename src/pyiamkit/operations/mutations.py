@@ -317,9 +317,7 @@ class SecurityStateMutationEventSink(DomainEventSink):
                 f"{event.event_type} metadata {key} must be an ISO-8601 datetime"
             ) from exc
         if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError(
-                f"{event.event_type} metadata {key} must be timezone-aware"
-            )
+            raise ValueError(f"{event.event_type} metadata {key} must be timezone-aware")
         return value.astimezone(UTC)
 
     def _record_revocation(
