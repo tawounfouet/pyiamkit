@@ -37,7 +37,10 @@ from pyiamkit.operations.adapters import (
     InMemoryRevocationRegistry,
     InMemorySecurityStateStore,
 )
-from pyiamkit.operations.adapters.redis import RedisAuthorizationCache
+from pyiamkit.operations.adapters.redis import (
+    RedisAuthorizationCache,
+    RedisRevocationRegistry,
+)
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import TenantScope
 from pyiamkit.tenancy.adapters import InMemoryMembershipRepository, InMemoryTenantRepository
@@ -51,6 +54,19 @@ PERMISSION = PermissionCode("invoice.read")
 class FailingRedisClient:
     def get(self, name: str) -> bytes | str | None:
         del name
+        raise RedisError("redis unavailable")
+
+    def hget(self, name: str, key: str) -> bytes | str | None:
+        del name, key
+        raise RedisError("redis unavailable")
+
+    def eval(
+        self,
+        script: str,
+        numkeys: int,
+        *keys_and_args: str | bytes | int,
+    ) -> object:
+        del script, numkeys, keys_and_args
         raise RedisError("redis unavailable")
 
     def set(
@@ -392,3 +408,37 @@ def test_redis_outage_falls_back_to_authoritative_engine() -> None:
 
     assert decision.allowed is True
     assert engine.calls == 1
+
+
+
+def test_revocation_registry_outage_bypasses_and_evicts_cached_allow() -> None:
+    _, engine, state, revocations, clock, request, _, _ = _setup()
+    cache = InMemoryAuthorizationCache()
+    healthy = DistributedAuthorizationRuntime(
+        engine=engine,
+        security_state=state,
+        cache=cache,
+        revocations=revocations,
+        clock=clock,
+    )
+
+    assert healthy.authorize(request).allowed is True
+    assert engine.calls == 1
+
+    degraded = DistributedAuthorizationRuntime(
+        engine=engine,
+        security_state=state,
+        cache=cache,
+        revocations=RedisRevocationRegistry(
+            FailingRedisClient(),
+            keyspace=RedisKeyspace(CacheNamespace("billing-api", "test")),
+        ),
+        clock=clock,
+    )
+
+    first = degraded.authorize(request)
+    second = degraded.authorize(request)
+
+    assert first.allowed is True
+    assert second.allowed is True
+    assert engine.calls == 3
