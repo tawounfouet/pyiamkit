@@ -19,7 +19,7 @@ from .cache import (
     AuthorizationCacheKey,
     CachedAuthorizationDecision,
 )
-from .errors import AuthorizationRuntimeUnavailable
+from .errors import AuthorizationRuntimeUnavailable, RevocationRegistryUnavailable
 from .ports import AuthorizationCache, RevocationRegistry, SecurityStateReader
 from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
@@ -59,26 +59,39 @@ class DistributedAuthorizationRuntime:
         for _ in range(self._max_state_retries + 1):
             now = self._clock.now()
             before = self._stamp(request)
+            revocations_available = True
 
-            revoked = self._request_revocation(request, before, at=now)
+            try:
+                revoked = self._request_revocation(request, before, at=now)
+            except RevocationRegistryUnavailable:
+                revocations_available = False
+                revoked = None
             if revoked is not None:
                 self._cache.delete(key)
                 return self._record(self._revocation_denial(request, revoked, at=now))
 
-            cached = self._cache.get(key, current_state=before, at=now)
-            if cached is not None:
-                after = self._stamp(request)
-                if after != before:
-                    continue
-                revoked = self._cached_revocation(cached, after, at=now)
-                if revoked is not None:
-                    self._cache.delete(key)
-                    return self._record(self._revocation_denial(request, revoked, at=now))
-                revoked = self._request_revocation(request, after, at=now)
-                if revoked is not None:
-                    self._cache.delete(key)
-                    return self._record(self._revocation_denial(request, revoked, at=now))
-                return self._record(cached.decision.to_decision(request, evaluated_at=now))
+            if revocations_available:
+                cached = self._cache.get(key, current_state=before, at=now)
+                if cached is not None:
+                    after = self._stamp(request)
+                    if after != before:
+                        continue
+                    try:
+                        revoked = self._cached_revocation(cached, after, at=now)
+                        if revoked is None:
+                            revoked = self._request_revocation(request, after, at=now)
+                    except RevocationRegistryUnavailable:
+                        revocations_available = False
+                        self._cache.delete(key)
+                    else:
+                        if revoked is not None:
+                            self._cache.delete(key)
+                            return self._record(
+                                self._revocation_denial(request, revoked, at=now)
+                            )
+                        return self._record(
+                            cached.decision.to_decision(request, evaluated_at=now)
+                        )
 
             decision = self._engine.authorize(request)
             after = self._stamp(request)
@@ -86,14 +99,21 @@ class DistributedAuthorizationRuntime:
                 self._cache.delete(key)
                 continue
 
-            revoked = self._request_revocation(request, after, at=now)
-            if revoked is None and decision.allowed:
-                revoked = self._decision_revocation(decision, after, at=now)
+            revoked = None
+            if revocations_available:
+                try:
+                    revoked = self._request_revocation(request, after, at=now)
+                    if revoked is None and decision.allowed:
+                        revoked = self._decision_revocation(decision, after, at=now)
+                except RevocationRegistryUnavailable:
+                    revocations_available = False
+                    self._cache.delete(key)
+
             if revoked is not None:
                 self._cache.delete(key)
                 return self._record(self._revocation_denial(request, revoked, at=now))
 
-            if decision.allowed:
+            if decision.allowed and revocations_available:
                 self._cache_allow(key, decision, after, at=now)
             return decision
 
