@@ -7,6 +7,7 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
 from .cache import AuthorizationCacheEntry, AuthorizationCacheKey
+from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
 
@@ -67,3 +68,24 @@ class AuthorizationCache(Protocol):
     def delete(self, key: AuthorizationCacheKey) -> None: ...
 
     def clear(self) -> None: ...
+
+
+
+class RevocationRegistry(Protocol):
+    """Distributed deny-fast overlay that never replaces authoritative state."""
+
+    def record(self, marker: RevocationMarker) -> None: ...
+
+    def get(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+    ) -> RevocationMarker | None: ...
+
+    def is_revoked(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+        *,
+        at: datetime,
+    ) -> bool: ...
