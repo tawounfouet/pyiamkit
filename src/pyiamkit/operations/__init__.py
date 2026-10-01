@@ -11,14 +11,19 @@ from .errors import (
     OperationalSerializationError,
     RevocationRegistryUnavailable,
 )
+from .handlers import AuthorizationCacheInvalidationHandler
 from .invalidation import InvalidationEvent, InvalidationKind
 from .keyspace import RedisKeyspace
 from .ports import (
     AuthorizationCache,
+    InvalidationHandler,
+    InvalidationPublisher,
     RevocationRegistry,
+    SecurityStateProjection,
     SecurityStateReader,
     SecurityStateWriter,
 )
+from .projection import ProjectingSecurityStateReader
 from .revocation import RevocationMarker, RevocationTargetType
 from .runtime import DistributedAuthorizationRuntime
 from .serialization import OperationalJsonCodec
@@ -28,19 +33,24 @@ __all__ = [
     "AuthorizationCache",
     "AuthorizationCacheEntry",
     "AuthorizationCacheKey",
+    "AuthorizationCacheInvalidationHandler",
     "AuthorizationRuntimeUnavailable",
     "CacheNamespace",
     "CachedAuthorizationDecision",
     "DistributedAuthorizationRuntime",
     "InvalidationEvent",
+    "InvalidationHandler",
+    "InvalidationPublisher",
     "InvalidationKind",
     "OperationalJsonCodec",
     "OperationalSerializationError",
+    "ProjectingSecurityStateReader",
     "RedisKeyspace",
     "RevocationMarker",
     "RevocationRegistry",
     "RevocationRegistryUnavailable",
     "RevocationTargetType",
+    "SecurityStateProjection",
     "SecurityStateReader",
     "SecurityStateStamp",
     "SecurityStateWriter",
