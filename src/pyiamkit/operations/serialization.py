@@ -2,7 +2,7 @@
 
 import json
 from datetime import UTC, datetime, timedelta
-from typing import TypeVar, cast
+from typing import cast
 from uuid import UUID
 
 from pyiamkit.authentication import AssuranceLevel
@@ -27,7 +27,6 @@ from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
 _SCHEMA_VERSION = 1
-_EntityIdT = TypeVar("_EntityIdT", bound=EntityId)
 
 
 class OperationalJsonCodec:
@@ -96,7 +95,9 @@ class OperationalJsonCodec:
                 ),
             )
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise OperationalSerializationError("Operational payload is not valid UTF-8 JSON.") from exc
+            raise OperationalSerializationError(
+                "Operational payload is not valid UTF-8 JSON."
+            ) from exc
         envelope = _require_mapping(raw, "envelope")
         _require_exact_keys(
             envelope,
@@ -297,7 +298,9 @@ def _revocation_from_payload(payload: dict[str, object]) -> RevocationMarker:
     expires_raw = _optional_str(payload, "expires_at")
     source_raw = payload["source_version"]
     if source_raw is not None and (isinstance(source_raw, bool) or not isinstance(source_raw, int)):
-        raise OperationalSerializationError("revocation_marker.source_version must be integer or null.")
+        raise OperationalSerializationError(
+            "revocation_marker.source_version must be integer or null."
+        )
     try:
         return RevocationMarker(
             target_type=RevocationTargetType(_require_str(payload, "target_type")),
@@ -366,7 +369,7 @@ def _id_to_wire(value: object | None) -> str | None:
     return None if value is None else str(value)
 
 
-def _optional_entity_id(
+def _optional_entity_id[_EntityIdT: EntityId](
     payload: dict[str, object],
     key: str,
     identifier_type: type[_EntityIdT],
