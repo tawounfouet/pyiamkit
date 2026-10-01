@@ -297,9 +297,7 @@ class SecurityStateMutationEventSink(DomainEventSink):
     def _required_text(event: DomainEvent, key: str) -> str:
         raw = event.metadata.get(key)
         if not isinstance(raw, str) or not raw.strip():
-            raise ValueError(
-                f"{event.event_type} metadata {key} must be a non-empty string"
-            )
+            raise ValueError(f"{event.event_type} metadata {key} must be a non-empty string")
         return raw
 
     def _record_revocation(
