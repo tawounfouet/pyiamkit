@@ -1,6 +1,6 @@
 """In-memory reference adapter for security-state version contracts."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import RLock
 
 from pyiamkit.identity import IdentityId
@@ -232,7 +232,5 @@ class InMemoryRevocationRegistry(RevocationRegistry):
 
     @staticmethod
     def _require_utc(value: datetime) -> None:
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("at must be UTC-aware")
-        if value.utcoffset().total_seconds() != 0:
+        if value.tzinfo is None or value.utcoffset() != timedelta(0):
             raise ValueError("at must be UTC-aware")
