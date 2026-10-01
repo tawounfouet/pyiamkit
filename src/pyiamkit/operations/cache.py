@@ -130,6 +130,8 @@ class CachedAuthorizationDecision:
 
     result: AuthorizationResult
     reason_code: AuthorizationReason
+    valid_until: datetime | None = None
+    matched_membership_id: object | None = None
     bound_role_id: RoleId | None = None
     matched_binding_id: RoleBindingId | None = None
     matched_role_id: RoleId | None = None
@@ -147,6 +149,8 @@ class CachedAuthorizationDecision:
         return cls(
             result=decision.result,
             reason_code=decision.reason_code,
+            valid_until=decision.valid_until,
+            matched_membership_id=decision.matched_membership_id,
             bound_role_id=decision.bound_role_id,
             matched_binding_id=decision.matched_binding_id,
             matched_role_id=decision.matched_role_id,
@@ -173,6 +177,8 @@ class CachedAuthorizationDecision:
             permission=request.permission,
             scope=request.scope,
             evaluated_at=evaluated_at,
+            valid_until=self.valid_until,
+            matched_membership_id=self.matched_membership_id,
             bound_role_id=self.bound_role_id,
             matched_binding_id=self.matched_binding_id,
             matched_role_id=self.matched_role_id,
