@@ -7,9 +7,13 @@ from typing import Protocol
 from redis.exceptions import RedisError
 
 from ..cache import AuthorizationCacheEntry, AuthorizationCacheKey
-from ..errors import OperationalSerializationError
+from ..errors import (
+    OperationalSerializationError,
+    RevocationRegistryUnavailable,
+)
 from ..keyspace import RedisKeyspace
-from ..ports import AuthorizationCache
+from ..ports import AuthorizationCache, RevocationRegistry
+from ..revocation import RevocationMarker, RevocationTargetType
 from ..serialization import OperationalJsonCodec
 from ..state import SecurityStateStamp
 
@@ -33,6 +37,159 @@ class _RedisAuthorizationClient(Protocol):
         match: str,
         count: int,
     ) -> Iterator[str | bytes]: ...
+
+
+class _RedisRevocationClient(Protocol):
+    def hget(self, name: str, key: str) -> bytes | str | None: ...
+
+    def eval(
+        self,
+        script: str,
+        numkeys: int,
+        *keys_and_args: str | bytes | int,
+    ) -> object: ...
+
+    def delete(self, *names: str | bytes) -> object: ...
+
+
+_REVOCATION_RECORD_SCRIPT = """
+local current_kind = redis.call("HGET", KEYS[1], "order_kind")
+if current_kind then
+    local current_value = tonumber(redis.call("HGET", KEYS[1], "order_value"))
+    local current_payload = redis.call("HGET", KEYS[1], "payload")
+    if current_kind ~= ARGV[1] or current_value == nil or current_payload == false then
+        return -3
+    end
+
+    local candidate_value = tonumber(ARGV[2])
+    if candidate_value == nil then
+        return -3
+    end
+    if candidate_value < current_value then
+        return 0
+    end
+    if candidate_value == current_value then
+        if current_payload == ARGV[3] then
+            return 1
+        end
+        return -2
+    end
+end
+
+redis.call(
+    "HSET",
+    KEYS[1],
+    "order_kind",
+    ARGV[1],
+    "order_value",
+    ARGV[2],
+    "payload",
+    ARGV[3]
+)
+return 1
+"""
+
+
+class RedisRevocationRegistry(RevocationRegistry):
+    """Redis-backed deny-fast registry with atomic monotonic marker replacement."""
+
+    def __init__(
+        self,
+        client: _RedisRevocationClient,
+        *,
+        keyspace: RedisKeyspace,
+        codec: OperationalJsonCodec | None = None,
+    ) -> None:
+        self._client = client
+        self._keyspace = keyspace
+        self._codec = codec or OperationalJsonCodec()
+
+    def record(self, marker: RevocationMarker) -> None:
+        redis_key = self._keyspace.revocation(marker.target_type, marker.target_id)
+        payload = self._codec.encode_revocation_marker(marker)
+        order_kind, order_value = self._ordering(marker)
+        try:
+            result = self._client.eval(
+                _REVOCATION_RECORD_SCRIPT,
+                1,
+                redis_key,
+                order_kind,
+                order_value,
+                payload,
+            )
+        except RedisError as exc:
+            raise RevocationRegistryUnavailable(
+                "Redis revocation registry write failed."
+            ) from exc
+
+        if result in (0, 1):
+            return
+        if result == -2:
+            raise ValueError(
+                "Conflicting revocation markers cannot share the same target revision"
+            )
+        raise RevocationRegistryUnavailable(
+            "Redis revocation registry contains invalid ordering metadata."
+        )
+
+    def get(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+    ) -> RevocationMarker | None:
+        redis_key = self._keyspace.revocation(target_type, target_id)
+        try:
+            raw = self._client.hget(redis_key, "payload")
+        except RedisError as exc:
+            raise RevocationRegistryUnavailable(
+                "Redis revocation registry read failed."
+            ) from exc
+
+        if raw is None:
+            return None
+        if not isinstance(raw, bytes):
+            self._best_effort_delete(redis_key)
+            raise RevocationRegistryUnavailable(
+                "Redis revocation registry returned a non-bytes payload."
+            )
+
+        try:
+            marker = self._codec.decode_revocation_marker(raw)
+        except OperationalSerializationError as exc:
+            self._best_effort_delete(redis_key)
+            raise RevocationRegistryUnavailable(
+                "Redis revocation registry returned a corrupt payload."
+            ) from exc
+
+        normalized_target_id = target_id.strip()
+        if marker.target_type is not target_type or marker.target_id != normalized_target_id:
+            self._best_effort_delete(redis_key)
+            raise RevocationRegistryUnavailable(
+                "Redis revocation registry payload does not match its lookup key."
+            )
+        return marker
+
+    def is_revoked(
+        self,
+        target_type: RevocationTargetType,
+        target_id: str,
+        *,
+        at: datetime,
+    ) -> bool:
+        marker = self.get(target_type, target_id)
+        return marker is not None and marker.is_active(at=at)
+
+    @staticmethod
+    def _ordering(marker: RevocationMarker) -> tuple[str, int]:
+        if marker.source_version is not None:
+            return "state_version", marker.source_version.value
+        return "revoked_at", int(marker.revoked_at.timestamp() * 1_000_000)
+
+    def _best_effort_delete(self, redis_key: str) -> None:
+        try:
+            self._client.delete(redis_key)
+        except RedisError:
+            return
 
 
 class RedisAuthorizationCache(AuthorizationCache):
