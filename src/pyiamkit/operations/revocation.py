@@ -23,6 +23,7 @@ _REACTIVABLE_TARGETS = frozenset(
     {
         RevocationTargetType.IDENTITY,
         RevocationTargetType.MEMBERSHIP,
+        RevocationTargetType.ROLE_BINDING,
         RevocationTargetType.TENANT,
     }
 )
