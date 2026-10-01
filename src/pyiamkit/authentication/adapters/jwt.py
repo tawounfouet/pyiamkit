@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """PyJWT access-token adapter bound to durable Authentication Sessions."""
+
+from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
