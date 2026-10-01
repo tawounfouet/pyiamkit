@@ -9,8 +9,8 @@ from pyiamkit.authorization import AuthorizationReason, AuthorizationResult
 from pyiamkit.operations import (
     AuthorizationCacheEntry,
     AuthorizationCacheKey,
-    CacheNamespace,
     CachedAuthorizationDecision,
+    CacheNamespace,
     OperationalJsonCodec,
     RedisKeyspace,
     SecurityStateStamp,
