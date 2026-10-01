@@ -7,6 +7,7 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.tenancy import TenantId
 
 from .cache import AuthorizationCacheEntry, AuthorizationCacheKey
+from .invalidation import InvalidationEvent
 from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
@@ -88,3 +89,35 @@ class RevocationRegistry(Protocol):
         *,
         at: datetime,
     ) -> bool: ...
+
+
+
+class SecurityStateProjection(Protocol):
+    """Non-authoritative distributed projection of complete security-state stamps."""
+
+    def get(
+        self,
+        *,
+        identity_id: IdentityId,
+        tenant_id: TenantId,
+    ) -> SecurityStateStamp | None: ...
+
+    def project(
+        self,
+        *,
+        identity_id: IdentityId,
+        tenant_id: TenantId,
+        stamp: SecurityStateStamp,
+    ) -> None: ...
+
+
+class InvalidationPublisher(Protocol):
+    """Publish low-latency invalidation signals without becoming state authority."""
+
+    def publish(self, event: InvalidationEvent) -> None: ...
+
+
+class InvalidationHandler(Protocol):
+    """Consume one decoded invalidation event idempotently."""
+
+    def handle(self, event: InvalidationEvent) -> bool: ...
