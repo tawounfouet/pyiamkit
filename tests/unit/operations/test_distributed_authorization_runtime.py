@@ -80,11 +80,11 @@ class AlwaysChangingStateReader:
         return _stamp(identity=StateVersion(self.calls))
 
 
-def _stamp(*, identity: StateVersion = StateVersion(0)) -> SecurityStateStamp:
+def _stamp(*, identity: StateVersion | None = None) -> SecurityStateStamp:
     zero = StateVersion(0)
     return SecurityStateStamp(
         runtime_generation=zero,
-        identity=identity,
+        identity=zero if identity is None else identity,
         tenant=zero,
         membership=zero,
         subject_authorization=zero,
@@ -284,7 +284,7 @@ def test_cache_never_outlives_role_binding_validity() -> None:
 
 
 def test_state_change_during_evaluation_retries_once() -> None:
-    runtime, engine, _, revocations, clock, request, _, _ = _setup()
+    _, engine, _, revocations, clock, request, _, _ = _setup()
     retrying = DistributedAuthorizationRuntime(
         engine=engine,
         security_state=OneChangeStateReader(),
@@ -301,7 +301,7 @@ def test_state_change_during_evaluation_retries_once() -> None:
 
 
 def test_unstable_state_fails_safely_after_bounded_retry() -> None:
-    runtime, engine, _, revocations, clock, request, _, _ = _setup()
+    _, engine, _, revocations, clock, request, _, _ = _setup()
     unstable = DistributedAuthorizationRuntime(
         engine=engine,
         security_state=AlwaysChangingStateReader(),
