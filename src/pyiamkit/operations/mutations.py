@@ -6,8 +6,11 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.shared import DomainEvent, DomainEventSink
 from pyiamkit.tenancy import TenantId
 
+from .errors import RevocationRegistryUnavailable
 from .invalidation import InvalidationEvent, InvalidationKind
-from .ports import InvalidationPublisher, SecurityStateWriter
+from .ports import InvalidationPublisher, RevocationRegistry, SecurityStateWriter
+from .revocation import RevocationMarker, RevocationTargetType
+from .state import StateVersion
 
 _IDENTITY_STATE_EVENTS = frozenset(
     {
@@ -101,10 +104,12 @@ class SecurityStateMutationEventSink(DomainEventSink):
         *,
         state_writer: SecurityStateWriter,
         invalidation_publisher: InvalidationPublisher | None = None,
+        revocations: RevocationRegistry | None = None,
     ) -> None:
         self._downstream = downstream
         self._state_writer = state_writer
         self._invalidation_publisher = invalidation_publisher
+        self._revocations = revocations
 
     def publish(self, events: Sequence[DomainEvent]) -> None:
         materialized = tuple(events)
@@ -122,6 +127,13 @@ class SecurityStateMutationEventSink(DomainEventSink):
         if event.event_type in _IDENTITY_STATE_EVENTS:
             identity_id = self._identity_id(event)
             version = self._state_writer.bump_identity(identity_id)
+            if event.event_type in {"IdentitySuspended", "IdentityDisabled", "IdentityArchived"}:
+                self._record_revocation(
+                    event,
+                    target_type=RevocationTargetType.IDENTITY,
+                    target_id=str(identity_id),
+                    version=version,
+                )
             return self._invalidation(
                 event,
                 kind=InvalidationKind.IDENTITY,
@@ -142,6 +154,14 @@ class SecurityStateMutationEventSink(DomainEventSink):
         if event.event_type in _TENANT_EVENTS:
             tenant_id = self._tenant_id(event)
             version = self._state_writer.bump_tenant(tenant_id)
+            if event.event_type in {"TenantSuspended", "TenantDisabled", "TenantArchived"}:
+                self._record_revocation(
+                    event,
+                    target_type=RevocationTargetType.TENANT,
+                    target_id=str(tenant_id),
+                    tenant_id=tenant_id,
+                    version=version,
+                )
             return self._invalidation(
                 event,
                 kind=InvalidationKind.TENANT,
@@ -154,6 +174,18 @@ class SecurityStateMutationEventSink(DomainEventSink):
             identity_id = self._identity_id(event)
             tenant_id = self._tenant_id(event)
             version = self._state_writer.bump_membership(identity_id, tenant_id)
+            if event.event_type in {
+                "MembershipSuspended",
+                "MembershipRevoked",
+                "MembershipExpired",
+            }:
+                self._record_revocation(
+                    event,
+                    target_type=RevocationTargetType.MEMBERSHIP,
+                    target_id=self._required_text(event, "membership_id"),
+                    tenant_id=tenant_id,
+                    version=version,
+                )
             return self._invalidation(
                 event,
                 kind=InvalidationKind.MEMBERSHIP,
@@ -166,6 +198,18 @@ class SecurityStateMutationEventSink(DomainEventSink):
             identity_id = self._identity_id(event)
             tenant_id = self._tenant_id(event)
             version = self._state_writer.bump_subject_authorization(identity_id, tenant_id)
+            if event.event_type in {
+                "RoleBindingSuspended",
+                "RoleBindingRevoked",
+                "RoleBindingExpired",
+            }:
+                self._record_revocation(
+                    event,
+                    target_type=RevocationTargetType.ROLE_BINDING,
+                    target_id=self._required_text(event, "binding_id"),
+                    tenant_id=tenant_id,
+                    version=version,
+                )
             return self._invalidation(
                 event,
                 kind=InvalidationKind.AUTHORIZATION,
@@ -257,13 +301,38 @@ class SecurityStateMutationEventSink(DomainEventSink):
             )
         return raw
 
+    def _record_revocation(
+        self,
+        event: DomainEvent,
+        *,
+        target_type: RevocationTargetType,
+        target_id: str,
+        version: StateVersion,
+        tenant_id: TenantId | None = None,
+    ) -> None:
+        if self._revocations is None:
+            return
+        try:
+            self._revocations.record(
+                RevocationMarker(
+                    target_type=target_type,
+                    target_id=target_id,
+                    revoked_at=event.occurred_at,
+                    reason_code=event.event_type,
+                    tenant_id=tenant_id,
+                    source_version=version,
+                )
+            )
+        except RevocationRegistryUnavailable:
+            return
+
     @staticmethod
     def _invalidation(
         event: DomainEvent,
         *,
         kind: InvalidationKind,
         target_id: str,
-        version,
+        version: StateVersion,
         tenant_id: TenantId | None = None,
     ) -> InvalidationEvent:
         return InvalidationEvent(
