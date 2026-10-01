@@ -1,6 +1,8 @@
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from redis.exceptions import RedisError
 
 from pyiamkit.audit.adapters import InMemoryAuditRepository
 from pyiamkit.authorization import (
@@ -22,8 +24,10 @@ from pyiamkit.identity import Identity
 from pyiamkit.identity.adapters.memory import InMemoryIdentityRepository
 from pyiamkit.operations import (
     AuthorizationRuntimeUnavailable,
+    CacheNamespace,
     DistributedAuthorizationRuntime,
     RevocationMarker,
+    RedisKeyspace,
     RevocationTargetType,
     SecurityStateStamp,
     StateVersion,
@@ -33,6 +37,7 @@ from pyiamkit.operations.adapters import (
     InMemoryRevocationRegistry,
     InMemorySecurityStateStore,
 )
+from pyiamkit.operations.adapters.redis import RedisAuthorizationCache
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import TenantScope
 from pyiamkit.tenancy.adapters import InMemoryMembershipRepository, InMemoryTenantRepository
@@ -41,6 +46,36 @@ from pyiamkit.tenancy.domain.tenant import Tenant
 
 NOW = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
 PERMISSION = PermissionCode("invoice.read")
+
+
+class FailingRedisClient:
+    def get(self, name: str) -> bytes | str | None:
+        del name
+        raise RedisError("redis unavailable")
+
+    def set(
+        self,
+        name: str,
+        value: bytes,
+        *,
+        pxat: int,
+    ) -> object:
+        del name, value, pxat
+        raise RedisError("redis unavailable")
+
+    def delete(self, *names: str | bytes) -> object:
+        del names
+        raise RedisError("redis unavailable")
+
+    def scan_iter(
+        self,
+        *,
+        match: str,
+        count: int,
+    ) -> Iterator[str | bytes]:
+        del match, count
+        raise RedisError("redis unavailable")
+        yield
 
 
 class MutableClock(Clock):
@@ -338,3 +373,23 @@ def test_runtime_validates_retry_and_cache_ttl_configuration() -> None:
             clock=clock,
             max_state_retries=-1,
         )
+
+
+
+def test_redis_outage_falls_back_to_authoritative_engine() -> None:
+    _, engine, state, revocations, clock, request, _, _ = _setup()
+    runtime = DistributedAuthorizationRuntime(
+        engine=engine,
+        security_state=state,
+        cache=RedisAuthorizationCache(
+            FailingRedisClient(),
+            keyspace=RedisKeyspace(CacheNamespace("billing-api", "test")),
+        ),
+        revocations=revocations,
+        clock=clock,
+    )
+
+    decision = runtime.authorize(request)
+
+    assert decision.allowed is True
+    assert engine.calls == 1
