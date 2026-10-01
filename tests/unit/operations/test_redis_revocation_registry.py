@@ -370,7 +370,6 @@ def test_best_effort_eviction_failure_keeps_unavailability_explicit() -> None:
         registry.get(RevocationTargetType.SESSION, "session-1")
 
 
-
 def test_redis_registry_validates_utc_for_missing_target() -> None:
     registry = _registry(FakeRedisRevocationClient())
 
