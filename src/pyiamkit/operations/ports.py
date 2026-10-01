@@ -91,7 +91,6 @@ class RevocationRegistry(Protocol):
     ) -> bool: ...
 
 
-
 class SecurityStateProjection(Protocol):
     """Non-authoritative distributed projection of complete security-state stamps."""
 
