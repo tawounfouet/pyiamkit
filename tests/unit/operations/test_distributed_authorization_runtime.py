@@ -410,7 +410,6 @@ def test_redis_outage_falls_back_to_authoritative_engine() -> None:
     assert engine.calls == 1
 
 
-
 def test_revocation_registry_outage_bypasses_and_evicts_cached_allow() -> None:
     _, engine, state, revocations, clock, request, _, _ = _setup()
     cache = InMemoryAuthorizationCache()
