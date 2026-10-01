@@ -329,7 +329,6 @@ def test_revocation_registry_outage_does_not_block_authoritative_bump() -> None:
     assert publisher.events[0].state_version == StateVersion(1)
 
 
-
 def test_session_revoked_records_terminal_marker_and_bumps_authentication() -> None:
     revocations = InMemoryRevocationRegistry()
     sink, state, _, publisher = _sink(revocations=revocations)
