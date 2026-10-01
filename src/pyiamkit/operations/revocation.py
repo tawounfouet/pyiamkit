@@ -43,6 +43,10 @@ class RevocationMarker:
     def __post_init__(self) -> None:
         if not isinstance(self.target_type, RevocationTargetType):
             raise TypeError("RevocationMarker.target_type must be a RevocationTargetType")
+        if not isinstance(self.target_id, str):
+            raise TypeError("RevocationMarker.target_id must be a string")
+        if not isinstance(self.reason_code, str):
+            raise TypeError("RevocationMarker.reason_code must be a string")
         target_id = self.target_id.strip()
         reason_code = self.reason_code.strip()
         if not target_id:
