@@ -22,7 +22,6 @@ from pyiamkit.authorization import (
 )
 from pyiamkit.tenancy import MembershipId
 
-
 from .state import SecurityStateStamp
 
 _NAMESPACE_PART_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
