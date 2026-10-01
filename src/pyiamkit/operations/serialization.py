@@ -2,7 +2,7 @@
 
 import json
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import TypeVar, cast
 from uuid import UUID
 
 from pyiamkit.authentication import AssuranceLevel
@@ -13,6 +13,7 @@ from pyiamkit.authorization import (
     RoleBindingId,
     RoleId,
 )
+from pyiamkit.shared import EntityId
 from pyiamkit.tenancy import MembershipId, TenantId
 
 from .cache import (
@@ -26,6 +27,7 @@ from .revocation import RevocationMarker, RevocationTargetType
 from .state import SecurityStateStamp, StateVersion
 
 _SCHEMA_VERSION = 1
+_EntityIdT = TypeVar("_EntityIdT", bound=EntityId)
 
 
 class OperationalJsonCodec:
@@ -355,12 +357,8 @@ def _id_to_wire(value: object | None) -> str | None:
 def _optional_entity_id(
     payload: dict[str, object],
     key: str,
-    identifier_type: type[MembershipId]
-    | type[TenantId]
-    | type[RoleId]
-    | type[RoleBindingId]
-    | type[GovernanceRuleId],
-) -> MembershipId | TenantId | RoleId | RoleBindingId | GovernanceRuleId | None:
+    identifier_type: type[_EntityIdT],
+) -> _EntityIdT | None:
     raw = _optional_str(payload, key)
     if raw is None:
         return None
