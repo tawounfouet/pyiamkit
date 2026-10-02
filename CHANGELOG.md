@@ -6,6 +6,29 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+### Added
+
+- Distributed authorization runtime combining authoritative SecurityState, derived authorization cache and deny-fast revocation overlays.
+- Nine-dimensional monotonic SecurityState model with InMemory and SQLAlchemy persistence adapters.
+- Optional Redis authorization cache, revocation registry, SecurityState projection and invalidation Pub/Sub adapters.
+- Canonical schema-versioned operational JSON codec and opaque SHA-256 Redis keyspace.
+- Mutation-driven SecurityState bumps and revocation markers through `SecurityStateMutationEventSink`.
+- Optional JWT Session revocation overlay while preserving mandatory durable Session validation.
+- Operational conformance and adversarial security qualification suites with a dedicated CI gate.
+- Executable distributed authorization and JWT revocation examples plus a distributed-operations guide.
+
+### Security
+
+- Redis remains optional operational infrastructure and never becomes IAM or authorization authority.
+- Cached ALLOW decisions require exact authoritative SecurityStateStamp equality.
+- Revocation-registry uncertainty bypasses cached ALLOW decisions and falls back to authoritative evaluation.
+- Lost Pub/Sub invalidation messages cannot preserve a trusted stale ALLOW.
+- Corrupt operational payloads fail closed to MISS/unavailability semantics.
+- State that does not stabilize within the bounded retry budget raises `AuthorizationRuntimeUnavailable`.
+- Cross-tenant cache keys and subject/tenant state dimensions are explicitly qualified for isolation.
+- Real Redis service qualification remains pending the final `0.5.0a1` release-qualification lot.
+
+
 ## [0.4.0b8] - 2026-09-19
 
 ### Added
