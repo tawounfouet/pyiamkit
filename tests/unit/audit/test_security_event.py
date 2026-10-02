@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from types import MappingProxyType
 
 import pytest
@@ -111,7 +111,7 @@ def test_security_event_requires_strict_utc_timestamp() -> None:
         SecurityEvent(
             event_type="SecuritySignal",
             severity=SecuritySeverity.INFO,
-            occurred_at=NOW.astimezone(UTC + timedelta(hours=1)),
+            occurred_at=NOW.astimezone(timezone(timedelta(hours=1))),
         )
 
 
