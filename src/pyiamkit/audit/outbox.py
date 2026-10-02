@@ -1,7 +1,7 @@
 """Transactional outbox domain objects."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
 from types import MappingProxyType
@@ -87,6 +87,36 @@ class OutboxEvent:
         )
         object.__setattr__(self, "tenant_id", self._optional_text(self.tenant_id, "tenant_id"))
         object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
+
+    @property
+    def deliverable(self) -> bool:
+        """Whether this durable intent may be attempted by an outbox worker."""
+
+        return self.status in {OutboxStatus.PENDING, OutboxStatus.FAILED}
+
+    def record_published(self, *, published_at: datetime) -> "OutboxEvent":
+        """Return the successful delivery state after one external publish attempt."""
+
+        if not self.deliverable:
+            raise ValueError("Published OutboxEvent cannot be delivered again")
+        return replace(
+            self,
+            published_at=published_at,
+            attempts=self.attempts + 1,
+            status=OutboxStatus.PUBLISHED,
+        )
+
+    def record_failed(self) -> "OutboxEvent":
+        """Return the retryable failed state after one external publish attempt."""
+
+        if not self.deliverable:
+            raise ValueError("Published OutboxEvent cannot be marked failed")
+        return replace(
+            self,
+            published_at=None,
+            attempts=self.attempts + 1,
+            status=OutboxStatus.FAILED,
+        )
 
     @staticmethod
     def _optional_text(value: str | None, field_name: str) -> str | None:
