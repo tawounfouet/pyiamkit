@@ -140,4 +140,10 @@ catalog.remove_permission(role.id, "invoice.read")
 after_mutation = runtime.authorize(request)
 assert after_mutation.allowed is False
 
-print(first.result.value, "→ cached", second.result.value, "→ mutation", after_mutation.result.value)
+print(
+    first.result.value,
+    "→ cached",
+    second.result.value,
+    "→ mutation",
+    after_mutation.result.value,
+)
