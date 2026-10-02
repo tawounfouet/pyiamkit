@@ -25,7 +25,6 @@ class InMemoryAuditRepository:
         return tuple(event for event in self._events if event.subject_id == subject_id)
 
 
-
 class InMemoryOutboxRepository:
     """Reference append-only outbox repository."""
 
