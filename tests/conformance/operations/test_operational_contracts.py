@@ -110,10 +110,7 @@ def _assert_security_state_conformance(
 
     assert writer.bump_identity(identity_a) == StateVersion(2)
     assert writer.bump_identity(identity_a) == StateVersion(3)
-    assert (
-        reader.stamp_for(identity_id=identity_a, tenant_id=tenant_a).identity
-        == StateVersion(3)
-    )
+    assert reader.stamp_for(identity_id=identity_a, tenant_id=tenant_a).identity == StateVersion(3)
 
 
 @pytest.mark.conformance
