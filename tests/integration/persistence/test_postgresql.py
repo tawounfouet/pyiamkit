@@ -313,7 +313,6 @@ def test_postgresql_security_state_atomic_bumps_under_contention() -> None:
     engine.dispose()
 
 
-
 @pytest.mark.integration
 def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None:
     database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
@@ -350,9 +349,9 @@ def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None
 
     with factory() as session:
         assert SqlAlchemyIdentityRepository(session).exists(committed_identity.id) is True
-        assert SqlAlchemyAuditRepository(session).by_correlation_id(
-            "postgres-outbox-commit"
-        ) == (committed_audit,)
+        assert SqlAlchemyAuditRepository(session).by_correlation_id("postgres-outbox-commit") == (
+            committed_audit,
+        )
         assert SqlAlchemyOutboxRepository(session).get(committed_outbox.id) == committed_outbox
 
     rolled_back_identity = Identity.create_user(display_name="Rolled Back", created_at=NOW)
@@ -381,9 +380,9 @@ def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None
 
     with factory() as session:
         assert SqlAlchemyIdentityRepository(session).exists(rolled_back_identity.id) is False
-        assert SqlAlchemyAuditRepository(session).by_correlation_id(
-            "postgres-outbox-rollback"
-        ) == ()
+        assert (
+            SqlAlchemyAuditRepository(session).by_correlation_id("postgres-outbox-rollback") == ()
+        )
         assert SqlAlchemyOutboxRepository(session).get(rolled_back_outbox.id) is None
 
     drop_schema(engine)
