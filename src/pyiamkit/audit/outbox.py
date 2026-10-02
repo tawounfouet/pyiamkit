@@ -49,14 +49,26 @@ class OutboxEvent:
         event_type = self.event_type.strip()
         if not event_type:
             raise ValueError("OutboxEvent.event_type must not be empty")
-        if isinstance(self.event_version, bool) or self.event_version < 1:
+        if (
+            not isinstance(self.event_version, int)
+            or isinstance(self.event_version, bool)
+            or self.event_version < 1
+        ):
             raise ValueError("OutboxEvent.event_version must be an integer >= 1")
         if self.aggregate_version is not None and (
-            isinstance(self.aggregate_version, bool) or self.aggregate_version < 0
+            not isinstance(self.aggregate_version, int)
+            or isinstance(self.aggregate_version, bool)
+            or self.aggregate_version < 0
         ):
             raise ValueError("OutboxEvent.aggregate_version must be an integer >= 0")
-        if isinstance(self.attempts, bool) or self.attempts < 0:
+        if (
+            not isinstance(self.attempts, int)
+            or isinstance(self.attempts, bool)
+            or self.attempts < 0
+        ):
             raise ValueError("OutboxEvent.attempts must be an integer >= 0")
+        if not isinstance(self.status, OutboxStatus):
+            raise TypeError("OutboxEvent.status must be an OutboxStatus")
         if self.status is OutboxStatus.PUBLISHED and self.published_at is None:
             raise ValueError("Published OutboxEvent requires published_at")
         if self.status is not OutboxStatus.PUBLISHED and self.published_at is not None:
