@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from pyiamkit.audit import AuditCategory, AuditEvent, OutboxEvent
+from pyiamkit.audit import AuditCategory, AuditEvent, OutboxEvent, OutboxStatus
 from pyiamkit.authentication import (
     AssuranceLevel,
     AuthenticationContext,
@@ -384,6 +384,49 @@ def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None
             SqlAlchemyAuditRepository(session).by_correlation_id("postgres-outbox-rollback") == ()
         )
         assert SqlAlchemyOutboxRepository(session).get(rolled_back_outbox.id) is None
+
+    drop_schema(engine)
+    engine.dispose()
+
+
+
+@pytest.mark.integration
+def test_postgresql_outbox_delivery_state_transitions() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    event = OutboxEvent(
+        event_type="RoleBindingRevoked",
+        occurred_at=NOW,
+        payload={"reason": "security"},
+    )
+
+    with factory.begin() as session:
+        repository = SqlAlchemyOutboxRepository(session)
+        repository.append(event)
+        assert repository.deliverable() == (event,)
+
+        repository.mark_failed(event.id)
+        failed = repository.get(event.id)
+        assert failed is not None
+        assert failed.status is OutboxStatus.FAILED
+        assert failed.attempts == 1
+        assert failed.published_at is None
+        assert repository.deliverable() == (failed,)
+
+        published_at = NOW + timedelta(seconds=1)
+        repository.mark_published(event.id, published_at=published_at)
+        published = repository.get(event.id)
+        assert published is not None
+        assert published.status is OutboxStatus.PUBLISHED
+        assert published.attempts == 2
+        assert published.published_at == published_at
+        assert repository.deliverable() == ()
 
     drop_schema(engine)
     engine.dispose()
