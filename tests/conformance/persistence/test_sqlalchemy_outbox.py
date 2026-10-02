@@ -1,10 +1,7 @@
-from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from sqlalchemy.orm import Session
-
 from pyiamkit.audit import (
     AuditCategory,
     AuditEvent,
@@ -21,18 +18,8 @@ from pyiamkit.persistence.sqlalchemy import (
     create_session_factory,
     create_sqlalchemy_engine,
 )
-from pyiamkit.persistence.sqlalchemy.database import SqlAlchemyEngine
 
 NOW = datetime(2026, 10, 2, 14, 45, tzinfo=UTC)
-
-
-@pytest.fixture
-def database(tmp_path: Path) -> Iterator[tuple[SqlAlchemyEngine, object]]:
-    engine = create_sqlalchemy_engine(f"sqlite+pysqlite:///{tmp_path / 'outbox.db'}")
-    create_schema(engine)
-    factory = create_session_factory(engine)
-    yield engine, factory
-    engine.dispose()
 
 
 def _audit() -> AuditEvent:
