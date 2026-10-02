@@ -32,9 +32,7 @@ class SqlAlchemyOutboxRepository:
     def append(self, event: OutboxEvent) -> None:
         try:
             with self._session.begin_nested():
-                self._session.execute(
-                    insert(outbox_event_table).values(**_outbox_values(event))
-                )
+                self._session.execute(insert(outbox_event_table).values(**_outbox_values(event)))
         except IntegrityError as exc:
             raise ValueError(f"Outbox event {event.id} already exists") from exc
 
@@ -106,13 +104,9 @@ def _outbox_from_row(row: RowMapping) -> OutboxEvent:
         id=OutboxEventId(uuid_from_db(row["id"])),
         event_type=str(row["event_type"]),
         event_version=int(row["event_version"]),
-        aggregate_type=(
-            None if row["aggregate_type"] is None else str(row["aggregate_type"])
-        ),
+        aggregate_type=(None if row["aggregate_type"] is None else str(row["aggregate_type"])),
         aggregate_id=None if row["aggregate_id"] is None else str(row["aggregate_id"]),
-        aggregate_version=(
-            None if aggregate_version is None else int(aggregate_version)
-        ),
+        aggregate_version=(None if aggregate_version is None else int(aggregate_version)),
         tenant_id=None if row["tenant_id"] is None else str(row["tenant_id"]),
         payload=mapping_from_json(row["payload_json"]),
         occurred_at=utc_from_db(row["occurred_at"]),
