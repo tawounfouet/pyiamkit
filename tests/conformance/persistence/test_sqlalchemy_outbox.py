@@ -157,7 +157,6 @@ def test_sqlalchemy_audit_outbox_writer_rolls_back_audit_when_outbox_conflicts(
     engine.dispose()
 
 
-
 def test_sqlalchemy_outbox_repository_persists_delivery_state_transitions(
     tmp_path: Path,
 ) -> None:
