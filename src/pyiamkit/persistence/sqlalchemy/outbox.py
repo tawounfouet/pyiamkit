@@ -1,6 +1,8 @@
 """SQLAlchemy transactional outbox persistence."""
 
-from sqlalchemy import insert, select
+from datetime import datetime
+
+from sqlalchemy import insert, select, update
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,7 +26,7 @@ from .schema import audit_event_table, outbox_event_table
 
 
 class SqlAlchemyOutboxRepository:
-    """Append-only OutboxRepository backed by the caller-owned Session."""
+    """OutboxRepository backed by the caller-owned Session."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -47,12 +49,36 @@ class SqlAlchemyOutboxRepository:
         return None if row is None else _outbox_from_row(row)
 
     def pending(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]:
-        if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
-            raise ValueError("limit must be an integer >= 1")
+        self._validate_limit(limit)
+        return self._select_by_statuses((OutboxStatus.PENDING,), limit=limit)
+
+    def deliverable(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]:
+        self._validate_limit(limit)
+        return self._select_by_statuses(
+            (OutboxStatus.PENDING, OutboxStatus.FAILED),
+            limit=limit,
+        )
+
+    def mark_published(self, event_id: OutboxEventId, *, published_at: datetime) -> None:
+        current = self._require_deliverable(event_id)
+        updated = current.record_published(published_at=published_at)
+        self._write_delivery_state(current=current, updated=updated)
+
+    def mark_failed(self, event_id: OutboxEventId) -> None:
+        current = self._require_deliverable(event_id)
+        updated = current.record_failed()
+        self._write_delivery_state(current=current, updated=updated)
+
+    def _select_by_statuses(
+        self,
+        statuses: tuple[OutboxStatus, ...],
+        *,
+        limit: int,
+    ) -> tuple[OutboxEvent, ...]:
         rows = (
             self._session.execute(
                 select(outbox_event_table)
-                .where(outbox_event_table.c.status == OutboxStatus.PENDING.value)
+                .where(outbox_event_table.c.status.in_(status.value for status in statuses))
                 .order_by(outbox_event_table.c.occurred_at, outbox_event_table.c.id)
                 .limit(limit)
             )
@@ -60,6 +86,41 @@ class SqlAlchemyOutboxRepository:
             .all()
         )
         return tuple(_outbox_from_row(row) for row in rows)
+
+    def _require_deliverable(self, event_id: OutboxEventId) -> OutboxEvent:
+        event = self.get(event_id)
+        if event is None:
+            raise ValueError(f"Outbox event {event_id} does not exist")
+        if not event.deliverable:
+            raise ValueError(f"Outbox event {event_id} is not deliverable")
+        return event
+
+    def _write_delivery_state(
+        self,
+        *,
+        current: OutboxEvent,
+        updated: OutboxEvent,
+    ) -> None:
+        result = self._session.execute(
+            update(outbox_event_table)
+            .where(
+                outbox_event_table.c.id == current.id.value,
+                outbox_event_table.c.status == current.status.value,
+                outbox_event_table.c.attempts == current.attempts,
+            )
+            .values(
+                status=updated.status.value,
+                attempts=updated.attempts,
+                published_at=updated.published_at,
+            )
+        )
+        if result.rowcount != 1:
+            raise ValueError(f"Outbox event {current.id} delivery state changed concurrently")
+
+    @staticmethod
+    def _validate_limit(limit: int) -> None:
+        if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+            raise ValueError("limit must be an integer >= 1")
 
 
 class SqlAlchemyAuditOutboxWriter:
