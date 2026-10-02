@@ -389,7 +389,6 @@ def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None
     engine.dispose()
 
 
-
 @pytest.mark.integration
 def test_postgresql_outbox_delivery_state_transitions() -> None:
     database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
