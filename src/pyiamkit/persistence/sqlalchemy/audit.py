@@ -83,7 +83,6 @@ def _audit_from_row(row: RowMapping) -> AuditEvent:
     )
 
 
-
 def _audit_values(event: AuditEvent) -> dict[str, object]:
     return {
         "id": event.id.value,
