@@ -6,6 +6,8 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0a1] - 2026-10-02
+
 ### Added
 
 - Distributed authorization runtime combining authoritative SecurityState, derived authorization cache and deny-fast revocation overlays.
@@ -26,7 +28,7 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 - Corrupt operational payloads fail closed to MISS/unavailability semantics.
 - State that does not stabilize within the bounded retry budget raises `AuthorizationRuntimeUnavailable`.
 - Cross-tenant cache keys and subject/tenant state dimensions are explicitly qualified for isolation.
-- Real Redis service qualification remains pending the final `0.5.0a1` release-qualification lot.
+- The built and installed `0.5.0a1` wheel is qualified against Redis 7 for cache PXAT/SCAN behavior, monotonic Lua revocation/state projection, Pub/Sub, namespace isolation and connection recovery.
 
 
 ## [0.4.0b8] - 2026-09-19
