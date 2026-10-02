@@ -101,7 +101,7 @@ class SqlAlchemyOutboxRepository:
         current: OutboxEvent,
         updated: OutboxEvent,
     ) -> None:
-        result = self._session.execute(
+        result = self._session.connection().execute(
             update(outbox_event_table)
             .where(
                 outbox_event_table.c.id == current.id.value,
