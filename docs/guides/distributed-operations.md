@@ -281,5 +281,5 @@ examples/jwt_revocation_overlay.py
 ```
 
 The Redis adapters are intentionally documented separately from those examples.
-Real Redis integration and release qualification are completed in the final
-`0.5.0a1` qualification lot.
+The `0.5.0a1` release line is qualified in CI against a real Redis 7 service
+using the built and installed wheel.
