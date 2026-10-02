@@ -1,5 +1,6 @@
 """In-memory append-only audit repository."""
 
+from collections.abc import Iterable
 from datetime import datetime
 
 from ..domain import AuditEvent, AuditEventId
@@ -76,11 +77,8 @@ class InMemoryOutboxRepository:
         raise RuntimeError("Outbox repository index is inconsistent")
 
     @staticmethod
-    def _ordered(events: object, *, limit: int) -> tuple[OutboxEvent, ...]:
-        ordered = sorted(
-            events,  # type: ignore[arg-type]
-            key=lambda event: (event.occurred_at, str(event.id)),
-        )
+    def _ordered(events: Iterable[OutboxEvent], *, limit: int) -> tuple[OutboxEvent, ...]:
+        ordered = sorted(events, key=lambda event: (event.occurred_at, str(event.id)))
         return tuple(ordered[:limit])
 
     @staticmethod
