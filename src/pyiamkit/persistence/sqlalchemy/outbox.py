@@ -13,9 +13,14 @@ from pyiamkit.audit import (
 )
 
 from .audit import _audit_values
-from .common import mapping_from_json, optional_utc_from_db, utc_from_db, uuid_from_db
+from .common import (
+    ensure_json_mapping,
+    mapping_from_json,
+    optional_utc_from_db,
+    utc_from_db,
+    uuid_from_db,
+)
 from .schema import audit_event_table, outbox_event_table
-from .common import ensure_json_mapping
 
 
 class SqlAlchemyOutboxRepository:
