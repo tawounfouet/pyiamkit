@@ -18,22 +18,7 @@ class SqlAlchemyAuditRepository:
         self._session = session
 
     def append(self, event: AuditEvent) -> None:
-        values = {
-            "id": event.id.value,
-            "category": event.category.value,
-            "event_type": event.event_type,
-            "occurred_at": event.occurred_at,
-            "actor_id": event.actor_id,
-            "subject_id": event.subject_id,
-            "tenant_id": event.tenant_id,
-            "action": event.action,
-            "resource_type": event.resource_type,
-            "resource_id": event.resource_id,
-            "outcome": None if event.outcome is None else event.outcome.value,
-            "reason_code": event.reason_code,
-            "correlation_id": event.correlation_id,
-            "metadata_json": ensure_json_mapping(event.metadata),
-        }
+        values = _audit_values(event)
         try:
             with self._session.begin_nested():
                 self._session.execute(insert(audit_event_table).values(**values))
@@ -96,3 +81,23 @@ def _audit_from_row(row: RowMapping) -> AuditEvent:
         correlation_id=(None if row["correlation_id"] is None else str(row["correlation_id"])),
         metadata=mapping_from_json(row["metadata_json"]),
     )
+
+
+
+def _audit_values(event: AuditEvent) -> dict[str, object]:
+    return {
+        "id": event.id.value,
+        "category": event.category.value,
+        "event_type": event.event_type,
+        "occurred_at": event.occurred_at,
+        "actor_id": event.actor_id,
+        "subject_id": event.subject_id,
+        "tenant_id": event.tenant_id,
+        "action": event.action,
+        "resource_type": event.resource_type,
+        "resource_id": event.resource_id,
+        "outcome": None if event.outcome is None else event.outcome.value,
+        "reason_code": event.reason_code,
+        "correlation_id": event.correlation_id,
+        "metadata_json": ensure_json_mapping(event.metadata),
+    }
