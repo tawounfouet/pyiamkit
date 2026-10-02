@@ -550,3 +550,41 @@ Index(
     audit_event_table.c.tenant_id,
     audit_event_table.c.occurred_at,
 )
+
+
+outbox_event_table = Table(
+    "iam_outbox_events",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True),
+    Column("event_type", String(255), nullable=False),
+    Column("event_version", Integer, nullable=False),
+    Column("aggregate_type", String(255)),
+    Column("aggregate_id", String(512)),
+    Column("aggregate_version", Integer),
+    Column("tenant_id", String(255), index=True),
+    Column("payload_json", json_type, nullable=False),
+    Column("occurred_at", DateTime(timezone=True), nullable=False),
+    Column("published_at", DateTime(timezone=True)),
+    Column("attempts", Integer, nullable=False),
+    Column("status", String(32), nullable=False),
+    CheckConstraint("event_version >= 1", name="outbox_event_version_positive"),
+    CheckConstraint(
+        "aggregate_version IS NULL OR aggregate_version >= 0",
+        name="outbox_aggregate_version_non_negative",
+    ),
+    CheckConstraint("attempts >= 0", name="outbox_attempts_non_negative"),
+    CheckConstraint(
+        "status IN ('pending', 'published', 'failed')",
+        name="outbox_status",
+    ),
+)
+Index(
+    "ix_iam_outbox_events_status_occurred_at",
+    outbox_event_table.c.status,
+    outbox_event_table.c.occurred_at,
+)
+Index(
+    "ix_iam_outbox_events_tenant_status",
+    outbox_event_table.c.tenant_id,
+    outbox_event_table.c.status,
+)
