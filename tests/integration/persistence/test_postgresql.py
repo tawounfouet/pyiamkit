@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from pyiamkit.audit import AuditCategory, AuditEvent, OutboxEvent
 from pyiamkit.authentication import (
     AssuranceLevel,
     AuthenticationContext,
@@ -31,12 +32,14 @@ from pyiamkit.authorization import (
 from pyiamkit.identity import Identity, IdentityId
 from pyiamkit.operations import StateVersion
 from pyiamkit.persistence.sqlalchemy import (
+    SqlAlchemyAuditOutboxWriter,
     SqlAlchemyAuditRepository,
     SqlAlchemyConstraintRepository,
     SqlAlchemyCredentialRepository,
     SqlAlchemyIdentityRepository,
     SqlAlchemyMembershipRepository,
     SqlAlchemyMfaFactorRepository,
+    SqlAlchemyOutboxRepository,
     SqlAlchemyPermissionCatalogRepository,
     SqlAlchemyProvisioningGroupRepository,
     SqlAlchemyProvisioningUserRepository,
@@ -305,6 +308,83 @@ def test_postgresql_security_state_atomic_bumps_under_contention() -> None:
             tenant_id=tenant_id,
         )
         assert stamp.subject_authorization == StateVersion(32)
+
+    drop_schema(engine)
+    engine.dispose()
+
+
+
+@pytest.mark.integration
+def test_postgresql_audit_outbox_follows_business_transaction_boundary() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+
+    committed_identity = Identity.create_user(display_name="Committed", created_at=NOW)
+    committed_audit = AuditEvent(
+        category=AuditCategory.SECURITY,
+        event_type="IdentityCreated",
+        occurred_at=NOW,
+        subject_id=str(committed_identity.id),
+        correlation_id="postgres-outbox-commit",
+    )
+    committed_outbox = OutboxEvent(
+        event_type="IdentityCreated",
+        aggregate_type="Identity",
+        aggregate_id=str(committed_identity.id),
+        occurred_at=NOW,
+        payload={"correlation_id": "postgres-outbox-commit"},
+    )
+
+    with factory.begin() as session:
+        SqlAlchemyIdentityRepository(session).save(committed_identity)
+        SqlAlchemyAuditOutboxWriter(session).append(
+            committed_audit,
+            committed_outbox,
+        )
+
+    with factory() as session:
+        assert SqlAlchemyIdentityRepository(session).exists(committed_identity.id) is True
+        assert SqlAlchemyAuditRepository(session).by_correlation_id(
+            "postgres-outbox-commit"
+        ) == (committed_audit,)
+        assert SqlAlchemyOutboxRepository(session).get(committed_outbox.id) == committed_outbox
+
+    rolled_back_identity = Identity.create_user(display_name="Rolled Back", created_at=NOW)
+    rolled_back_audit = AuditEvent(
+        category=AuditCategory.SECURITY,
+        event_type="IdentityCreated",
+        occurred_at=NOW,
+        subject_id=str(rolled_back_identity.id),
+        correlation_id="postgres-outbox-rollback",
+    )
+    rolled_back_outbox = OutboxEvent(
+        event_type="IdentityCreated",
+        aggregate_type="Identity",
+        aggregate_id=str(rolled_back_identity.id),
+        occurred_at=NOW,
+        payload={"correlation_id": "postgres-outbox-rollback"},
+    )
+
+    with factory() as session:
+        SqlAlchemyIdentityRepository(session).save(rolled_back_identity)
+        SqlAlchemyAuditOutboxWriter(session).append(
+            rolled_back_audit,
+            rolled_back_outbox,
+        )
+        session.rollback()
+
+    with factory() as session:
+        assert SqlAlchemyIdentityRepository(session).exists(rolled_back_identity.id) is False
+        assert SqlAlchemyAuditRepository(session).by_correlation_id(
+            "postgres-outbox-rollback"
+        ) == ()
+        assert SqlAlchemyOutboxRepository(session).get(rolled_back_outbox.id) is None
 
     drop_schema(engine)
     engine.dispose()
