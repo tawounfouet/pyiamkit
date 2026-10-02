@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pyiamkit.audit import OutboxEvent, OutboxPublisher, OutboxStatus
+from pyiamkit.audit import OutboxEvent, OutboxEventId, OutboxPublisher, OutboxStatus
 from pyiamkit.audit.adapters import InMemoryOutboxRepository
 from pyiamkit.shared import Clock
 
@@ -32,7 +32,7 @@ class FailingMarkPublishedRepository(InMemoryOutboxRepository):
         super().__init__()
         self.fail_once = True
 
-    def mark_published(self, event_id, *, published_at: datetime) -> None:  # type: ignore[no-untyped-def]
+    def mark_published(self, event_id: OutboxEventId, *, published_at: datetime) -> None:
         if self.fail_once:
             self.fail_once = False
             raise RuntimeError("delivery state persistence failed")
