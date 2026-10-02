@@ -103,8 +103,8 @@ examples/distributed_authorization.py
 examples/jwt_revocation_overlay.py
 ```
 
-Real Redis service qualification is intentionally completed in the final
-`0.5.0a1` release-qualification lot.
+The Redis adapters are release-qualified against a real Redis 7 service in CI
+from the built and installed `0.5.0a1` wheel.
 
 ## 0.4.0b8
 
