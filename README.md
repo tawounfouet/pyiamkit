@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** distributed-operations alpha (`0.5.0a1`) — under qualification and not yet recommended for production use.
+> **Status:** qualified distributed-operations alpha (`0.5.0a1`) — not yet recommended for production use.
 
 ## Goals
 
