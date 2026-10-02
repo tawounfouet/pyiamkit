@@ -35,8 +35,8 @@ jobs:
         run: pytest --cov=pyiamkit --cov-report=term-missing --cov-fail-under=90
       - name: Build
         run: python -m build
-      - name: Verify source distribution docs
-        run: tar -tf dist/*.tar.gz | grep -q '/docs/guides/distributed-operations.md
+      - name: Install wheel
+        run: python -m pip install --force-reinstall dist/*.whl
       - name: Smoke import
         run: python scripts/smoke_install.py
       - name: Run examples
@@ -125,6 +125,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install build pytest "redis>=5,<7"
           python -m build
+      - name: Verify source distribution docs
+        run: |
+          tar -tf dist/*.tar.gz | grep -q '/docs/guides/distributed-operations.md'
       - name: Install wheel
         run: python -m pip install --force-reinstall dist/*.whl
       - name: Smoke installed package
