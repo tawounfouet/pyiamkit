@@ -25,6 +25,7 @@ from .database import (
 )
 from .identity import SqlAlchemyIdentityRepository
 from .operations import SqlAlchemySecurityStateStore
+from .outbox import SqlAlchemyAuditOutboxWriter, SqlAlchemyOutboxRepository
 from .provisioning import (
     SqlAlchemyProvisioningGroupRepository,
     SqlAlchemyProvisioningUserRepository,
@@ -32,12 +33,14 @@ from .provisioning import (
 from .tenancy import SqlAlchemyMembershipRepository, SqlAlchemyTenantRepository
 
 __all__ = [
+    "SqlAlchemyAuditOutboxWriter",
     "SqlAlchemyAuditRepository",
     "SqlAlchemyConstraintRepository",
     "SqlAlchemyCredentialRepository",
     "SqlAlchemyIdentityRepository",
     "SqlAlchemyMembershipRepository",
     "SqlAlchemyMfaFactorRepository",
+    "SqlAlchemyOutboxRepository",
     "SqlAlchemyPermissionCatalogRepository",
     "SqlAlchemyProvisioningGroupRepository",
     "SqlAlchemyProvisioningUserRepository",
