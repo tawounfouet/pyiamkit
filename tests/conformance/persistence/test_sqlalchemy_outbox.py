@@ -155,3 +155,44 @@ def test_sqlalchemy_audit_outbox_writer_rolls_back_audit_when_outbox_conflicts(
         assert SqlAlchemyOutboxRepository(session).get(outbox.id) == outbox
 
     engine.dispose()
+
+
+
+def test_sqlalchemy_outbox_repository_persists_delivery_state_transitions(
+    tmp_path: Path,
+) -> None:
+    engine = create_sqlalchemy_engine(f"sqlite+pysqlite:///{tmp_path / 'delivery.db'}")
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    event = _outbox()
+
+    with factory() as session:
+        repository = SqlAlchemyOutboxRepository(session)
+        repository.append(event)
+
+        assert repository.deliverable() == (event,)
+
+        repository.mark_failed(event.id)
+        failed = repository.get(event.id)
+        assert failed is not None
+        assert failed.status is OutboxStatus.FAILED
+        assert failed.attempts == 1
+        assert failed.published_at is None
+        assert repository.pending() == ()
+        assert repository.deliverable() == (failed,)
+
+        published_at = NOW + timedelta(seconds=5)
+        repository.mark_published(event.id, published_at=published_at)
+        published = repository.get(event.id)
+        assert published is not None
+        assert published.status is OutboxStatus.PUBLISHED
+        assert published.attempts == 2
+        assert published.published_at == published_at
+        assert repository.deliverable() == ()
+
+        with pytest.raises(ValueError, match="not deliverable"):
+            repository.mark_failed(event.id)
+
+        session.commit()
+
+    engine.dispose()
