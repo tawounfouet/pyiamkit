@@ -10,8 +10,8 @@ from pyiamkit.identity import IdentityId
 from pyiamkit.operations import (
     AuthorizationCacheEntry,
     AuthorizationCacheKey,
-    CacheNamespace,
     CachedAuthorizationDecision,
+    CacheNamespace,
     InvalidationEvent,
     InvalidationHandler,
     InvalidationKind,
