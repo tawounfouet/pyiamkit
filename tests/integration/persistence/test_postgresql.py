@@ -429,3 +429,34 @@ def test_postgresql_outbox_delivery_state_transitions() -> None:
 
     drop_schema(engine)
     engine.dispose()
+
+
+@pytest.mark.integration
+def test_postgresql_outbox_worker_cannot_see_uncommitted_intent() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    event = OutboxEvent(
+        event_type="MembershipSuspended",
+        occurred_at=NOW,
+        payload={"reason": "security"},
+    )
+
+    with factory() as writer_session:
+        SqlAlchemyOutboxRepository(writer_session).append(event)
+
+        with factory() as worker_session:
+            assert SqlAlchemyOutboxRepository(worker_session).deliverable() == ()
+
+        writer_session.commit()
+
+    with factory() as worker_session:
+        assert SqlAlchemyOutboxRepository(worker_session).deliverable() == (event,)
+
+    drop_schema(engine)
+    engine.dispose()
