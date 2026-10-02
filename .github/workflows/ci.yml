@@ -78,6 +78,28 @@ jobs:
         run: pytest tests/integration/persistence/test_postgresql.py -m integration -q
 
 
+  operations-conformance-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install operations qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[sqlalchemy]"
+          python -m pip install pytest
+      - name: Operational conformance and security qualification
+        run: >-
+          pytest
+          tests/conformance/operations
+          tests/security/test_distributed_operations_security.py
+          -m "conformance or security"
+          -q
+
+
   django-conformance:
     runs-on: ubuntu-latest
     strategy:
