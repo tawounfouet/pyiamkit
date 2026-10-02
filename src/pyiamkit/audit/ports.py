@@ -20,7 +20,6 @@ class AuditRepository(AuditSink, Protocol):
     def by_subject(self, subject_id: str) -> tuple[AuditEvent, ...]: ...
 
 
-
 class OutboxRepository(Protocol):
     """Durable append-only publication intents."""
 
