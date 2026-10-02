@@ -258,6 +258,7 @@ class Session:
                     "authentication_method": self.context.method.value,
                     "assurance_level": self.context.assurance_level.value,
                     "mfa": self.context.mfa,
+                    "expires_at": self.expires_at.isoformat(),
                 },
             )
         )

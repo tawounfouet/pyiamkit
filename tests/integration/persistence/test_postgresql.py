@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -27,7 +28,8 @@ from pyiamkit.authorization import (
     RoleBinding,
     RoleType,
 )
-from pyiamkit.identity import Identity
+from pyiamkit.identity import Identity, IdentityId
+from pyiamkit.operations import StateVersion
 from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyAuditRepository,
     SqlAlchemyConstraintRepository,
@@ -40,6 +42,7 @@ from pyiamkit.persistence.sqlalchemy import (
     SqlAlchemyProvisioningUserRepository,
     SqlAlchemyRoleBindingRepository,
     SqlAlchemyRoleRepository,
+    SqlAlchemySecurityStateStore,
     SqlAlchemySessionRepository,
     SqlAlchemyTenantRepository,
     create_schema,
@@ -49,7 +52,7 @@ from pyiamkit.persistence.sqlalchemy import (
 )
 from pyiamkit.provisioning import ProvisioningGroup, ProvisioningUser
 from pyiamkit.shared import Clock
-from pyiamkit.tenancy import Membership, Tenant, TenantScope
+from pyiamkit.tenancy import Membership, Tenant, TenantId, TenantScope
 
 NOW = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
 
@@ -266,6 +269,42 @@ def test_postgresql_end_to_end_authorization_persistence() -> None:
         assert len(audit_events) == 1
         assert audit_events[0].outcome is not None
         assert audit_events[0].outcome.value == "allow"
+
+    drop_schema(engine)
+    engine.dispose()
+
+
+@pytest.mark.integration
+def test_postgresql_security_state_atomic_bumps_under_contention() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    identity_id = IdentityId.new()
+    tenant_id = TenantId.new()
+
+    def bump(_: int) -> StateVersion:
+        with factory.begin() as session:
+            return SqlAlchemySecurityStateStore(session).bump_subject_authorization(
+                identity_id,
+                tenant_id,
+            )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        versions = tuple(executor.map(bump, range(32)))
+
+    assert {version.value for version in versions} == set(range(1, 33))
+
+    with factory() as session:
+        stamp = SqlAlchemySecurityStateStore(session).stamp_for(
+            identity_id=identity_id,
+            tenant_id=tenant_id,
+        )
+        assert stamp.subject_authorization == StateVersion(32)
 
     drop_schema(engine)
     engine.dispose()

@@ -2,7 +2,7 @@
 
 PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
 
-> **Status:** SCIM provider qualification beta (`0.4.0b8`) — not yet recommended for production use.
+> **Status:** qualified distributed-operations alpha (`0.5.0a1`) — not yet recommended for production use.
 
 ## Goals
 
@@ -10,34 +10,48 @@ PyIAMKit is designed around default deny, least privilege, explicit tenant/scope
 
 ## Current milestone
 
-`0.4.0b8` adds **offline SCIM provider qualification** for Microsoft Entra and Okta on top of the existing provider profiles.
+`0.5.0a1` adds a distributed operational layer around the existing authoritative
+IAM and authorization model.
 
 ```text
-Provider profile
-     ↓
-documented provider request pattern
-     ↓
-protected FastAPI SCIM router
-     ↓
-ScimHttpTransport
-     ↓
-User / Group provisioning core
+PostgreSQL / repositories
+        ↓
+authoritative SecurityStateStamp
+        ↓
+DistributedAuthorizationRuntime
+        ├── RevocationRegistry
+        ├── AuthorizationCache
+        └── AuthorizationEngine
+                 ↓
+              decision
 ```
 
-The Entra qualification scenario covers discovery, unquoted `externalId` lookup, Group creation, `excludedAttributes=members`, Group member add/remove and User deactivation.
+Redis is optional and non-authoritative. It can accelerate authorization cache
+lookups, deny-fast revocation checks, state projection and invalidation Pub/Sub,
+but it cannot prove that an `ALLOW` remains valid.
 
-The Okta qualification scenario covers quoted pre-create `userName` lookup, User creation, Group creation, pathless Group PATCH rename, member add/remove and User deactivation.
-
-`0.4.0b8` also adds bounded top-level SCIM projection through:
+The central safety rule is:
 
 ```text
-attributes
-excludedAttributes
+stale / unavailable / reordered distributed state
+                    ↓
+must never manufacture a trusted stale ALLOW
 ```
 
-Unknown attributes and nested projection paths fail closed. The canonical provisioning resources remain complete internally; projection only changes outbound SCIM representations.
+`SecurityStateMutationEventSink` translates security-sensitive domain events
+into monotonic state-version bumps and deny-fast revocation markers. JWT
+verification can optionally consult the same Session revocation registry before
+performing the mandatory durable Session check.
 
-These scenarios are **offline interoperability qualification**, not Microsoft App Gallery or Okta OIN certification. No vendor SDK or live provider credentials enter the PyIAMKit core.
+Executable walkthroughs:
+
+```text
+examples/distributed_authorization.py
+examples/jwt_revocation_overlay.py
+```
+
+See [Distributed operations](docs/guides/distributed-operations.md) for the
+failure model, Redis adapters and operational invariants.
 
 ## Installation
 
@@ -95,6 +109,12 @@ Django integration:
 
 ```bash
 python -m pip install -e ".[django]"
+```
+
+Redis operational adapters:
+
+```bash
+python -m pip install -e ".[redis]"
 ```
 
 FastAPI + JWT:
@@ -184,6 +204,7 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0b7    SCIM Group provisioning + HTTP transport
 0.4.0b8    SCIM provider offline qualification
 0.4.x      Explicit Group mapping policy
+0.5.0a1    Distributed cache, revocation, SecurityState and invalidation
 0.5.x      Distributed operations and production qualification
 1.0.0      Stable public API
 ```

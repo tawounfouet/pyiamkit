@@ -75,7 +75,7 @@ class AccessGovernanceApplicationService:
             tenant_id=tenant_id,
         )
         self._constraints.save(rule)
-        self._publish("AuthorizationConstraintRegistered", rule.id)
+        self._publish("AuthorizationConstraintRegistered", rule.id, tenant_id)
         return rule
 
     def register_resource_attribute_equals(
@@ -95,7 +95,7 @@ class AccessGovernanceApplicationService:
             tenant_id=tenant_id,
         )
         self._constraints.save(rule)
-        self._publish("AuthorizationConstraintRegistered", rule.id)
+        self._publish("AuthorizationConstraintRegistered", rule.id, tenant_id)
         return rule
 
     def register_minimum_assurance(
@@ -115,7 +115,7 @@ class AccessGovernanceApplicationService:
             tenant_id=tenant_id,
         )
         self._constraints.save(rule)
-        self._publish("MinimumAssuranceConstraintRegistered", rule.id)
+        self._publish("MinimumAssuranceConstraintRegistered", rule.id, tenant_id)
         return rule
 
     def register_mutually_exclusive_roles(
@@ -138,7 +138,7 @@ class AccessGovernanceApplicationService:
             tenant_id=tenant_id,
         )
         self._sod.save_static(rule)
-        self._publish("StaticSoDRuleRegistered", rule.id)
+        self._publish("StaticSoDRuleRegistered", rule.id, tenant_id)
         return rule
 
     def register_distinct_actor_sod(
@@ -158,7 +158,7 @@ class AccessGovernanceApplicationService:
             tenant_id=tenant_id,
         )
         self._sod.save_dynamic(rule)
-        self._publish("DynamicSoDRuleRegistered", rule.id)
+        self._publish("DynamicSoDRuleRegistered", rule.id, tenant_id)
         return rule
 
     def _require_permission(self, permission: str) -> PermissionCode:
@@ -187,13 +187,21 @@ class AccessGovernanceApplicationService:
         ):
             raise InvalidGovernanceRule("SoD rule Role belongs to a different tenant.")
 
-    def _publish(self, event_type: str, rule_id: GovernanceRuleId) -> None:
+    def _publish(
+        self,
+        event_type: str,
+        rule_id: GovernanceRuleId,
+        tenant_id: TenantId | None,
+    ) -> None:
         self._events.publish(
             (
                 DomainEvent(
                     event_type=event_type,
                     occurred_at=self._clock.now(),
-                    metadata={"rule_id": str(rule_id)},
+                    metadata={
+                        "rule_id": str(rule_id),
+                        "tenant_id": None if tenant_id is None else str(tenant_id),
+                    },
                 ),
             )
         )

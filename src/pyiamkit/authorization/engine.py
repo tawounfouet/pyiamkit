@@ -171,6 +171,11 @@ class AuthorizationEngine:
 
             source = path[-1]
             inherited = len(path) > 1
+            valid_until = membership.valid_until
+            if binding.valid_until is not None and (
+                valid_until is None or binding.valid_until < valid_until
+            ):
+                valid_until = binding.valid_until
             return self._finalize(
                 AuthorizationDecision(
                     result=AuthorizationResult.ALLOW,
@@ -184,6 +189,8 @@ class AuthorizationEngine:
                     permission=request.permission,
                     scope=request.scope,
                     evaluated_at=now,
+                    valid_until=valid_until,
+                    matched_membership_id=membership.id,
                     bound_role_id=role.id,
                     matched_binding_id=binding.id,
                     matched_role_id=source.id,
@@ -304,7 +311,12 @@ class AuthorizationEngine:
             )
         )
 
-    def _finalize(self, decision: AuthorizationDecision) -> AuthorizationDecision:
+    def record_decision(self, decision: AuthorizationDecision) -> AuthorizationDecision:
+        """Record a runtime-produced decision through the engine audit pipeline."""
+
         if self._audit is not None:
             self._audit.record(decision)
         return decision
+
+    def _finalize(self, decision: AuthorizationDecision) -> AuthorizationDecision:
+        return self.record_decision(decision)

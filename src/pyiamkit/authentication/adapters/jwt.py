@@ -1,13 +1,18 @@
 """PyJWT access-token adapter bound to durable Authentication Sessions."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import jwt as pyjwt
 
 from pyiamkit.identity import IdentityId
 from pyiamkit.shared import Clock
+
+if TYPE_CHECKING:
+    from pyiamkit.operations import RevocationRegistry
 
 from ..domain.session import Session
 from ..domain.value_objects import AssuranceLevel, AuthenticationMethod, SessionId
@@ -75,6 +80,7 @@ class JwtTokenProvider:
         algorithm: str = "RS256",
         access_token_ttl: timedelta = timedelta(minutes=15),
         leeway: timedelta = timedelta(seconds=30),
+        revocation_registry: RevocationRegistry | None = None,
     ) -> None:
         normalized_issuer = issuer.strip()
         if not normalized_issuer:
@@ -123,6 +129,7 @@ class JwtTokenProvider:
         self._leeway = leeway
         self._sessions = session_repository
         self._clock = clock
+        self._revocations = revocation_registry
 
     def issue_access_token(self, session: Session) -> IssuedAccessToken:
         now = _second_precision(self._clock.now())
@@ -237,6 +244,23 @@ class JwtTokenProvider:
 
     def _validate_session(self, claims: AccessTokenClaims) -> None:
         now = self._clock.now()
+        if self._revocations is not None:
+            from pyiamkit.operations import (
+                RevocationRegistryUnavailable,
+                RevocationTargetType,
+            )
+
+            try:
+                revoked = self._revocations.is_revoked(
+                    RevocationTargetType.SESSION,
+                    str(claims.session_id),
+                    at=now,
+                )
+            except RevocationRegistryUnavailable:
+                revoked = False
+            if revoked:
+                raise TokenSessionInactive(f"Session {claims.session_id} is revoked")
+
         session = self._sessions.get(claims.session_id)
         if session is None or not session.is_active(at=now):
             raise TokenSessionInactive(f"Session {claims.session_id} is not active")

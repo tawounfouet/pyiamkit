@@ -2,6 +2,110 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0a1
+
+Adds the framework-neutral distributed-operations surface from
+`pyiamkit.operations`:
+
+```text
+AuthorizationCache
+AuthorizationCacheEntry
+AuthorizationCacheInvalidationHandler
+AuthorizationCacheKey
+AuthorizationRuntimeUnavailable
+CachedAuthorizationDecision
+CacheNamespace
+DistributedAuthorizationRuntime
+InvalidationEvent
+InvalidationHandler
+InvalidationKind
+InvalidationPublisher
+OperationalJsonCodec
+OperationalSerializationError
+ProjectingSecurityStateReader
+RedisKeyspace
+RevocationMarker
+RevocationRegistry
+RevocationRegistryUnavailable
+RevocationTargetType
+SecurityStateMutationEventSink
+SecurityStateProjection
+SecurityStateReader
+SecurityStateStamp
+SecurityStateWriter
+StateVersion
+```
+
+Reference in-memory adapters:
+
+```text
+pyiamkit.operations.adapters.InMemoryAuthorizationCache
+pyiamkit.operations.adapters.InMemoryRevocationRegistry
+pyiamkit.operations.adapters.InMemorySecurityStateStore
+```
+
+Durable authoritative SecurityState persistence:
+
+```text
+pyiamkit.persistence.sqlalchemy.SqlAlchemySecurityStateStore
+```
+
+Optional Redis adapters are imported explicitly and require `pyiamkit[redis]`:
+
+```python
+from pyiamkit.operations.adapters.redis import (
+    RedisAuthorizationCache,
+    RedisInvalidationPublisher,
+    RedisInvalidationSubscriber,
+    RedisRevocationRegistry,
+    RedisSecurityStateProjection,
+)
+```
+
+`RedisAuthorizationCache` and `RedisSecurityStateProjection` are derived
+operational projections. They do not replace authoritative IAM repositories or
+the authoritative `SecurityStateReader`.
+
+`RedisRevocationRegistry` is a deny-fast overlay. Revocation uncertainty does
+not mean “not revoked”; the distributed runtime bypasses cached ALLOW decisions
+and evaluates authoritatively when revocation state cannot be trusted.
+
+`SecurityStateMutationEventSink` decorates an existing `DomainEventSink` and
+maps security-sensitive mutations to state-version bumps, invalidation events
+and bounded deny-fast markers.
+
+`JwtTokenProvider(..., revocation_registry=...)` adds an optional SESSION
+revocation overlay. A registry hit rejects before the Session repository lookup;
+a registry miss or registry outage still performs the mandatory authoritative
+SessionRepository validation.
+
+The nine SecurityState dimensions are:
+
+```text
+runtime_generation
+identity
+tenant
+membership
+subject_authorization
+tenant_authorization
+global_authorization
+governance
+authentication
+```
+
+Cache validity requires exact stamp equality. Pub/Sub is a low-latency signal
+only and is never authorization authority.
+
+Executable examples:
+
+```text
+examples/distributed_authorization.py
+examples/jwt_revocation_overlay.py
+```
+
+The Redis adapters are release-qualified against a real Redis 7 service in CI
+from the built and installed `0.5.0a1` wheel.
+
 ## 0.4.0b8
 
 Adds bounded SCIM representation projection:

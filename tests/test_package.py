@@ -2,4 +2,4 @@ import pyiamkit
 
 
 def test_package_exposes_version() -> None:
-    assert pyiamkit.__version__ == "0.4.0b8"
+    assert pyiamkit.__version__ == "0.5.0a1"

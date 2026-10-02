@@ -277,7 +277,12 @@ class Role:
             DomainEvent(
                 event_type=event_type.value,
                 occurred_at=at,
-                metadata={"role_id": str(self.id), **(metadata or {})},
+                metadata={
+                    "role_id": str(self.id),
+                    "role_type": self.role_type.value,
+                    "tenant_id": None if self.tenant_id is None else str(self.tenant_id),
+                    **(metadata or {}),
+                },
             )
         )
 
