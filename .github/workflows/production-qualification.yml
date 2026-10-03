@@ -24,10 +24,11 @@ jobs:
           python -m pip install pytest
       - name: Verify production baseline
         run: python scripts/verify_production_baseline.py
-      - name: SQLite schema lifecycle
+      - name: SQLite schema and migration qualification
         run: >-
           pytest
           tests/qualification/test_schema_lifecycle.py
+          tests/qualification/test_schema_migrations.py
           -k sqlite
           -m integration
           -q
@@ -63,10 +64,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[postgres]"
           python -m pip install pytest
-      - name: PostgreSQL schema lifecycle
+      - name: PostgreSQL schema and migration qualification
         run: >-
           pytest
           tests/qualification/test_schema_lifecycle.py
+          tests/qualification/test_schema_migrations.py
           -k postgresql
           -m integration
           -q
