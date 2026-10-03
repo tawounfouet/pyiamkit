@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,13 @@ def _run_generator(
     output: Path,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
+    env = {
+        **os.environ,
+        "GITHUB_SHA": "abc123",
+        "GITHUB_WORKFLOW": "Production Qualification",
+        "GITHUB_RUN_ID": "42",
+        "RUNNER_NAME": "pytest",
+    }
     return subprocess.run(
         [
             sys.executable,
@@ -26,6 +34,7 @@ def _run_generator(
         check=check,
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -80,8 +89,8 @@ sqlalchemy = ["sqlalchemy>=2,<3"]
 
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     assert provenance["package"] == {"name": "pyiamkit", "version": "0.5.0rc1"}
-    assert provenance["source"]["commit"] == "local"
-    assert provenance["build"]["workflow"] == "local"
+    assert provenance["source"]["commit"] == "abc123"
+    assert provenance["build"]["workflow"] == "Production Qualification"
     assert {item["name"] for item in provenance["artifacts"]} == {
         wheel.name,
         sdist.name,
