@@ -6,6 +6,33 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+### Added
+
+- Property-based authorization security invariants for tenant isolation, revocation, disabled subjects, temporary-access expiry and scope isolation.
+- Bounded hostile-input fuzz targets for JWT, OIDC, SCIM and PermissionCode parsing.
+- Targeted mutation-security gate covering tenant/scope validation, inactive subjects, dynamic SoD, revoked Sessions and OIDC issuer validation.
+- Dependency-vulnerability and full-history secret scanning gates with pinned GitHub Actions revisions.
+- Framework-neutral atomic rate-limit contracts and fail-closed `RateLimitGuard`.
+- Explicit MFA/AAL privileged-action hook for sensitive Role assignment.
+- Temporary, auditable break-glass foundations with mandatory CRITICAL SecurityEvent recording.
+- Dedicated Security workflow gates for key rotation and privileged-access controls.
+
+### Changed
+
+- TOTP Session step-up now revokes the original Session and opens a new elevated Session ID to prevent Session fixation across privilege elevation.
+- JWT signing-key rotation is explicitly qualified across overlap, retirement and unknown-`kid` failure paths.
+- OIDC/JWKS key rotation is included in the dedicated security qualification surface.
+
+### Security
+
+- Sensitive Role assignment fails closed when no privileged-action guard is configured.
+- The reference privileged-action guard requires an explicit actor, MFA and AAL2 by default.
+- Rate-limit backend unavailability is a security failure rather than an implicit allow.
+- Break-glass activation is duration-bounded, MFA-gated and fails if mandatory security evidence cannot be recorded.
+- Break-glass grants do not create Roles, Permissions or RoleBindings and do not bypass the AuthorizationEngine.
+- Supply-chain scanning, property tests, mutation probes and bounded fuzzing are release-blocking Security jobs.
+
+
 ## [0.5.0a2] - 2026-10-03
 
 ### Added
