@@ -22,21 +22,31 @@ class TokenType(StrEnum):
 class TokenError(AuthenticationError):
     """Base token error."""
 
+    code = "TOKEN_ERROR"
+
 
 class TokenConfigurationError(TokenError):
     """Raised when a token adapter is configured unsafely or inconsistently."""
+
+    code = "TOKEN_CONFIGURATION_ERROR"
 
 
 class InvalidAccessToken(TokenError):
     """Raised when an access token cannot be trusted."""
 
+    code = "ACCESS_TOKEN_INVALID"
+
 
 class ExpiredAccessToken(InvalidAccessToken):
     """Raised when an otherwise valid access token has expired."""
 
+    code = "ACCESS_TOKEN_EXPIRED"
+
 
 class TokenSessionInactive(InvalidAccessToken):
     """Raised when the Session referenced by a token is unavailable or inactive."""
+
+    code = "TOKEN_SESSION_INACTIVE"
 
 
 @dataclass(frozen=True, slots=True)
