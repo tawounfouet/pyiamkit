@@ -2,7 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
+from pyiamkit.authentication import AssuranceLevel
 from pyiamkit.authorization import (
+    AuthenticationEvidence,
+    MfaPrivilegedActionGuard,
+    PrivilegedActionDenied,
     RoleBindingAlreadyExists,
     RoleBindingApplicationService,
     RoleNotAssignable,
@@ -27,7 +31,13 @@ class FrozenClock(Clock):
         return NOW
 
 
-def _setup(*, assignable: bool = True, mismatched_role_tenant: bool = False):
+def _setup(
+    *,
+    assignable: bool = True,
+    mismatched_role_tenant: bool = False,
+    sensitive: bool = False,
+    privileged_action_guard: MfaPrivilegedActionGuard | None = None,
+):
     identities = InMemoryIdentityRepository()
     tenants = InMemoryTenantRepository()
     memberships = InMemoryMembershipRepository()
@@ -58,6 +68,7 @@ def _setup(*, assignable: bool = True, mismatched_role_tenant: bool = False):
         role_type=RoleType.TENANT,
         tenant_id=TenantId.new() if mismatched_role_tenant else tenant.id,
         assignable=assignable,
+        sensitive=sensitive,
         created_at=NOW,
     )
     role.pull_events()
@@ -71,6 +82,7 @@ def _setup(*, assignable: bool = True, mismatched_role_tenant: bool = False):
         binding_repository=bindings,
         clock=FrozenClock(),
         event_sink=events,
+        privileged_action_guard=privileged_action_guard,
     )
     return service, identity, tenant, role, bindings
 
@@ -144,3 +156,100 @@ def test_revocation_removes_binding_from_active_set() -> None:
     )
     service.revoke_binding(binding.id)
     assert service.active_bindings(identity_id=identity.id, tenant_id=tenant.id) == ()
+
+
+
+def test_sensitive_role_assignment_fails_closed_without_privileged_guard() -> None:
+    service, identity, tenant, role, _ = _setup(sensitive=True)
+
+    with pytest.raises(PrivilegedActionDenied, match="explicit privileged-action guard"):
+        service.assign_role(
+            identity_id=identity.id,
+            role_id=role.id,
+            tenant_id=tenant.id,
+            scope=TenantScope(tenant.id),
+            granted_by=identity.id,
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=True,
+                authenticated_at=NOW,
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        None,
+        AuthenticationEvidence(
+            assurance_level=AssuranceLevel.AAL2,
+            mfa=False,
+            authenticated_at=NOW,
+        ),
+        AuthenticationEvidence(
+            assurance_level=AssuranceLevel.AAL1,
+            mfa=True,
+            authenticated_at=NOW,
+        ),
+    ],
+)
+def test_sensitive_role_assignment_requires_actor_mfa_and_aal2(
+    evidence: AuthenticationEvidence | None,
+) -> None:
+    service, identity, tenant, role, _ = _setup(
+        sensitive=True,
+        privileged_action_guard=MfaPrivilegedActionGuard(),
+    )
+
+    with pytest.raises(PrivilegedActionDenied):
+        service.assign_role(
+            identity_id=identity.id,
+            role_id=role.id,
+            tenant_id=tenant.id,
+            scope=TenantScope(tenant.id),
+            granted_by=identity.id,
+            authentication=evidence,
+        )
+
+
+def test_sensitive_role_assignment_accepts_explicit_mfa_aal2_actor() -> None:
+    service, identity, tenant, role, _ = _setup(
+        sensitive=True,
+        privileged_action_guard=MfaPrivilegedActionGuard(),
+    )
+
+    binding = service.assign_role(
+        identity_id=identity.id,
+        role_id=role.id,
+        tenant_id=tenant.id,
+        scope=TenantScope(tenant.id),
+        granted_by=identity.id,
+        authentication=AuthenticationEvidence(
+            assurance_level=AssuranceLevel.AAL2,
+            mfa=True,
+            authenticated_at=NOW,
+        ),
+    )
+
+    assert binding.role_id == role.id
+    assert binding.granted_by == identity.id
+
+
+def test_sensitive_role_assignment_rejects_missing_actor_even_with_mfa() -> None:
+    service, identity, tenant, role, _ = _setup(
+        sensitive=True,
+        privileged_action_guard=MfaPrivilegedActionGuard(),
+    )
+
+    with pytest.raises(PrivilegedActionDenied, match="explicit actor"):
+        service.assign_role(
+            identity_id=identity.id,
+            role_id=role.id,
+            tenant_id=tenant.id,
+            scope=TenantScope(tenant.id),
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=True,
+                authenticated_at=NOW,
+            ),
+        )
