@@ -1,4 +1,4 @@
-"""Public alpha API for the Identity bounded context."""
+"""Public API for the Identity bounded context."""
 
 from .application.service import IdentityApplicationService
 from .domain.aggregates.identity import Identity

@@ -10,7 +10,12 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils.module_loading import import_string
 
-from pyiamkit.authentication import AccessTokenClaims, InvalidAccessToken, TokenProvider
+from pyiamkit.authentication import (
+    AccessTokenClaims,
+    AuthenticationError,
+    InvalidAccessToken,
+    TokenProvider,
+)
 from pyiamkit.authorization import (
     AuthenticationEvidence,
     AuthorizationDecision,
@@ -54,8 +59,10 @@ class DjangoCorrelationIdResolver(Protocol):
     def __call__(self, request: HttpRequest) -> str | None: ...
 
 
-class DjangoAuthenticationRequired(Exception):
-    """Internal adapter signal mapped to an HTTP 401 response."""
+class DjangoAuthenticationRequired(AuthenticationError):
+    """Adapter signal mapped to an HTTP 401 response."""
+
+    code = "DJANGO_AUTHENTICATION_REQUIRED"
 
 
 def authenticate_request(

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 class ConformanceFailure(AssertionError):
     """Raised when one or more adapter conformance checks fail."""
 
+    code = "CONFORMANCE_FAILURE"
+
 
 @dataclass(frozen=True, slots=True)
 class ConformanceCheck:
