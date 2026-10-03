@@ -6,14 +6,39 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0a2] - 2026-10-03
+
 ### Added
 
+- Immutable vendor-neutral `SecurityEvent`, `SecurityEventId` and portable severity model.
+- Durable transactional outbox model with stable identifiers, delivery status and attempt tracking.
+- InMemory and SQLAlchemy outbox repositories plus atomic `AuditOutboxWriter`.
+- `OutboxPublisher` with bounded batch delivery and explicit at-least-once semantics.
+- Retryable PENDING / FAILED → PUBLISHED delivery transitions with optimistic state protection.
 - Vendor-neutral `SecurityEventSink` and immutable `SecurityEventEnvelope` SIEM contracts.
 - `GenericSecurityEventExporter` bridging committed outbox events to SIEM sinks.
 - Canonical `security_event_to_outbox()` projection with strict envelope validation.
-- Retryable SIEM delivery through the existing at-least-once `OutboxPublisher` state machine.
 - Recursive redaction of common raw-secret payload fields before SIEM outbox persistence/export.
-- Architecture documentation for the Audit / Outbox / SIEM `0.5.0a2` line.
+- Architecture and public API documentation for the Audit / Outbox / SIEM release line.
+
+### Reliability
+
+- Business state, audit evidence and outbox intent share the caller-owned transaction boundary.
+- Caller rollback removes business state, audit evidence and outbox intent together.
+- Outbox persistence failure rolls back the paired audit insert.
+- Audit persistence failure prevents the paired outbox intent from being written.
+- PostgreSQL qualification proves that an independent worker cannot observe uncommitted outbox intent.
+- SIEM delivery failure remains durable and retryable instead of affecting the committed business transaction.
+- Ambiguous success may deliberately cause duplicate publication, preserving honest at-least-once semantics.
+- Stable security-event IDs let downstream consumers suppress duplicate side effects idempotently.
+- SQLite and PostgreSQL qualification cover the transactional and delivery failure paths.
+
+### Security
+
+- No SIEM vendor SDK or transport dependency is introduced into the core domain contract.
+- Common raw-secret payload names are recursively redacted before durable SIEM publication intent is created.
+- Opaque references such as `secret_reference` are preserved without exposing their protected secret material.
+- SIEM delivery is observability infrastructure and never becomes IAM or authorization authority.
 
 
 ## [0.5.0a1] - 2026-10-02
