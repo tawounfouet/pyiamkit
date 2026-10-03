@@ -265,9 +265,4 @@ jobs:
           python -m pip install -e ".[sqlalchemy]"
           python -m pip install pytest
       - name: Official adapter conformance suites
-        run: >-
-          pytest
-          tests/conformance/test_repository_conformance_suite.py
-          tests/conformance/test_authorization_conformance_suite.py
-          -m conformance
-          -q
+        run: pytest tests/conformance/test_*_conformance_suite.py -m conformance -q
