@@ -17,6 +17,7 @@ from sqlalchemy import (
     select,
 )
 
+from ..errors import PersistenceError
 from .schema import metadata
 
 BASELINE_SCHEMA_VERSION = "0001_0_5_0rc1_baseline"
@@ -31,8 +32,10 @@ _schema_migration_table = Table(
 )
 
 
-class SchemaMigrationError(RuntimeError):
+class SchemaMigrationError(PersistenceError):
     """Raised when schema state cannot be migrated safely."""
+
+    code = "SCHEMA_MIGRATION_ERROR"
 
 
 @dataclass(frozen=True, slots=True)
