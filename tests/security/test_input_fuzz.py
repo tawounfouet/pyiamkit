@@ -79,8 +79,7 @@ _JSON_SCALAR = (
 _JSON_VALUE = st.recursive(
     _JSON_SCALAR,
     lambda children: (
-        st.lists(children, max_size=5)
-        | st.dictionaries(st.text(max_size=32), children, max_size=5)
+        st.lists(children, max_size=5) | st.dictionaries(st.text(max_size=32), children, max_size=5)
     ),
     max_leaves=20,
 )
