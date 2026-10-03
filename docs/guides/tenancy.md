@@ -16,7 +16,7 @@ The `TenancyApplicationService.resolve_context()` operation validates the Identi
 
 A membership in Tenant A never establishes a context for Tenant B.
 
-## Alpha example
+## Example
 
 ```python
 context = tenancy.resolve_context(
