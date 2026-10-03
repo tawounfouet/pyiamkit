@@ -4,9 +4,9 @@ PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Acc
 Management (IAM), RBAC, multi-tenancy, authorization, authentication, federation,
 provisioning, auditability and durable persistence.
 
-> **Status:** `0.5.0` — first production-oriented stable release. Suitable for
-> controlled production use; still pre-1.0 and not yet under the final public API
-> freeze.
+> **Status:** `1.0.0rc1` — public API freeze release candidate, built on the
+> production-qualified 0.5.0 baseline. No new major IAM feature is introduced by
+> this RC.
 
 ## Goals
 
@@ -16,49 +16,44 @@ operations and framework-independent domain logic.
 
 ## Current milestone
 
-`0.5.0` promotes the fully qualified `0.5.0rc1` line without adding a new IAM
-feature.
+`1.0.0rc1` freezes the public contract expected to become PyIAMKit 1.0.0.
 
 ```text
-Identity / Tenancy / RBAC
-          ↓
-Authorization + constraints / SoD
-          ↓
-Authentication / JWT / OIDC / MFA
-          ↓
-Persistence / migration baseline
-          ↓
-FastAPI / Django / SCIM
-          ↓
-Distributed SecurityState / Redis
-          ↓
-Audit / Outbox / SIEM
-          ↓
-Security + Conformance + Production Qualification
+0.5.0 production-qualified capability surface
+                    ↓
+public API inventory
+                    ↓
+stable error / reason / permission review
+                    ↓
+adapter contract review
+                    ↓
+machine-readable compatibility manifest
+                    ↓
+1.0.0rc1 freeze
 ```
 
-The stable line is qualified by three release-blocking workflow families on the
-same commit:
+Four workflow families are release-blocking on the same commit:
 
 ```text
 CI
 Security
 Production Qualification
+API Compatibility
 ```
 
-Redis remains optional and non-authoritative. Access tokens remain subordinate to
-durable Session state. SCIM Group membership remains independent from implicit RBAC
-assignment.
+The API Compatibility gate freezes 27 documented namespaces and detects accidental
+export, signature, enum, dataclass, exception-code and reviewed-constant drift.
 
-Production guidance:
+Contract documentation:
 
+- [Public API freeze](docs/api/public-api-freeze-1.0.0rc1.md)
+- [1.x compatibility/deprecation policy](docs/api/compatibility-policy-1.0.md)
+- [Error, reason-code and PermissionCode contracts](docs/api/error-reason-permission-contracts-1.0.md)
+- [Adapter contract matrix](docs/api/adapter-contract-matrix-1.0.0rc1.md)
 - [Production deployment](docs/guides/production-deployment.md)
-- [Security operations](docs/guides/security-operations.md)
-- [Persistence migration and rollback](docs/guides/persistence-migration-and-rollback.md)
-- [Integrations](docs/guides/integrations.md)
 - [Production checklist](docs/guides/production-checklist.md)
 
-The next roadmap milestone is `1.0.0rc1 — Public API Freeze`.
+The next roadmap milestone is `1.0.0 — Stable Public API`.
 
 ## Installation
 
