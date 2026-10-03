@@ -158,7 +158,6 @@ def test_revocation_removes_binding_from_active_set() -> None:
     assert service.active_bindings(identity_id=identity.id, tenant_id=tenant.id) == ()
 
 
-
 def test_sensitive_role_assignment_fails_closed_without_privileged_guard() -> None:
     service, identity, tenant, role, _ = _setup(sensitive=True)
 
