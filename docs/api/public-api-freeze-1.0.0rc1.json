@@ -1,0 +1,557 @@
+{
+  "modules": {
+    "pyiamkit": {
+      "exports": [
+        "__version__"
+      ],
+      "fingerprint": "d5946344a3bcc7eac8af4ce02e7f1ab534f145b82c82fc55c7b2a3a2a5fa8623"
+    },
+    "pyiamkit.audit": {
+      "exports": [
+        "AuditCategory",
+        "AuditEvent",
+        "AuditEventId",
+        "AuditOutboxWriter",
+        "AuditOutcome",
+        "AuditRepository",
+        "AuditSink",
+        "DomainEventAuditBridge",
+        "EventPublisher",
+        "GenericSecurityEventExporter",
+        "OutboxEvent",
+        "OutboxEventId",
+        "OutboxPublishBatchResult",
+        "OutboxPublisher",
+        "OutboxRepository",
+        "OutboxStatus",
+        "SecurityEvent",
+        "SecurityEventEnvelope",
+        "SecurityEventId",
+        "SecurityEventSink",
+        "SecuritySeverity",
+        "security_event_to_outbox"
+      ],
+      "fingerprint": "4de869a1a1f281ea6c59e2421c696aa4d3534286ad1e88f6c1dad3f85fab400a"
+    },
+    "pyiamkit.audit.adapters": {
+      "exports": [
+        "InMemoryAuditRepository",
+        "InMemoryOutboxRepository"
+      ],
+      "fingerprint": "fe7d7f289746f24c282d68f916a8eb7dbdce1ccbb5d0fd3bc18860bc56dca354"
+    },
+    "pyiamkit.authentication": {
+      "exports": [
+        "AccessTokenClaims",
+        "AssuranceLevel",
+        "AuthenticationApplicationService",
+        "AuthenticationContext",
+        "AuthenticationError",
+        "AuthenticationMethod",
+        "AuthenticationSubjectInactive",
+        "Credential",
+        "CredentialAlreadyExists",
+        "CredentialId",
+        "CredentialNotFound",
+        "CredentialRepository",
+        "CredentialStatus",
+        "CredentialType",
+        "ExpiredAccessToken",
+        "ExternalIdentityNotLinked",
+        "FederatedAssurance",
+        "FederatedAssuranceResolver",
+        "FederatedAuthenticationService",
+        "FederatedIdentityClaims",
+        "FederationError",
+        "IdentityTokenVerifier",
+        "InvalidAccessToken",
+        "InvalidCredential",
+        "InvalidCredentialTransition",
+        "InvalidFederationPolicy",
+        "InvalidIdentityToken",
+        "InvalidMfaFactor",
+        "InvalidMfaFactorTransition",
+        "InvalidSession",
+        "InvalidSessionTransition",
+        "IssuedAccessToken",
+        "MfaApplicationService",
+        "MfaFactor",
+        "MfaFactorId",
+        "MfaFactorNotFound",
+        "MfaFactorOwnershipMismatch",
+        "MfaFactorRepository",
+        "MfaFactorStatus",
+        "MfaFactorType",
+        "MfaReplayDetected",
+        "MfaSecretStore",
+        "MfaSecretUnavailable",
+        "MfaVerificationFailed",
+        "RateLimitDecision",
+        "RateLimitError",
+        "RateLimitExceeded",
+        "RateLimitGuard",
+        "RateLimitKey",
+        "RateLimitPolicy",
+        "RateLimitUnavailable",
+        "RateLimiter",
+        "Session",
+        "SessionId",
+        "SessionNotFound",
+        "SessionRepository",
+        "SessionStatus",
+        "TokenConfigurationError",
+        "TokenError",
+        "TokenId",
+        "TokenProvider",
+        "TokenSessionInactive",
+        "TokenType",
+        "TotpEnrollment",
+        "TotpEnrollmentMaterial",
+        "TotpProvider"
+      ],
+      "fingerprint": "bc35c9e451a652127fe584ae1eb4368ef4e282dc1ae63cf4b51d6388783fcdba"
+    },
+    "pyiamkit.authentication.adapters": {
+      "exports": [
+        "InMemoryCredentialRepository",
+        "InMemoryMfaFactorRepository",
+        "InMemorySessionRepository"
+      ],
+      "fingerprint": "de686528b0fb7981f00911535f3ed3c5c2918c3d659b1a678503c930b18c666d"
+    },
+    "pyiamkit.authentication.adapters.jwt": {
+      "exports": [
+        "JwtTokenProvider"
+      ],
+      "fingerprint": "01fe4d39bdb9470194f2ff1d0dcfa82b1515795147d735e7888df42c2c67f8e7"
+    },
+    "pyiamkit.authentication.adapters.oidc": {
+      "exports": [
+        "OidcConfigurationError",
+        "StaticOidcAssuranceResolver",
+        "StaticOidcIdTokenVerifier"
+      ],
+      "fingerprint": "937708922b1822e9c5812a9a5b6ed401fcd2a4483f18c6a4f6555ef85a973d17"
+    },
+    "pyiamkit.authentication.adapters.oidc_discovery": {
+      "exports": [
+        "DiscoveredOidcIdTokenVerifier",
+        "HttpxOidcTransport",
+        "JwksKeyResolver",
+        "OidcDiscoveryClient",
+        "OidcDiscoveryError",
+        "OidcJsonTransport",
+        "OidcJwksError",
+        "OidcProviderMetadata",
+        "OidcRemoteError"
+      ],
+      "fingerprint": "228fdf46dd5c379c4e4bd9020cac2a8b6b79a07d4506f05508f0bf6f4ebd6e68"
+    },
+    "pyiamkit.authentication.adapters.totp": {
+      "exports": [
+        "InMemoryMfaSecretStore",
+        "PyOtpTotpProvider"
+      ],
+      "fingerprint": "a41a22ca5a5672ef69ff62f58fc6783e44272638b90c8b0b1699066ef0844fc0"
+    },
+    "pyiamkit.authorization": {
+      "exports": [
+        "AccessGovernanceApplicationService",
+        "AuthenticationEvidence",
+        "AuthorizationConstraint",
+        "AuthorizationDecision",
+        "AuthorizationDecisionAuditRecorder",
+        "AuthorizationDecisionId",
+        "AuthorizationDenied",
+        "AuthorizationEngine",
+        "AuthorizationModelError",
+        "AuthorizationReason",
+        "AuthorizationRequest",
+        "AuthorizationResult",
+        "BreakGlassActivationSink",
+        "BreakGlassDenied",
+        "BreakGlassError",
+        "BreakGlassGrant",
+        "BreakGlassGrantId",
+        "BreakGlassPolicy",
+        "BreakGlassService",
+        "ConstraintEvaluator",
+        "ConstraintRepository",
+        "DecisionExplanation",
+        "DistinctActorSoDRule",
+        "DynamicSoDEvaluator",
+        "ExplanationLevel",
+        "GovernanceRuleId",
+        "GovernanceViolation",
+        "GovernanceViolationKind",
+        "GrantSource",
+        "InvalidGovernanceRule",
+        "InvalidPermissionCode",
+        "InvalidRoleBinding",
+        "InvalidRoleBindingTransition",
+        "InvalidRoleName",
+        "MfaPrivilegedActionGuard",
+        "MinimumAssuranceConstraint",
+        "MutuallyExclusiveRolesRule",
+        "NumericMaximumConstraint",
+        "Permission",
+        "PermissionAlreadyAssigned",
+        "PermissionAlreadyExists",
+        "PermissionCatalogRepository",
+        "PermissionCode",
+        "PermissionNotAssigned",
+        "PermissionNotFound",
+        "PrivilegedAction",
+        "PrivilegedActionContext",
+        "PrivilegedActionDenied",
+        "PrivilegedActionGuard",
+        "ResourceAttributeEqualsConstraint",
+        "ResourceDescriptor",
+        "Role",
+        "RoleAlreadyExists",
+        "RoleBinding",
+        "RoleBindingAlreadyExists",
+        "RoleBindingApplicationService",
+        "RoleBindingId",
+        "RoleBindingNotFound",
+        "RoleBindingRepository",
+        "RoleBindingStatus",
+        "RoleCatalogApplicationService",
+        "RoleHierarchyApplicationService",
+        "RoleHierarchyCycle",
+        "RoleHierarchyDepthExceeded",
+        "RoleHierarchyError",
+        "RoleHierarchyResolver",
+        "RoleHierarchyTenantMismatch",
+        "RoleHierarchyUnavailable",
+        "RoleId",
+        "RoleInactive",
+        "RoleNotAssignable",
+        "RoleNotFound",
+        "RoleRepository",
+        "RoleStatus",
+        "RoleTenantMismatch",
+        "RoleType",
+        "SeparationOfDutyRule",
+        "SoDRuleRepository",
+        "StaticSoDEvaluator",
+        "StaticSoDViolation"
+      ],
+      "fingerprint": "2f7b3f680e6c2a3e3e87aa357e768fd58cb0800e72d8378464bec703cbfecf2e"
+    },
+    "pyiamkit.authorization.adapters": {
+      "exports": [
+        "InMemoryConstraintRepository",
+        "InMemoryPermissionCatalogRepository",
+        "InMemoryRoleBindingRepository",
+        "InMemoryRoleRepository",
+        "InMemorySoDRuleRepository"
+      ],
+      "fingerprint": "b8a9ff08281a7326ebc41e803d5edbfdf85b912f4b95d767609d772a1d4b6e15"
+    },
+    "pyiamkit.conformance": {
+      "exports": [
+        "AuthenticationConformance",
+        "AuthenticationProbe",
+        "AuthorizationConformance",
+        "AuthorizationProbe",
+        "ConformanceCheck",
+        "ConformanceFailure",
+        "ConformanceReport",
+        "EventPublisherConformance",
+        "EventPublisherProbe",
+        "PolicyEvaluatorConformance",
+        "PolicyEvaluatorProbe",
+        "RepositoryConformance",
+        "RepositoryProbe",
+        "SecretStoreConformance",
+        "SecretStoreProbe",
+        "TenantIsolationConformance",
+        "TenantIsolationProbe",
+        "TokenProviderConformance",
+        "TokenProviderProbe"
+      ],
+      "fingerprint": "09a1f5c7ff24031401f5d48ded946b150d81478a2d057142f2c90453837e4e19"
+    },
+    "pyiamkit.identity": {
+      "exports": [
+        "EmailAddress",
+        "ExternalIdentityAlreadyLinked",
+        "ExternalIdentityLinkNotFound",
+        "Identity",
+        "IdentityApplicationService",
+        "IdentityError",
+        "IdentityId",
+        "IdentityNotFound",
+        "IdentityRepository",
+        "IdentityStatus",
+        "IdentityType",
+        "InvalidDisplayName",
+        "InvalidEmailAddress",
+        "InvalidExternalIdentity",
+        "InvalidIdentityTransition",
+        "InvalidServiceAccount",
+        "ServiceAccount",
+        "User"
+      ],
+      "fingerprint": "e83e6e5fc311e437ada97f937fde2828c7bbaf4e8e1a9db0ef90530922c70b49"
+    },
+    "pyiamkit.identity.adapters.memory": {
+      "exports": [
+        "InMemoryDomainEventSink",
+        "InMemoryIdentityRepository"
+      ],
+      "fingerprint": "2d13db2f0fab3d5c3eb170a9ed3b83ace9d0c3136f9127bb0c1156f664dd8f64"
+    },
+    "pyiamkit.integrations.django": {
+      "exports": [
+        "DjangoAuthenticationRequired",
+        "DjangoCorrelationIdResolver",
+        "DjangoResourceResolver",
+        "DjangoScopeResolver",
+        "DjangoTenantResolver",
+        "PyIAMKitAuthenticationMiddleware",
+        "authenticate_request",
+        "bearer_required",
+        "get_authenticated_claims",
+        "get_authorization_decision",
+        "permission_required"
+      ],
+      "fingerprint": "92d8a49289e3087667496414e0db6f9a48e2b30c3975805689855c8344d346af"
+    },
+    "pyiamkit.integrations.fastapi": {
+      "exports": [
+        "AuthenticationDependency",
+        "CorrelationIdResolver",
+        "ResourceResolver",
+        "ScopeResolver",
+        "TenantResolver",
+        "bearer_authentication",
+        "require_permission"
+      ],
+      "fingerprint": "b7687afd9cfcbcd59fe79885d384551389e7782cee55c497a64515e9d1ac05ba"
+    },
+    "pyiamkit.integrations.fastapi_scim": {
+      "exports": [
+        "ScimAccessDependency",
+        "create_scim_router"
+      ],
+      "fingerprint": "3b7636d0f4899cb8045213c63f79f56b26b9cfcef932a97b837b488e0ae7b143"
+    },
+    "pyiamkit.operations": {
+      "exports": [
+        "AuthorizationCache",
+        "AuthorizationCacheEntry",
+        "AuthorizationCacheInvalidationHandler",
+        "AuthorizationCacheKey",
+        "AuthorizationRuntimeUnavailable",
+        "CacheNamespace",
+        "CachedAuthorizationDecision",
+        "DistributedAuthorizationRuntime",
+        "InvalidationEvent",
+        "InvalidationHandler",
+        "InvalidationKind",
+        "InvalidationPublisher",
+        "OperationalJsonCodec",
+        "OperationalSerializationError",
+        "ProjectingSecurityStateReader",
+        "RedisKeyspace",
+        "RevocationMarker",
+        "RevocationRegistry",
+        "RevocationRegistryUnavailable",
+        "RevocationTargetType",
+        "SecurityStateMutationEventSink",
+        "SecurityStateProjection",
+        "SecurityStateReader",
+        "SecurityStateStamp",
+        "SecurityStateWriter",
+        "StateVersion"
+      ],
+      "fingerprint": "04e8cd3b462380d17542d260f2413f7e6f9decbfae6c79a3152c4a9b5f76a16e"
+    },
+    "pyiamkit.operations.adapters": {
+      "exports": [
+        "InMemoryAuthorizationCache",
+        "InMemoryRevocationRegistry",
+        "InMemorySecurityStateStore"
+      ],
+      "fingerprint": "58b3d4de5225d093428705badbeac315a615f7a4c8b2a4aa6fbf18debe8d7257"
+    },
+    "pyiamkit.operations.adapters.redis": {
+      "exports": [
+        "RedisAuthorizationCache",
+        "RedisInvalidationPublisher",
+        "RedisInvalidationSubscriber",
+        "RedisRevocationRegistry",
+        "RedisSecurityStateProjection"
+      ],
+      "fingerprint": "16ad99844ebba6ca3224e7de116e5577f907796a6e8f3e1d99b8fb9bee6ecf7a"
+    },
+    "pyiamkit.persistence": {
+      "exports": [
+        "PersistenceError",
+        "PersistenceSerializationError"
+      ],
+      "fingerprint": "678e085467b1ea17502aaad05f4efa6387c9ecfe9ab0e6ce9a7aec90aae328cd"
+    },
+    "pyiamkit.persistence.sqlalchemy": {
+      "exports": [
+        "BASELINE_SCHEMA_VERSION",
+        "MigrationResult",
+        "SchemaMigrationError",
+        "SqlAlchemyAuditOutboxWriter",
+        "SqlAlchemyAuditRepository",
+        "SqlAlchemyConstraintRepository",
+        "SqlAlchemyCredentialRepository",
+        "SqlAlchemyIdentityRepository",
+        "SqlAlchemyMembershipRepository",
+        "SqlAlchemyMfaFactorRepository",
+        "SqlAlchemyOutboxRepository",
+        "SqlAlchemyPermissionCatalogRepository",
+        "SqlAlchemyProvisioningGroupRepository",
+        "SqlAlchemyProvisioningUserRepository",
+        "SqlAlchemyRoleBindingRepository",
+        "SqlAlchemyRoleRepository",
+        "SqlAlchemySecurityStateStore",
+        "SqlAlchemySessionRepository",
+        "SqlAlchemySoDRuleRepository",
+        "SqlAlchemyTenantRepository",
+        "create_schema",
+        "create_session_factory",
+        "create_sqlalchemy_engine",
+        "current_schema_version",
+        "drop_schema",
+        "migrate_schema",
+        "rollback_schema_baseline"
+      ],
+      "fingerprint": "5c4c850be587b1e68496569b26f83a600ae34fde56616c65d710f0e5c0cc36f2"
+    },
+    "pyiamkit.provisioning": {
+      "exports": [
+        "GENERIC_SCIM_PROFILE",
+        "InvalidProvisioningResource",
+        "InvalidScimRequest",
+        "MICROSOFT_ENTRA_PROFILE",
+        "OKTA_SCIM_PROFILE",
+        "ProvisioningConflict",
+        "ProvisioningError",
+        "ProvisioningGroup",
+        "ProvisioningGroupRepository",
+        "ProvisioningManagedStateConflict",
+        "ProvisioningPreconditionFailed",
+        "ProvisioningResourceId",
+        "ProvisioningResourceNotFound",
+        "ProvisioningResourceStatus",
+        "ProvisioningSource",
+        "ProvisioningUser",
+        "ProvisioningUserRepository",
+        "SCIM_ERROR_SCHEMA",
+        "SCIM_GROUP_SCHEMA",
+        "SCIM_LIST_RESPONSE_SCHEMA",
+        "SCIM_MEDIA_TYPE",
+        "SCIM_PATCH_SCHEMA",
+        "SCIM_RESOURCE_TYPE_SCHEMA",
+        "SCIM_SCHEMA_SCHEMA",
+        "SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA",
+        "SCIM_USER_SCHEMA",
+        "ScimAttributeSelection",
+        "ScimDeprovisionMode",
+        "ScimEmail",
+        "ScimErrorResponse",
+        "ScimErrorType",
+        "ScimGroupInput",
+        "ScimGroupListResponse",
+        "ScimGroupMember",
+        "ScimGroupPatchOperation",
+        "ScimGroupProvisioningService",
+        "ScimGroupResource",
+        "ScimHttpResponse",
+        "ScimHttpTransport",
+        "ScimListResponse",
+        "ScimMeta",
+        "ScimName",
+        "ScimPatchOperation",
+        "ScimPatchVerb",
+        "ScimProviderKind",
+        "ScimProviderProfile",
+        "ScimProvisioningService",
+        "ScimServiceProviderConfig",
+        "ScimUserFilter",
+        "ScimUserFilterExpression",
+        "ScimUserInput",
+        "ScimUserResource",
+        "UnsupportedScimPatch",
+        "apply_user_patch",
+        "parse_attribute_selection",
+        "parse_group_filter",
+        "parse_scim_group_patch_payload",
+        "parse_scim_group_payload",
+        "parse_scim_patch_payload",
+        "parse_scim_user_payload",
+        "parse_user_filter",
+        "parse_user_filter_expression",
+        "project_scim_resource",
+        "scim_provider_profile"
+      ],
+      "fingerprint": "99a66cd38e87f68a106ee4f152bcfc3158f6c769d65189e319ff16023b71af7c"
+    },
+    "pyiamkit.provisioning.adapters": {
+      "exports": [
+        "InMemoryProvisioningGroupRepository",
+        "InMemoryProvisioningUserRepository"
+      ],
+      "fingerprint": "d25a5cb129631ddfadcc526918924f47dba222f98520e4b5f477710ba89b9f34"
+    },
+    "pyiamkit.shared": {
+      "exports": [
+        "Clock",
+        "DomainError",
+        "DomainEvent",
+        "DomainEventSink",
+        "EntityId",
+        "PyIAMKitError",
+        "SystemClock"
+      ],
+      "fingerprint": "db51a765eba826e2e53d2684661321d1b3c4a2d651ec8558ff18383ca0db5633"
+    },
+    "pyiamkit.tenancy": {
+      "exports": [
+        "InvalidMembership",
+        "InvalidMembershipTransition",
+        "InvalidTenant",
+        "InvalidTenantTransition",
+        "Membership",
+        "MembershipId",
+        "MembershipInactive",
+        "MembershipNotFound",
+        "MembershipRepository",
+        "MembershipStatus",
+        "Organization",
+        "OrganizationId",
+        "TenancyApplicationService",
+        "TenancyError",
+        "Tenant",
+        "TenantContext",
+        "TenantId",
+        "TenantInactive",
+        "TenantIsolationGuard",
+        "TenantMismatch",
+        "TenantNotFound",
+        "TenantRepository",
+        "TenantScope",
+        "TenantStatus"
+      ],
+      "fingerprint": "822e6ff0679116fab21843ed86b8bdd46614c14cf6f0e593f1a413c156e0b1ec"
+    },
+    "pyiamkit.tenancy.adapters": {
+      "exports": [
+        "InMemoryMembershipRepository",
+        "InMemoryTenancyEventSink",
+        "InMemoryTenantRepository"
+      ],
+      "fingerprint": "97cb4183604202d93b472adde1327b510cdd5034f053bb6ed0a9fa2680a0a3c8"
+    }
+  },
+  "python": "3.12",
+  "schema_version": 1
+}
