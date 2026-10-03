@@ -2,6 +2,33 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0b2
+
+Introduces the reusable adapter conformance surface from `pyiamkit.conformance`:
+
+```text
+ConformanceCheck
+ConformanceReport
+ConformanceFailure
+RepositoryProbe
+RepositoryConformance
+```
+
+`ConformanceReport.require_passed()` converts any failed check into a
+`ConformanceFailure` suitable for CI/release gating.
+
+`RepositoryConformance` is adapter-neutral. Consumers supply a `RepositoryProbe`
+containing factory/callback functions for create, identifier, save, load, snapshot,
+optional mutation, optional exists and optional rehydration assertions.
+
+The baseline repository contract checks missing-read behavior, round-trip state,
+database-like copy semantics, snapshot isolation of caller/loaded objects and
+optional rehydration invariants.
+
+The first official targets are InMemory and SQLAlchemy IdentityRepository adapters.
+The suite is intentionally reusable by third-party adapters and does not make one
+persistence backend part of the core conformance semantics.
+
 ## 0.5.0b1
 
 Adds framework-neutral security-hardening contracts.
