@@ -8,6 +8,7 @@ import hashlib
 import importlib
 import inspect
 import json
+import re
 import sys
 from enum import Enum
 from pathlib import Path
@@ -15,6 +16,7 @@ from types import ModuleType
 from typing import Any
 
 SCHEMA_VERSION = 1
+_ERROR_CODE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 PUBLIC_MODULES: dict[str, tuple[str, ...] | None] = {
     "pyiamkit": None,
@@ -279,6 +281,64 @@ def check_manifest(baseline_path: Path) -> tuple[str, ...]:
     return tuple(failures)
 
 
+def audit_public_contract() -> tuple[str, ...]:
+    failures: list[str] = []
+    public_exceptions: dict[str, type[BaseException]] = {}
+
+    for module_name, explicit in sorted(PUBLIC_MODULES.items()):
+        module = importlib.import_module(module_name)
+        for name in _exports(module, explicit):
+            value = getattr(module, name)
+            if inspect.isclass(value) and issubclass(value, BaseException):
+                qualified = f"{value.__module__}.{value.__qualname__}"
+                public_exceptions[qualified] = value
+
+    codes: dict[str, str] = {}
+    for qualified, exc_type in sorted(public_exceptions.items()):
+        code = getattr(exc_type, "code", None)
+        if not isinstance(code, str) or not _ERROR_CODE_PATTERN.fullmatch(code):
+            failures.append(f"public exception has no canonical code: {qualified}")
+            continue
+        previous = codes.get(code)
+        if previous is not None and previous != qualified:
+            failures.append(
+                f"public exception code {code} is duplicated by {previous} and {qualified}"
+            )
+        codes[code] = qualified
+
+    from pyiamkit.authorization import AuthorizationReason, InvalidPermissionCode, PermissionCode
+
+    for reason in AuthorizationReason:
+        if reason.name != reason.value:
+            failures.append(
+                f"AuthorizationReason name/value mismatch: {reason.name}={reason.value!r}"
+            )
+        if not reason.value.startswith(("ALLOW_", "DENY_")):
+            failures.append(f"AuthorizationReason lacks ALLOW_/DENY_ prefix: {reason.value}")
+
+    valid_permissions = (
+        ("invoice.approve", "invoice.approve"),
+        ("billing.invoice.approve", "billing.invoice.approve"),
+        ("User_Profile.Read", "user_profile.read"),
+    )
+    for raw, expected in valid_permissions:
+        actual = str(PermissionCode(raw))
+        if actual != expected:
+            failures.append(
+                f"PermissionCode canonicalization changed: {raw!r} -> {actual!r}"
+            )
+
+    for raw in ("read", ".read", "invoice.", "invoice-read", "invoice..read"):
+        try:
+            PermissionCode(raw)
+        except InvalidPermissionCode:
+            continue
+        failures.append(f"PermissionCode accepted invalid public form: {raw!r}")
+
+    return tuple(failures)
+
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -291,19 +351,38 @@ def main() -> int:
         type=Path,
         help="Compare the current public API to a committed freeze manifest.",
     )
+    parser.add_argument(
+        "--audit",
+        action="store_true",
+        help="Audit exception codes, reason codes and PermissionCode naming.",
+    )
     args = parser.parse_args()
 
-    if args.emit == (args.check is not None):
-        parser.error("choose exactly one of --emit or --check")
+    selected = int(args.emit) + int(args.check is not None) + int(args.audit)
+    if selected != 1:
+        parser.error("choose exactly one of --emit, --check or --audit")
 
     if args.emit:
         print(json.dumps(build_manifest(), sort_keys=True, separators=(",", ":")))
+        return 0
+
+    if args.audit:
+        failures = audit_public_contract()
+        if failures:
+            for failure in failures:
+                print(f"ERROR: {failure}")
+            return 1
+        print("Public API semantic audit passed.")
         return 0
 
     failures = check_manifest(args.check)
     if failures:
         for failure in failures:
             print(f"ERROR: {failure}")
+        print(
+            "CURRENT_MANIFEST="
+            + json.dumps(build_manifest(), sort_keys=True, separators=(",", ":"))
+        )
         return 1
 
     print(f"Public API freeze verified against {args.check}.")
