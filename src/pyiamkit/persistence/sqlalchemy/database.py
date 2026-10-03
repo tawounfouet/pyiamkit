@@ -32,18 +32,21 @@ def create_sqlalchemy_engine(
 
 
 def create_schema(engine: Engine) -> None:
-    """Create the alpha persistence schema.
+    """Create the current schema for bootstrap, tests and local development.
 
-    Production deployments should eventually use migrations. ``create_schema``
-    exists for bootstrap, tests and local development during the 0.3.x line.
+    Production deployments should use ``migrate_schema()`` so the schema baseline
+    is versioned and previous compatible deployments can be adopted explicitly.
     """
 
     metadata.create_all(engine)
 
 
 def drop_schema(engine: Engine) -> None:
-    """Drop all PyIAMKit SQLAlchemy tables."""
+    """Drop all PyIAMKit tables and migration bookkeeping in disposable environments."""
 
+    from .migrations import drop_migration_history
+
+    drop_migration_history(engine)
     metadata.drop_all(engine)
 
 
