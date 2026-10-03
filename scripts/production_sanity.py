@@ -129,8 +129,7 @@ def run_sanity(*, iterations: int, max_seconds: float) -> float:
 
     if elapsed > max_seconds:
         raise AssertionError(
-            f"{iterations} authorization decisions took {elapsed:.3f}s "
-            f"(budget {max_seconds:.3f}s)"
+            f"{iterations} authorization decisions took {elapsed:.3f}s (budget {max_seconds:.3f}s)"
         )
 
     return elapsed
