@@ -195,3 +195,29 @@ def test_sqlalchemy_outbox_repository_persists_delivery_state_transitions(
         session.commit()
 
     engine.dispose()
+
+
+
+def test_sqlalchemy_audit_outbox_writer_writes_no_outbox_when_audit_persistence_fails(
+    tmp_path: Path,
+) -> None:
+    engine = create_sqlalchemy_engine(f"sqlite+pysqlite:///{tmp_path / 'audit-failure.db'}")
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    audit = _audit()
+    outbox = _outbox()
+
+    with factory() as session:
+        SqlAlchemyAuditRepository(session).append(audit)
+        session.commit()
+
+    with factory() as session:
+        with pytest.raises(ValueError, match="conflicts"):
+            SqlAlchemyAuditOutboxWriter(session).append(audit, outbox)
+        session.commit()
+
+    with factory() as session:
+        assert SqlAlchemyAuditRepository(session).all() == (audit,)
+        assert SqlAlchemyOutboxRepository(session).get(outbox.id) is None
+
+    engine.dispose()
