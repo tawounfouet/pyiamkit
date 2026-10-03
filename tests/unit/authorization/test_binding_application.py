@@ -256,7 +256,6 @@ def test_sensitive_role_assignment_rejects_missing_actor_even_with_mfa() -> None
         )
 
 
-
 def test_sensitive_role_assignment_rejects_self_assignment_with_reference_guard() -> None:
     service, identity, tenant, role, _ = _setup(
         sensitive=True,
