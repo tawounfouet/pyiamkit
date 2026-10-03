@@ -205,7 +205,12 @@ The Authentication domain does not import SQLAlchemy, psycopg, JWT libraries, Fa
 0.4.0b8    SCIM provider offline qualification
 0.4.x      Explicit Group mapping policy
 0.5.0a1    Distributed cache, revocation, SecurityState and invalidation
-0.5.x      Distributed operations and production qualification
+0.5.0a2    Audit, transactional outbox, publisher and vendor-neutral SIEM export
+0.5.0b1    Security hardening
+0.5.0b2    Conformance suite
+0.5.0rc1   Production qualification
+0.5.0      First production-oriented stable
+1.0.0rc1   Public API freeze
 1.0.0      Stable public API
 ```
 
