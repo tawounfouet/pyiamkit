@@ -64,6 +64,13 @@ from .governance import (
     StaticSoDEvaluator,
 )
 from .hierarchy import RoleHierarchyApplicationService, RoleHierarchyResolver
+from .privileged import (
+    MfaPrivilegedActionGuard,
+    PrivilegedAction,
+    PrivilegedActionContext,
+    PrivilegedActionDenied,
+    PrivilegedActionGuard,
+)
 from .ports import (
     ConstraintRepository,
     PermissionCatalogRepository,
@@ -100,6 +107,7 @@ __all__ = [
     "InvalidRoleBinding",
     "InvalidRoleBindingTransition",
     "InvalidRoleName",
+    "MfaPrivilegedActionGuard",
     "MinimumAssuranceConstraint",
     "MutuallyExclusiveRolesRule",
     "NumericMaximumConstraint",
@@ -110,6 +118,10 @@ __all__ = [
     "PermissionCode",
     "PermissionNotAssigned",
     "PermissionNotFound",
+    "PrivilegedAction",
+    "PrivilegedActionContext",
+    "PrivilegedActionDenied",
+    "PrivilegedActionGuard",
     "ResourceAttributeEqualsConstraint",
     "ResourceDescriptor",
     "Role",
