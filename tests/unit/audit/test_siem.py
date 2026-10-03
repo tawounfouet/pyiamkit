@@ -215,7 +215,6 @@ def test_security_event_export_redacts_sensitive_payload_fields_recursively() ->
     assert "raw-access-token" not in repr(outbox.payload)
 
 
-
 def test_duplicate_publish_is_safe_for_event_id_idempotent_consumer() -> None:
     repository = FailingMarkPublishedRepository()
     event = _security_event()
