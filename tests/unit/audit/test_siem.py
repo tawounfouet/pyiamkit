@@ -6,6 +6,7 @@ import pytest
 from pyiamkit.audit import (
     GenericSecurityEventExporter,
     OutboxEvent,
+    OutboxEventId,
     OutboxPublisher,
     OutboxStatus,
     SecurityEvent,
@@ -34,6 +35,34 @@ class RecordingSecurityEventSink:
             self._failures -= 1
             raise RuntimeError("SIEM unavailable")
         self.events.append(event)
+
+
+class IdempotentSecurityEventConsumer:
+    """Reference consumer proving event_id-based duplicate suppression."""
+
+    def __init__(self) -> None:
+        self.received: list[str] = []
+        self.side_effects: list[str] = []
+        self._processed_event_ids: set[str] = set()
+
+    def emit(self, event: SecurityEventEnvelope) -> None:
+        self.received.append(event.event_id)
+        if event.event_id in self._processed_event_ids:
+            return
+        self._processed_event_ids.add(event.event_id)
+        self.side_effects.append(event.event_type)
+
+
+class FailingMarkPublishedRepository(InMemoryOutboxRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.fail_once = True
+
+    def mark_published(self, event_id: OutboxEventId, *, published_at: datetime) -> None:
+        if self.fail_once:
+            self.fail_once = False
+            raise RuntimeError("delivery state persistence failed")
+        super().mark_published(event_id, published_at=published_at)
 
 
 def _security_event() -> SecurityEvent:
@@ -184,3 +213,36 @@ def test_security_event_export_redacts_sensitive_payload_fields_recursively() ->
     assert round_trip == envelope
     assert "raw-password" not in repr(outbox.payload)
     assert "raw-access-token" not in repr(outbox.payload)
+
+
+
+def test_duplicate_publish_is_safe_for_event_id_idempotent_consumer() -> None:
+    repository = FailingMarkPublishedRepository()
+    event = _security_event()
+    outbox = security_event_to_outbox(event)
+    repository.append(outbox)
+    consumer = IdempotentSecurityEventConsumer()
+    service = OutboxPublisher(
+        repository=repository,
+        publisher=GenericSecurityEventExporter(consumer),
+        clock=FrozenClock(),
+    )
+
+    with pytest.raises(RuntimeError, match="state persistence"):
+        service.publish_batch()
+
+    pending = repository.get(outbox.id)
+    assert pending is not None
+    assert pending.status is OutboxStatus.PENDING
+    assert consumer.received == [str(event.id)]
+    assert consumer.side_effects == ["SoDViolationDetected"]
+
+    result = service.publish_batch()
+
+    published = repository.get(outbox.id)
+    assert published is not None
+    assert published.status is OutboxStatus.PUBLISHED
+    assert published.attempts == 1
+    assert consumer.received == [str(event.id), str(event.id)]
+    assert consumer.side_effects == ["SoDViolationDetected"]
+    assert result.published == 1
