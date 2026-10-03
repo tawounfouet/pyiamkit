@@ -85,3 +85,20 @@ jobs:
           python -m pip install "hypothesis>=6.100,<7" pytest
       - name: Run hostile-input fuzz targets
         run: pytest tests/security/test_input_fuzz.py -m security -q
+
+
+  targeted-security-mutations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install mutation qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[jwt,oidc]"
+          python -m pip install "hypothesis>=6.100,<7" pytest
+      - name: Kill targeted security mutants
+        run: python scripts/security_mutation_gate.py
