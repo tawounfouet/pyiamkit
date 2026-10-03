@@ -73,19 +73,19 @@ from .governance import (
     StaticSoDEvaluator,
 )
 from .hierarchy import RoleHierarchyApplicationService, RoleHierarchyResolver
-from .privileged import (
-    MfaPrivilegedActionGuard,
-    PrivilegedAction,
-    PrivilegedActionContext,
-    PrivilegedActionDenied,
-    PrivilegedActionGuard,
-)
 from .ports import (
     ConstraintRepository,
     PermissionCatalogRepository,
     RoleBindingRepository,
     RoleRepository,
     SoDRuleRepository,
+)
+from .privileged import (
+    MfaPrivilegedActionGuard,
+    PrivilegedAction,
+    PrivilegedActionContext,
+    PrivilegedActionDenied,
+    PrivilegedActionGuard,
 )
 
 __all__ = [
