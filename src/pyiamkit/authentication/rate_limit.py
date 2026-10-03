@@ -74,9 +74,10 @@ class RateLimitDecision:
             raise ValueError("RateLimitDecision.remaining must be >= 0")
         if self.allowed and self.retry_after is not None:
             raise ValueError("Allowed RateLimitDecision must not define retry_after")
-        if not self.allowed:
-            if self.retry_after is None or self.retry_after <= timedelta(0):
-                raise ValueError("Denied RateLimitDecision requires positive retry_after")
+        if not self.allowed and (
+            self.retry_after is None or self.retry_after <= timedelta(0)
+        ):
+            raise ValueError("Denied RateLimitDecision requires positive retry_after")
 
 
 class RateLimiter(Protocol):
