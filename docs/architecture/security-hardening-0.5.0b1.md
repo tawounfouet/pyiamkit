@@ -170,7 +170,10 @@ For a Role where `role.sensitive is True`:
 - MFA is mandatory;
 - the configured minimum assurance level is mandatory.
 
-The reference `MfaPrivilegedActionGuard` defaults to AAL2 + MFA.
+The reference `MfaPrivilegedActionGuard` defaults to AAL2 + MFA and refuses
+sensitive Role self-assignment. Workflows that deliberately support exceptional
+self-assignment must supply a stronger, explicit `PrivilegedActionGuard` implementing
+their approval controls.
 
 Absence of a guard is not interpreted as “no policy”: sensitive assignment fails
 closed.
