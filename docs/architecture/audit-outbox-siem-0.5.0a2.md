@@ -11,6 +11,7 @@ Implemented lots:
 - LOT-B1-02 — Transactional Audit + Outbox Foundations
 - LOT-B1-03 — Outbox Publisher + Delivery State
 - LOT-B1-04 — SIEM Port + Generic Exporter
+- LOT-B1-05 — Reliability Closure
 
 ## Architecture
 
@@ -146,15 +147,40 @@ must use `event_id` for idempotency/deduplication.
 
 A sink failure affects observability/export availability, not authorization authority.
 
+## Reliability closure
+
+The milestone explicitly qualifies the failure boundaries required by M18:
+
+- business write + audit + outbox commit atomically;
+- caller rollback removes business write + audit + outbox together;
+- an outbox conflict rolls back the paired audit insert;
+- an audit persistence conflict prevents the paired outbox intent from being written;
+- a worker cannot observe an uncommitted outbox intent;
+- sink publication failure leaves a durable retryable event;
+- retry can transition FAILED to PUBLISHED;
+- a successful external delivery followed by delivery-state persistence failure may be
+  published again, preserving at-least-once semantics;
+- duplicate delivery carries the same canonical `event_id`;
+- an idempotent downstream consumer can suppress duplicate side effects by
+  remembering `event_id`.
+
+Consumer idempotency is deliberately a downstream responsibility. PyIAMKit provides
+the stable event identity and at-least-once delivery contract; it does not pretend
+that exactly-once external delivery exists.
+
 ## Qualification
 
-LOT-B1-04 must prove:
+The complete `0.5.0a2` milestone proves:
 
 - canonical SecurityEvent → OutboxEvent → SecurityEventEnvelope round-trip;
 - preservation of tenant / actor / subject / correlation context;
 - rejection of non-security or tampered outbox messages;
 - recursive sensitive-field redaction;
+- transactional audit/outbox atomicity in SQLite and PostgreSQL;
+- post-commit outbox visibility in PostgreSQL;
 - successful sink delivery marks the outbox event published;
 - sink failure marks delivery failed and retryable;
 - retry succeeds without losing the original durable intent;
+- duplicate publish remains compatible with `event_id`-based consumer idempotency;
+- audit persistence failure cannot leak an outbox publication intent;
 - no vendor dependency is introduced into the core package.
