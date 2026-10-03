@@ -12,21 +12,51 @@ jobs:
   build-and-verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install build tooling
         run: python -m pip install --upgrade pip build
+      - name: Verify tag matches package version
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          with Path("pyproject.toml").open("rb") as stream:
+              version = tomllib.load(stream)["project"]["version"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          expected = f"v{version}"
+          if tag != expected:
+              raise SystemExit(f"tag/version mismatch: tag={tag!r}, expected={expected!r}")
+          print(f"Validated release tag {tag}.")
+          PY
       - name: Build artifacts
         run: python -m build
       - name: Install wheel
-        run: python -m pip install dist/*.whl
+        run: python -m pip install --force-reinstall dist/*.whl
       - name: Smoke import
         run: python scripts/smoke_install.py
-      - uses: actions/upload-artifact@v4
+      - name: Generate release evidence
+        run: >-
+          python scripts/generate_release_evidence.py
+          --dist-dir dist
+          --output-dir release-evidence
+      - name: Verify release evidence
+        run: |
+          test -s release-evidence/SHA256SUMS
+          test -s release-evidence/sbom.cdx.json
+          test -s release-evidence/provenance.json
+          python -m json.tool release-evidence/sbom.cdx.json >/dev/null
+          python -m json.tool release-evidence/provenance.json >/dev/null
+      - name: Upload package and release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: python-package
-          path: dist/
+          path: |
+            dist/
+            release-evidence/
 
 # PyPI publishing is intentionally deferred until Trusted Publishing is configured.

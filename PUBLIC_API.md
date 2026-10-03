@@ -2,6 +2,51 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0rc1
+
+Production qualification release candidate.
+
+This milestone intentionally adds no new IAM capability. It freezes and qualifies
+the IAM surface established through 0.5.0b2.
+
+The RC does add a persistence migration-baseline API required for production
+qualification:
+
+```text
+CI + Security + Production Qualification
+schema lifecycle qualification
+rollback documentation
+wheel + sdist verification
+SHA-256 checksums
+CycloneDX SBOM
+build provenance
+threat-model delta
+```
+
+`create_schema()` remains a bootstrap helper and `drop_schema()` remains a
+destructive teardown helper for isolated environments.
+
+The RC adds the SQLAlchemy production-migration baseline:
+
+```text
+BASELINE_SCHEMA_VERSION
+MigrationResult
+SchemaMigrationError
+current_schema_version()
+migrate_schema()
+rollback_schema_baseline()
+```
+
+`migrate_schema()` can initialize an empty database or non-destructively adopt
+the complete schema qualified in 0.5.0b2. Partial schemas and unknown migration
+history fail closed. `rollback_schema_baseline()` removes only RC1 migration
+bookkeeping; it does not drop IAM data or claim to downgrade arbitrary future
+schema revisions.
+
+Passing 0.5.0rc1 qualification does not mean that PyPI publication occurred and
+does not constitute a 1.0 public-API freeze. The formal public-API freeze remains
+planned for 1.0.0rc1.
+
 ## 0.5.0b2
 
 Introduces the reusable adapter/application conformance surface from
