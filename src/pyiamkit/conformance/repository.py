@@ -2,16 +2,10 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
 from .report import ConformanceCheck, ConformanceReport
 
-EntityT = TypeVar("EntityT")
-KeyT = TypeVar("KeyT")
-
-
 @dataclass(frozen=True, slots=True)
-class RepositoryProbe(Generic[EntityT, KeyT]):
+class RepositoryProbe[EntityT, KeyT]:
     """Adapter-specific callbacks consumed by RepositoryConformance.
 
     A probe should be backed by a fresh repository instance. The snapshot callback
@@ -37,7 +31,7 @@ class RepositoryProbe(Generic[EntityT, KeyT]):
         object.__setattr__(self, "name", name)
 
 
-class RepositoryConformance(Generic[EntityT, KeyT]):
+class RepositoryConformance[EntityT, KeyT]:
     """Qualify baseline persistence semantics shared by PyIAMKit repositories."""
 
     suite_name = "RepositoryConformance"
