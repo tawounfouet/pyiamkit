@@ -24,6 +24,14 @@ from .database import (
     drop_schema,
 )
 from .identity import SqlAlchemyIdentityRepository
+from .migrations import (
+    BASELINE_SCHEMA_VERSION,
+    MigrationResult,
+    SchemaMigrationError,
+    current_schema_version,
+    migrate_schema,
+    rollback_schema_baseline,
+)
 from .operations import SqlAlchemySecurityStateStore
 from .outbox import SqlAlchemyAuditOutboxWriter, SqlAlchemyOutboxRepository
 from .provisioning import (
@@ -33,6 +41,9 @@ from .provisioning import (
 from .tenancy import SqlAlchemyMembershipRepository, SqlAlchemyTenantRepository
 
 __all__ = [
+    "BASELINE_SCHEMA_VERSION",
+    "MigrationResult",
+    "SchemaMigrationError",
     "SqlAlchemyAuditOutboxWriter",
     "SqlAlchemyAuditRepository",
     "SqlAlchemyConstraintRepository",
@@ -51,7 +62,10 @@ __all__ = [
     "SqlAlchemySoDRuleRepository",
     "SqlAlchemyTenantRepository",
     "create_schema",
+    "current_schema_version",
     "create_session_factory",
     "create_sqlalchemy_engine",
     "drop_schema",
+    "migrate_schema",
+    "rollback_schema_baseline",
 ]
