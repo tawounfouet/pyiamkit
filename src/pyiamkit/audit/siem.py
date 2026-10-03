@@ -11,6 +11,47 @@ from .security import SecurityEvent, SecuritySeverity
 
 SECURITY_EVENT_OUTBOX_KIND = "pyiamkit.security_event.v1"
 SECURITY_EVENT_AGGREGATE_TYPE = "SecurityEvent"
+_REDACTED = "[REDACTED]"
+_SENSITIVE_PAYLOAD_KEYS = frozenset(
+    {
+        "access_token",
+        "api_key",
+        "authorization",
+        "client_secret",
+        "credential",
+        "password",
+        "private_key",
+        "raw_secret",
+        "raw_token",
+        "refresh_token",
+        "secret",
+        "token",
+    }
+)
+
+
+def _redact_payload_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {
+            str(key): (
+                _REDACTED
+                if str(key).strip().lower().replace("-", "_") in _SENSITIVE_PAYLOAD_KEYS
+                else _redact_payload_value(item)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_payload_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_payload_value(item) for item in value)
+    return value
+
+
+def _redact_security_payload(payload: Mapping[str, object]) -> dict[str, object]:
+    redacted = _redact_payload_value(payload)
+    if not isinstance(redacted, dict):
+        raise TypeError("Security payload redaction must produce a mapping")
+    return redacted
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +105,7 @@ class SecurityEventEnvelope:
             actor_id=event.actor_id,
             subject_id=event.subject_id,
             correlation_id=event.correlation_id,
-            payload=event.payload,
+            payload=_redact_security_payload(event.payload),
         )
 
     @classmethod
@@ -169,6 +210,6 @@ def security_event_to_outbox(event: SecurityEvent) -> OutboxEvent:
             "actor_id": event.actor_id,
             "subject_id": event.subject_id,
             "correlation_id": event.correlation_id,
-            "payload": dict(event.payload),
+            "payload": _redact_security_payload(event.payload),
         },
     )
