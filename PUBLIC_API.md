@@ -41,6 +41,14 @@ Common raw-secret payload fields are recursively redacted before SecurityEvent
 outbox persistence/export. Opaque pointers such as `secret_reference` remain
 preserved.
 
+The transactional writer is all-or-nothing in both failure directions: an outbox
+conflict rolls back its paired audit insert, while an audit persistence failure
+prevents the paired outbox intent from being created.
+
+At-least-once delivery deliberately allows duplicate publication after an ambiguous
+external success. The canonical `SecurityEventEnvelope.event_id` is stable across
+redelivery so downstream consumers can implement idempotent side effects.
+
 ## 0.5.0a1
 
 Adds the framework-neutral distributed-operations surface from
