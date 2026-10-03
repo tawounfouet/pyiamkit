@@ -38,9 +38,7 @@ PUBLIC_MODULES: dict[str, tuple[str, ...] | None] = {
     "pyiamkit.conformance": None,
     "pyiamkit.persistence": None,
     "pyiamkit.persistence.sqlalchemy": None,
-    "pyiamkit.authentication.adapters.jwt": (
-        "JwtTokenProvider",
-    ),
+    "pyiamkit.authentication.adapters.jwt": ("JwtTokenProvider",),
     "pyiamkit.authentication.adapters.oidc": (
         "OidcConfigurationError",
         "StaticOidcAssuranceResolver",
@@ -164,8 +162,7 @@ def _describe_symbol(name: str, value: object) -> dict[str, object]:
                 descriptor["exception_code"] = _json_value(code)
         if issubclass(cls, Enum):
             descriptor["enum_values"] = [
-                {"name": member.name, "value": _json_value(member.value)}
-                for member in cls
+                {"name": member.name, "value": _json_value(member.value)} for member in cls
             ]
         if dataclasses.is_dataclass(cls):
             descriptor["dataclass_fields"] = [
@@ -215,14 +212,9 @@ def _module_contract(module_name: str, explicit: tuple[str, ...] | None) -> dict
 
     missing = tuple(name for name in export_names if not hasattr(module, name))
     if missing:
-        raise RuntimeError(
-            f"{module_name} declares missing public export(s): {', '.join(missing)}"
-        )
+        raise RuntimeError(f"{module_name} declares missing public export(s): {', '.join(missing)}")
 
-    symbols = {
-        name: _describe_symbol(name, getattr(module, name))
-        for name in export_names
-    }
+    symbols = {name: _describe_symbol(name, getattr(module, name)) for name in export_names}
     canonical = json.dumps(
         {"exports": list(export_names), "symbols": symbols},
         sort_keys=True,
@@ -324,9 +316,7 @@ def audit_public_contract() -> tuple[str, ...]:
     for raw, expected in valid_permissions:
         actual = str(PermissionCode(raw))
         if actual != expected:
-            failures.append(
-                f"PermissionCode canonicalization changed: {raw!r} -> {actual!r}"
-            )
+            failures.append(f"PermissionCode canonicalization changed: {raw!r} -> {actual!r}")
 
     for raw in ("read", ".read", "invoice.", "invoice-read", "invoice..read"):
         try:
@@ -336,7 +326,6 @@ def audit_public_contract() -> tuple[str, ...]:
         failures.append(f"PermissionCode accepted invalid public form: {raw!r}")
 
     return tuple(failures)
-
 
 
 def main() -> int:
