@@ -21,5 +21,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[postgres,redis,fastapi,django,jwt,oidc-http,mfa]"
-      - name: Emit public API freeze candidate
-        run: python scripts/public_api_contract.py --emit
+      - name: Verify frozen public API
+        run: >-
+          python scripts/public_api_contract.py
+          --check docs/api/public-api-freeze-1.0.0rc1.json
