@@ -22,3 +22,19 @@ jobs:
         run: python -m pip install bandit
       - name: Bandit
         run: bandit -q -r src
+
+  authorization-properties:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install property-based security target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "hypothesis>=6.100,<7" pytest
+      - name: Authorization security properties
+        run: pytest tests/security/test_authorization_properties.py -m security -q
