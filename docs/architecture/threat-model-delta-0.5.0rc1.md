@@ -94,6 +94,21 @@ There is no separate Policy Administration API that silently bypasses these
 contracts. Host applications that expose policy mutation must apply their own
 privileged administration controls and audit.
 
+### Migration-state ambiguity
+
+Controls now include:
+
+- explicit `iam_schema_migrations` bookkeeping;
+- a named RC1 baseline revision;
+- non-destructive adoption of the qualified 0.5.0b2 table set;
+- fail-closed behavior for partial schemas;
+- fail-closed behavior for unknown migration versions;
+- non-destructive RC1 baseline un-stamping.
+
+Residual risk: the RC1 adopter validates expected table presence rather than a
+complete structural diff of every column/constraint. Arbitrary historical schemas
+must not be assumed compatible.
+
 ### Supply chain
 
 Controls now include:
