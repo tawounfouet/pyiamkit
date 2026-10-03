@@ -14,6 +14,8 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
   persistence, framework, OIDC, Redis, Audit, Outbox, SCIM and packaging surfaces.
 - SQLite and PostgreSQL schema-lifecycle qualification for repeated bootstrap,
   data preservation, teardown and clean recreation.
+- Versioned RC1 schema baseline ledger with non-destructive 0.5.0b2 adoption,
+  idempotent stamping, fail-closed partial/unknown-state detection and stamp rollback.
 - Versioned SQLAlchemy RC1 migration baseline with `iam_schema_migrations`,
   non-destructive 0.5.0b2-compatible schema adoption and fail-closed history checks.
 - Explicit persistence migration/rollback operational guide.
