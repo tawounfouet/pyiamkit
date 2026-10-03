@@ -6,6 +6,16 @@ import re
 import tomllib
 from pathlib import Path
 
+API_FREEZE_FILES = (
+    Path("docs/api/public-api-freeze-1.0.0rc1.json"),
+    Path("docs/api/public-api-freeze-1.0.0rc1.md"),
+    Path("docs/api/compatibility-policy-1.0.md"),
+    Path("docs/api/error-reason-permission-contracts-1.0.md"),
+    Path("docs/api/adapter-contract-matrix-1.0.0rc1.md"),
+    Path("scripts/public_api_contract.py"),
+    Path(".github/workflows/api-compatibility.yml"),
+)
+
 REQUIRED_FILES = (
     Path("CHANGELOG.md"),
     Path("PUBLIC_API.md"),
@@ -54,6 +64,11 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         failures.append(str(exc))
         return tuple(failures)
 
+    if expected_version.startswith("1."):
+        for relative in API_FREEZE_FILES:
+            if not (root / relative).is_file():
+                failures.append(f"missing 1.x API-freeze file: {relative}")
+
     version_path = root / "src/pyiamkit/_version.py"
     if not version_path.is_file():
         failures.append("missing src/pyiamkit/_version.py")
@@ -89,6 +104,20 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         path = root / relative
         if path.is_file() and needle not in path.read_text(encoding="utf-8"):
             failures.append(f"{relative} is missing required baseline text: {needle!r}")
+
+    if expected_version.startswith("1."):
+        api_required_mentions = {
+            "docs/api/public-api-freeze-1.0.0rc1.md": "27 documented public namespaces",
+            "docs/api/compatibility-policy-1.0.md": "minimum transition window",
+            "docs/api/error-reason-permission-contracts-1.0.md": "AuthorizationReason",
+            "docs/api/adapter-contract-matrix-1.0.0rc1.md": "RepositoryConformance",
+        }
+        for relative, needle in api_required_mentions.items():
+            path = root / relative
+            if path.is_file() and needle not in path.read_text(encoding="utf-8"):
+                failures.append(
+                    f"{relative} is missing required API-freeze text: {needle!r}"
+                )
 
     public_api = root / "PUBLIC_API.md"
     if public_api.is_file() and "migrate_schema()" not in public_api.read_text(encoding="utf-8"):
