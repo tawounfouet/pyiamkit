@@ -93,8 +93,7 @@ def generate_release_evidence(
     dependencies = project.get("dependencies", [])
     if isinstance(dependencies, list):
         components.extend(
-            _dependency_component(str(requirement), group="core")
-            for requirement in dependencies
+            _dependency_component(str(requirement), group="core") for requirement in dependencies
         )
 
     optional = project.get("optional-dependencies", {})
