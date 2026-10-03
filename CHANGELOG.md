@@ -6,6 +6,49 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [1.0.0rc1] - 2026-10-03
+
+### Added
+
+- Machine-readable public API freeze manifest covering 27 documented namespaces.
+- Dedicated API Compatibility workflow using the full optional adapter dependency
+  surface on Python 3.12.
+- Executable public-contract fingerprinting for exports, signatures, public class
+  members, enums, dataclass fields, exception codes and reviewed constants.
+- Semantic API audit for public exception-code uniqueness/canonical form,
+  AuthorizationReason naming and PermissionCode grammar.
+- 1.x compatibility/deprecation policy, API-freeze documentation, error/reason/
+  permission contract documentation and adapter contract matrix.
+
+### Changed
+
+- Package version advances to 1.0.0rc1 with no new IAM feature.
+- Public token exceptions now expose stable error codes.
+- Public persistence exceptions now expose stable error codes.
+- `SchemaMigrationError` now derives from `PersistenceError` and exposes
+  `SCHEMA_MIGRATION_ERROR`.
+- `DjangoAuthenticationRequired` now derives from `AuthenticationError` and
+  exposes `DJANGO_AUTHENTICATION_REQUIRED`.
+- `ConformanceFailure` exposes `CONFORMANCE_FAILURE`.
+- `PyIAMKitError` and `DomainError` expose stable base codes.
+- Current Identity/Tenancy public surfaces no longer carry stale alpha labels.
+
+### Compatibility
+
+- No frozen public export is intentionally removed or renamed.
+- Existing AuthorizationReason values are unchanged.
+- Existing PermissionCode syntax/normalization is unchanged.
+- Existing adapter import locations are unchanged.
+- No pending public deprecation exists at RC start.
+- Any further RC public-contract change requires explicit manifest review.
+
+### Security
+
+- Security fixes may still tighten unsafe behavior even when compatibility would
+  otherwise preserve it.
+- The 1.0 RC remains subject to the same CI, Security and Production Qualification
+  gates as 0.5.0, plus API Compatibility.
+
 ## [0.5.0] - 2026-10-03
 
 ### Stable promotion
