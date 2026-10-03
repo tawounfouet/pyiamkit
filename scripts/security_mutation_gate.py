@@ -71,9 +71,7 @@ PROBES = (
     MutationProbe(
         name="revoked_session_guard",
         path="src/pyiamkit/authentication/domain/session.py",
-        original=(
-            "        return self.status is SessionStatus.ACTIVE and at < self.expires_at\n"
-        ),
+        original=("        return self.status is SessionStatus.ACTIVE and at < self.expires_at\n"),
         mutant="        return at < self.expires_at\n",
         test_target=(
             "tests/unit/authentication/test_jwt.py::"
@@ -86,8 +84,7 @@ PROBES = (
         original="                issuer=self._issuer,\n",
         mutant="                issuer=None,\n",
         test_target=(
-            "tests/unit/authentication/test_oidc.py::"
-            "test_wrong_issuer_or_audience_is_rejected"
+            "tests/unit/authentication/test_oidc.py::test_wrong_issuer_or_audience_is_rejected"
         ),
     ),
 )
