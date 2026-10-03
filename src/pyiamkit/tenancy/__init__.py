@@ -1,4 +1,4 @@
-"""Public alpha API for the Tenancy bounded context."""
+"""Public API for the Tenancy bounded context."""
 
 from .application import TenancyApplicationService
 from .domain.context import TenantIsolationGuard
