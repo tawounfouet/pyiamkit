@@ -33,6 +33,7 @@ class PrivilegedActionContext:
     actor_id: IdentityId | None
     tenant_id: TenantId
     authentication: AuthenticationEvidence | None
+    target_identity_id: IdentityId | None = None
     target_role_id: RoleId | None = None
 
 
@@ -51,6 +52,13 @@ class MfaPrivilegedActionGuard:
     def require(self, context: PrivilegedActionContext) -> None:
         if context.actor_id is None:
             raise PrivilegedActionDenied("Privileged action requires an explicit actor")
+        if (
+            context.target_identity_id is not None
+            and context.actor_id == context.target_identity_id
+        ):
+            raise PrivilegedActionDenied(
+                "Sensitive role self-assignment requires a stronger approval guard"
+            )
 
         evidence = context.authentication
         if evidence is None:
