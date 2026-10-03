@@ -196,9 +196,7 @@ def _tampered_token() -> None:
     token = provider.issue_access_token(session).token
     header, payload, signature = token.split(".")
     replacement = "A" if payload[0] != "A" else "B"
-    provider.verify_access_token(
-        ".".join((header, replacement + payload[1:], signature))
-    )
+    provider.verify_access_token(".".join((header, replacement + payload[1:], signature)))
 
 
 def _expired_token() -> None:
