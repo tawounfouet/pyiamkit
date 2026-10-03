@@ -15,6 +15,7 @@ class EventPublisherProbe:
     publish_duplicate: Callable[[], tuple[str, tuple[str, ...]]]
     invalid_event: Callable[[], None]
     downstream_failure: Callable[[], None]
+    downstream_error: type[Exception]
 
     def __post_init__(self) -> None:
         name = self.name.strip()
@@ -73,7 +74,7 @@ class EventPublisherConformance:
     def _downstream_failure_propagates(self) -> None:
         try:
             self._probe.downstream_failure()
-        except Exception:
+        except self._probe.downstream_error:
             return
         raise AssertionError("downstream failure was swallowed")
 
