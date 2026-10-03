@@ -46,7 +46,9 @@ PROBES = (
         path="src/pyiamkit/authorization/engine.py",
         original=(
             "        if identity.status is not IdentityStatus.ACTIVE:\n"
-            "            return self._deny(request, now, AuthorizationReason.DENY_SUBJECT_INACTIVE)\n"
+            "            return self._deny("
+            "request, now, AuthorizationReason.DENY_SUBJECT_INACTIVE"
+            ")\n"
         ),
         mutant=(
             "        if False and identity.status is not IdentityStatus.ACTIVE:\n"
