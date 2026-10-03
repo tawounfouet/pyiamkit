@@ -115,9 +115,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         for relative, needle in api_required_mentions.items():
             path = root / relative
             if path.is_file() and needle not in path.read_text(encoding="utf-8"):
-                failures.append(
-                    f"{relative} is missing required API-freeze text: {needle!r}"
-                )
+                failures.append(f"{relative} is missing required API-freeze text: {needle!r}")
 
     public_api = root / "PUBLIC_API.md"
     if public_api.is_file() and "migrate_schema()" not in public_api.read_text(encoding="utf-8"):
