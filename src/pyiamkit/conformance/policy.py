@@ -39,7 +39,10 @@ class PolicyEvaluatorConformance:
             suite=self.suite_name,
             target=self._probe.name,
             checks=(
-                self._check("matching_context_preserves_allow", self._matching_context_preserves_allow),
+                self._check(
+                    "matching_context_preserves_allow",
+                    self._matching_context_preserves_allow,
+                ),
                 self._check(
                     "constraint_violation_reduces_access",
                     self._constraint_violation_reduces_access,
