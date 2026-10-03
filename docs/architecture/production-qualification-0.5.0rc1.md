@@ -43,6 +43,7 @@ A green result on an older commit is evidence for that older commit only.
 | Package install | built wheel reinstall + smoke import |
 | Examples | all executable examples in CI |
 | Release artifacts | wheel + sdist + SHA-256 + SBOM + provenance |
+| Performance sanity | 1,000 InMemory authorization decisions within a coarse 10 s budget |
 | Schema lifecycle | SQLite + PostgreSQL repeated bootstrap/teardown proof |
 
 ## M21 release gates
@@ -58,6 +59,7 @@ A green result on an older commit is evidence for that older commit only.
 [x] docs baseline defined
 [x] examples are executable CI gates
 [x] package installation is an executable CI gate
+[x] performance sanity gate defined
 [x] threat-model delta documented
 ```
 
