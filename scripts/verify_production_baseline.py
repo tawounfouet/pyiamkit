@@ -16,6 +16,8 @@ REQUIRED_FILES = (
     Path("docs/architecture/production-qualification-0.5.0rc1.md"),
     Path("docs/architecture/threat-model-delta-0.5.0rc1.md"),
     Path("docs/guides/persistence-migration-and-rollback.md"),
+    Path("src/pyiamkit/persistence/sqlalchemy/migrations.py"),
+    Path("tests/qualification/test_schema_migrations.py"),
     Path(".github/workflows/ci.yml"),
     Path(".github/workflows/security.yml"),
     Path(".github/workflows/production-qualification.yml"),
@@ -69,7 +71,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
             "No new critical risk is intentionally accepted"
         ),
         "docs/guides/persistence-migration-and-rollback.md": (
-            "there is no built-in versioned migration engine"
+            "0001_0_5_0rc1_baseline"
         ),
     }
 
@@ -77,6 +79,10 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         path = root / relative
         if path.is_file() and needle not in path.read_text(encoding="utf-8"):
             failures.append(f"{relative} is missing required baseline text: {needle!r}")
+
+    public_api = root / "PUBLIC_API.md"
+    if public_api.is_file() and "migrate_schema()" not in public_api.read_text(encoding="utf-8"):
+        failures.append("PUBLIC_API.md is missing the RC1 migration API")
 
     return tuple(failures)
 
