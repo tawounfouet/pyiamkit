@@ -1,8 +1,32 @@
 import hashlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 
-from scripts.generate_release_evidence import generate_release_evidence
+
+def _run_generator(
+    *,
+    pyproject: Path,
+    dist: Path,
+    output: Path,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/generate_release_evidence.py",
+            "--pyproject",
+            str(pyproject),
+            "--dist-dir",
+            str(dist),
+            "--output-dir",
+            str(output),
+        ],
+        check=check,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_release_evidence_contains_artifact_hashes_sbom_and_provenance(
@@ -32,15 +56,11 @@ sqlalchemy = ["sqlalchemy>=2,<3"]
     sdist.write_bytes(b"sdist-bytes")
 
     output = tmp_path / "release-evidence"
-    checksums, sbom_path, provenance_path = generate_release_evidence(
-        pyproject_path=pyproject,
-        dist_dir=dist,
-        output_dir=output,
-        commit_sha="abc123",
-        workflow="Production Qualification",
-        run_id="42",
-        builder="pytest",
-    )
+    _run_generator(pyproject=pyproject, dist=dist, output=output)
+
+    checksums = output / "SHA256SUMS"
+    sbom_path = output / "sbom.cdx.json"
+    provenance_path = output / "provenance.json"
 
     expected_wheel_hash = hashlib.sha256(b"wheel-bytes").hexdigest()
     expected_sdist_hash = hashlib.sha256(b"sdist-bytes").hexdigest()
@@ -60,8 +80,8 @@ sqlalchemy = ["sqlalchemy>=2,<3"]
 
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     assert provenance["package"] == {"name": "pyiamkit", "version": "0.5.0rc1"}
-    assert provenance["source"]["commit"] == "abc123"
-    assert provenance["build"]["workflow"] == "Production Qualification"
+    assert provenance["source"]["commit"] == "local"
+    assert provenance["build"]["workflow"] == "local"
     assert {item["name"] for item in provenance["artifacts"]} == {
         wheel.name,
         sdist.name,
@@ -78,17 +98,12 @@ def test_release_evidence_requires_wheel_and_sdist(tmp_path: Path) -> None:
     dist.mkdir()
     (dist / "pyiamkit-0.5.0rc1-py3-none-any.whl").write_bytes(b"wheel")
 
-    try:
-        generate_release_evidence(
-            pyproject_path=pyproject,
-            dist_dir=dist,
-            output_dir=tmp_path / "evidence",
-            commit_sha="abc123",
-            workflow="Production Qualification",
-            run_id="42",
-            builder="pytest",
-        )
-    except ValueError as exc:
-        assert "sdist" in str(exc)
-    else:
-        raise AssertionError("missing sdist did not fail release evidence generation")
+    result = _run_generator(
+        pyproject=pyproject,
+        dist=dist,
+        output=tmp_path / "evidence",
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "sdist" in result.stderr
