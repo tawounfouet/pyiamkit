@@ -3,6 +3,15 @@
 from .application import RoleCatalogApplicationService
 from .audit import AuthorizationDecisionAuditRecorder
 from .binding_application import RoleBindingApplicationService
+from .break_glass import (
+    BreakGlassActivationSink,
+    BreakGlassDenied,
+    BreakGlassError,
+    BreakGlassGrant,
+    BreakGlassGrantId,
+    BreakGlassPolicy,
+    BreakGlassService,
+)
 from .domain.binding_value_objects import GrantSource, RoleBindingId, RoleBindingStatus
 from .domain.decision import (
     AuthenticationEvidence,
@@ -92,6 +101,13 @@ __all__ = [
     "AuthorizationReason",
     "AuthorizationRequest",
     "AuthorizationResult",
+    "BreakGlassActivationSink",
+    "BreakGlassDenied",
+    "BreakGlassError",
+    "BreakGlassGrant",
+    "BreakGlassGrantId",
+    "BreakGlassPolicy",
+    "BreakGlassService",
     "ConstraintEvaluator",
     "ConstraintRepository",
     "DecisionExplanation",
