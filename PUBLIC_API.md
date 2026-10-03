@@ -45,8 +45,10 @@ Sensitive Role assignment is now an explicitly privileged operation. When a
 `Role.sensitive` Role is assigned through `RoleBindingApplicationService`, the
 service requires a configured `PrivilegedActionGuard`. The reference
 `MfaPrivilegedActionGuard` requires an explicit actor, MFA and minimum assurance
-(AAL2 by default). Ordinary non-sensitive Role assignment keeps its previous
-contract.
+(AAL2 by default) and rejects sensitive Role self-assignment. Applications that
+intentionally permit an exceptional self-assignment workflow must provide a custom
+`PrivilegedActionGuard` with their stronger approval controls. Ordinary
+non-sensitive Role assignment keeps its previous contract.
 
 TOTP Session step-up now rotates the Session identifier: the original Session is
 revoked and a new elevated Session is created. Access tokens tied to the previous
