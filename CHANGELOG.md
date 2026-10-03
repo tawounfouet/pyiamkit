@@ -6,6 +6,16 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+### Added
+
+- Vendor-neutral `SecurityEventSink` and immutable `SecurityEventEnvelope` SIEM contracts.
+- `GenericSecurityEventExporter` bridging committed outbox events to SIEM sinks.
+- Canonical `security_event_to_outbox()` projection with strict envelope validation.
+- Retryable SIEM delivery through the existing at-least-once `OutboxPublisher` state machine.
+- Recursive redaction of common raw-secret payload fields before SIEM outbox persistence/export.
+- Architecture documentation for the Audit / Outbox / SIEM `0.5.0a2` line.
+
+
 ## [0.5.0a1] - 2026-10-02
 
 ### Added
