@@ -2,6 +2,74 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 1.0.0rc1
+
+Public API freeze release candidate.
+
+This milestone introduces no new IAM capability. It freezes the production-qualified
+0.5.0 surface and makes compatibility executable before 1.0.0.
+
+The freeze is defined by:
+
+```text
+docs/api/public-api-freeze-1.0.0rc1.json
+scripts/public_api_contract.py
+.github/workflows/api-compatibility.yml
+```
+
+The manifest covers 27 documented public namespaces. Package-level surfaces use
+their explicit `__all__`; optional adapter modules without `__all__` use the
+public names already documented in this file.
+
+The fingerprint protects:
+
+```text
+exports
+constructor/function signatures
+public class methods/properties
+enum values
+dataclass fields
+public exception codes
+reviewed exported constants
+```
+
+M23 contract review completed before the freeze:
+
+- no existing public export was removed or renamed;
+- every public exception now has a stable canonical `code`;
+- token and persistence error codes were completed;
+- `SchemaMigrationError` is aligned with `PersistenceError`;
+- `DjangoAuthenticationRequired` is aligned with `AuthenticationError`;
+- `ConformanceFailure` has a stable code while retaining AssertionError semantics;
+- AuthorizationReason values remain unchanged and are frozen;
+- PermissionCode grammar/normalization remains unchanged and is audited;
+- adapter import locations/contracts remain unchanged and are mapped to conformance;
+- no pending public deprecation exists at RC start.
+
+Compatibility/deprecation policy:
+
+```text
+docs/api/compatibility-policy-1.0.md
+```
+
+Error/reason/permission semantics:
+
+```text
+docs/api/error-reason-permission-contracts-1.0.md
+```
+
+Adapter contract matrix:
+
+```text
+docs/api/adapter-contract-matrix-1.0.0rc1.md
+```
+
+The persistence schema baseline remains
+`0001_0_5_0rc1_baseline`; the API-freeze RC adds no business-schema migration.
+
+1.0.0 promotion requires the exact final commit to pass CI, Security, Production
+Qualification and API Compatibility.
+
 ## 0.5.0
 
 First production-oriented stable release.
