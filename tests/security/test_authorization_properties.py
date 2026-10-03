@@ -1,6 +1,6 @@
+import string
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-import string
 
 import pytest
 from hypothesis import given, settings, strategies as st
