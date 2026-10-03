@@ -2,6 +2,40 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0
+
+First production-oriented stable release.
+
+0.5.0 promotes the fully qualified 0.5.0rc1 capability surface without adding a
+new IAM feature or changing the qualified business schema.
+
+The public 0.5.x surface includes the documented Identity, Tenancy, RBAC,
+Authorization, Authentication, Federation, Provisioning, distributed-operations,
+Audit/Outbox, conformance and SQLAlchemy migration-baseline contracts from the
+preceding 0.5 milestones.
+
+Production migration continues to use:
+
+```text
+BASELINE_SCHEMA_VERSION
+MigrationResult
+SchemaMigrationError
+current_schema_version()
+migrate_schema()
+rollback_schema_baseline()
+```
+
+The current schema revision remains:
+
+```text
+0001_0_5_0rc1_baseline
+```
+
+No additional migration is required solely for promotion from 0.5.0rc1 to 0.5.0.
+
+0.5.0 is suitable for controlled production use, but it remains pre-1.0. The formal
+public API freeze and long-term compatibility review are planned for 1.0.0rc1.
+
 ## 0.5.0rc1
 
 Production qualification release candidate.
