@@ -1,57 +1,64 @@
 # PyIAMKit
 
-PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access Management (IAM), RBAC, multi-tenancy, policy-based authorization, delegation, auditability and durable persistence.
+PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Access
+Management (IAM), RBAC, multi-tenancy, authorization, authentication, federation,
+provisioning, auditability and durable persistence.
 
-> **Status:** qualified distributed-operations alpha (`0.5.0a1`) — not yet recommended for production use.
+> **Status:** `0.5.0` — first production-oriented stable release. Suitable for
+> controlled production use; still pre-1.0 and not yet under the final public API
+> freeze.
 
 ## Goals
 
-PyIAMKit is designed around default deny, least privilege, explicit tenant/scope boundaries, explainable authorization, strong revocation and framework-independent domain logic.
+PyIAMKit is designed around default deny, least privilege, explicit Tenant/scope
+boundaries, explainable authorization, strong revocation, auditable privileged
+operations and framework-independent domain logic.
 
 ## Current milestone
 
-`0.5.0a1` adds a distributed operational layer around the existing authoritative
-IAM and authorization model.
+`0.5.0` promotes the fully qualified `0.5.0rc1` line without adding a new IAM
+feature.
 
 ```text
-PostgreSQL / repositories
-        ↓
-authoritative SecurityStateStamp
-        ↓
-DistributedAuthorizationRuntime
-        ├── RevocationRegistry
-        ├── AuthorizationCache
-        └── AuthorizationEngine
-                 ↓
-              decision
+Identity / Tenancy / RBAC
+          ↓
+Authorization + constraints / SoD
+          ↓
+Authentication / JWT / OIDC / MFA
+          ↓
+Persistence / migration baseline
+          ↓
+FastAPI / Django / SCIM
+          ↓
+Distributed SecurityState / Redis
+          ↓
+Audit / Outbox / SIEM
+          ↓
+Security + Conformance + Production Qualification
 ```
 
-Redis is optional and non-authoritative. It can accelerate authorization cache
-lookups, deny-fast revocation checks, state projection and invalidation Pub/Sub,
-but it cannot prove that an `ALLOW` remains valid.
-
-The central safety rule is:
+The stable line is qualified by three release-blocking workflow families on the
+same commit:
 
 ```text
-stale / unavailable / reordered distributed state
-                    ↓
-must never manufacture a trusted stale ALLOW
+CI
+Security
+Production Qualification
 ```
 
-`SecurityStateMutationEventSink` translates security-sensitive domain events
-into monotonic state-version bumps and deny-fast revocation markers. JWT
-verification can optionally consult the same Session revocation registry before
-performing the mandatory durable Session check.
+Redis remains optional and non-authoritative. Access tokens remain subordinate to
+durable Session state. SCIM Group membership remains independent from implicit RBAC
+assignment.
 
-Executable walkthroughs:
+Production guidance:
 
-```text
-examples/distributed_authorization.py
-examples/jwt_revocation_overlay.py
-```
+- [Production deployment](docs/guides/production-deployment.md)
+- [Security operations](docs/guides/security-operations.md)
+- [Persistence migration and rollback](docs/guides/persistence-migration-and-rollback.md)
+- [Integrations](docs/guides/integrations.md)
+- [Production checklist](docs/guides/production-checklist.md)
 
-See [Distributed operations](docs/guides/distributed-operations.md) for the
-failure model, Redis adapters and operational invariants.
+The next roadmap milestone is `1.0.0rc1 — Public API Freeze`.
 
 ## Installation
 

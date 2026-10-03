@@ -4,7 +4,13 @@ PyIAMKit is security-sensitive software. Please avoid reporting suspected vulner
 
 ## Supported versions
 
-The project is currently pre-alpha. Until a stable support policy is published, only the most recent release is expected to receive security fixes.
+PyIAMKit 0.5.x is the current production-oriented pre-1.0 release line.
+
+Only the most recent supported 0.5.x release is expected to receive security fixes.
+Pre-release builds and older 0.5.x versions should be upgraded after a security fix
+unless a release note explicitly states otherwise.
+
+The 1.0 long-term compatibility/support policy is not yet frozen.
 
 ## Reporting a vulnerability
 
@@ -52,3 +58,17 @@ GitHub Actions used by the Security workflow are pinned to immutable revisions.
 The supported third-party dependency surface is vulnerability-audited, and Git
 history is scanned for secrets. A release must not treat failure or uncertainty in
 these gates as success.
+
+## Production operations
+
+Production deployments should additionally follow:
+
+- `docs/guides/security-operations.md`;
+- `docs/guides/production-deployment.md`;
+- `docs/guides/production-checklist.md`;
+- `docs/guides/persistence-migration-and-rollback.md`.
+
+0.5.0 is production-oriented stable but does not provide HSM/KMS custody,
+cryptographic audit-log immutability, exactly-once external event delivery,
+refresh-token lifecycle or delegation. These must not be inferred from the stable
+label.

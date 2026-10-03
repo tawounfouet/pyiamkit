@@ -6,6 +6,39 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-03
+
+### Stable promotion
+
+- Promotes the fully qualified 0.5.0rc1 capability line to the first
+  production-oriented stable PyIAMKit release.
+- No new IAM feature or business-schema change is introduced by the promotion.
+- Adds production deployment, security operations, integration and production
+  checklist guides required for controlled production use.
+- Generalizes the production-baseline verifier so the same release gates qualify
+  the stable package version.
+
+### Production baseline
+
+- CI, Security and Production Qualification remain release-blocking on the exact
+  stable commit.
+- The RC1 migration revision `0001_0_5_0rc1_baseline` remains the current 0.5.0
+  schema baseline; no extra database revision is required for rc1 → 0.5.0.
+- Wheel/sdist installation, SHA-256 evidence, CycloneDX SBOM, provenance,
+  migration lifecycle and performance sanity remain part of qualification.
+- 0.5.0 is intended for real applications and controlled production use while
+  remaining pre-1.0.
+
+### Security
+
+- The latest supported 0.5.x stable release is the security-fix target.
+- Production deployments are expected to use protected external secret/key custody,
+  explicit Tenant boundaries, authoritative Session revocation, monitored
+  Audit/Outbox delivery and documented rollback procedures.
+- Stable does not imply capabilities that remain explicitly unsupported, including
+  refresh-token lifecycle, delegation, HSM/KMS custody, cryptographic audit-log
+  immutability, exactly-once external delivery or arbitrary historical migration.
+
 ## [0.5.0rc1] - 2026-10-03
 
 ### Added
