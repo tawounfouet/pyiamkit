@@ -56,9 +56,7 @@ class PolicyEvaluatorConformance:
     def _matching_context_preserves_allow(self) -> None:
         decision = self._probe.matching_context()
         if not decision.allowed:
-            raise AssertionError(
-                f"valid policy context was denied: {decision.reason_code.value}"
-            )
+            raise AssertionError(f"valid policy context was denied: {decision.reason_code.value}")
 
     def _constraint_violation_reduces_access(self) -> None:
         self._require_reason(
@@ -94,9 +92,7 @@ class PolicyEvaluatorConformance:
         if decision.allowed:
             raise AssertionError(f"expected DENY {expected.value}, got ALLOW")
         if decision.reason_code is not expected:
-            raise AssertionError(
-                f"expected {expected.value}, got {decision.reason_code.value}"
-            )
+            raise AssertionError(f"expected {expected.value}, got {decision.reason_code.value}")
 
     @staticmethod
     def _check(name: str, operation: Callable[[], None]) -> ConformanceCheck:
