@@ -118,7 +118,7 @@ def test_rate_limit_guard_raises_when_limit_is_exceeded() -> None:
     )
     guard = RateLimitGuard(limiter=limiter, clock=FrozenClock())
 
-    with pytest.raises(RateLimitExceeded, match="authentication.login"):
+    with pytest.raises(RateLimitExceeded, match=r"authentication\.login"):
         guard.require(
             RateLimitKey("authentication.login", "alice"),
             RateLimitPolicy(limit=3, window=timedelta(minutes=1)),
