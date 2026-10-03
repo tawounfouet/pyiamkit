@@ -35,7 +35,9 @@ Redis, Django, FastAPI and SCIM integrations.
 
 Sensitive Role assignment is fail-closed and requires an explicitly configured
 privileged-action policy hook. The reference guard requires an identified actor,
-MFA and AAL2 or stronger assurance.
+MFA and AAL2 or stronger assurance, and refuses sensitive Role self-assignment.
+Exceptional self-assignment requires an explicit stronger approval guard supplied
+by the host application.
 
 MFA step-up rotates the Session identifier rather than elevating the existing
 Session in place.
