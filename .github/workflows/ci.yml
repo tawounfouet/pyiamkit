@@ -89,7 +89,7 @@ jobs:
       - name: Install operations qualification target
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[sqlalchemy,jwt,mfa]"
+          python -m pip install -e ".[sqlalchemy]"
           python -m pip install pytest
       - name: Operational conformance and security qualification
         run: >-
@@ -262,7 +262,7 @@ jobs:
       - name: Install official conformance target
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[sqlalchemy]"
+          python -m pip install -e ".[sqlalchemy,jwt,mfa]"
           python -m pip install pytest
       - name: Official adapter conformance suites
         run: pytest tests/conformance/test_*_conformance_suite.py -m conformance -q
