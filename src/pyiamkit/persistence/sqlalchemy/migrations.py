@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import cast
 
 from sqlalchemy import (
     Column,
@@ -63,7 +64,7 @@ def current_schema_version(engine: Engine) -> str | None:
     if not versions:
         return None
     _validate_known_versions(versions)
-    return versions[-1]
+    return cast(str, versions[-1])
 
 
 def migrate_schema(engine: Engine) -> MigrationResult:
