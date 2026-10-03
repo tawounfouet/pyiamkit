@@ -1,140 +1,138 @@
-# Persistence migration and rollback — 0.5.0rc1
+# Persistence bootstrap, migration and rollback — 0.5.0rc1
 
 ## Status
 
-PyIAMKit 0.5.0rc1 introduces the first explicit SQLAlchemy schema-version
-baseline.
+PyIAMKit 0.5.0rc1 introduces the first explicit SQLAlchemy migration baseline.
 
-The production-oriented persistence helpers are:
+The supported lifecycle is now:
 
-```text
-migrate_schema()
-current_schema_version()
-rollback_schema_baseline()
-```
+- `create_schema()` — unversioned bootstrap helper for tests/local/disposable environments;
+- `migrate_schema()` — production-facing RC1 baseline adoption/stamping helper;
+- `current_schema_version()` — migration-ledger inspection;
+- `rollback_schema_baseline()` — non-destructive removal of the RC1 baseline stamp;
+- `drop_schema()` — destructive teardown helper for isolated environments.
 
-The baseline revision is:
-
-```text
-0001_0_5_0rc1_baseline
-```
-
-Migration history is stored in:
+The migration ledger is stored in:
 
 ```text
 iam_schema_migrations
 ```
 
-`create_schema()` remains an idempotent bootstrap helper for tests and local
-development. Production deployments should use `migrate_schema()` so schema
-state is explicit and validated.
+The RC1 baseline identifier is:
 
-## RC1 migration model
+```text
+0001_0_5_0rc1_baseline
+```
 
-### Empty database
+## 0.5.0b2 → 0.5.0rc1 adoption
+
+The persistence business schema is unchanged between the qualified 0.5.0b2
+baseline and RC1.
+
+For a database that already contains the complete compatible PyIAMKit schema,
+`migrate_schema()`:
+
+1. detects the existing PyIAMKit tables;
+2. refuses a partially present schema;
+3. creates migration bookkeeping;
+4. records the RC1 baseline;
+5. preserves existing business data.
+
+This adoption path is qualified on SQLite and PostgreSQL.
+
+## Fresh database
+
+For an empty database:
 
 ```text
 empty database
     ↓
 migrate_schema()
     ↓
-create current IAM schema
+create current PyIAMKit schema
     ↓
 create iam_schema_migrations
     ↓
 stamp 0001_0_5_0rc1_baseline
 ```
 
-### Compatible 0.5.0b2 database
+Calling `migrate_schema()` again is idempotent.
 
-The persistence structure did not change between the qualified 0.5.0b2 schema and
-the RC1 business schema. RC1 therefore supports a non-destructive baseline
-adoption:
+## Fail-closed migration state
 
-```text
-complete 0.5.0b2-compatible IAM schema
-    +
-no migration ledger
-    ↓
-migrate_schema()
-    ↓
-validate every expected IAM table is present
-    ↓
-preserve existing data
-    ↓
-create migration ledger
-    ↓
-stamp RC1 baseline
-```
+Migration does not guess how to repair ambiguous state.
 
-This exact path is qualified on SQLite and PostgreSQL with persisted Identity data.
+It fails closed when:
 
-### Partial or unknown schema
+- only part of the expected PyIAMKit table set exists;
+- the migration ledger contains an unknown version.
 
-Migration fails closed when:
-
-- only a subset of expected PyIAMKit tables is present;
-- the migration ledger contains an unknown revision.
-
-PyIAMKit does not attempt speculative DDL repair or silently reinterpret an
-unrecognized migration history.
-
-## Idempotency
-
-Calling `migrate_schema()` again on an already stamped RC1 database performs no
-new migration and returns an unapplied result.
-
-The schema version remains:
-
-```text
-0001_0_5_0rc1_baseline
-```
+The RC1 adoption check validates the expected table set. It does not perform a
+full column/constraint diff against arbitrary historical schemas. Operators should
+only adopt a database known to originate from the qualified 0.5.0b2 schema.
 
 ## Rollback model
 
-### RC1 → 0.5.0b2-compatible application rollback
+### RC1 → 0.5.0b2
 
-RC1 adds migration bookkeeping but no incompatible business-table change relative
-to the qualified 0.5.0b2 schema.
+Because RC1 introduces migration bookkeeping without a business-schema change,
+`rollback_schema_baseline()` removes only the RC1 migration stamp.
 
-`rollback_schema_baseline()` therefore performs a non-destructive unstamp:
+It preserves:
 
-```text
-RC1 baseline
-    ↓
-remove 0001_0_5_0rc1_baseline row
-    ↓
-preserve IAM tables
-    ↓
-preserve IAM data
-    ↓
-previous compatible application can be redeployed
-```
+- IAM tables;
+- Identity/Tenant/Role/Binding data;
+- Session/Credential/MFA data;
+- Audit/Outbox data;
+- SecurityState and provisioning data.
 
-The rollback qualification explicitly verifies that persisted Identity data
-survives the unstamp.
-
-Removing the stamp is not the same as automatically downgrading arbitrary future
-schema changes.
+After un-stamping, a previously qualified 0.5.0b2 application can continue to use
+the unchanged business schema.
 
 ### Transaction rollback
 
-Repository writes do not commit implicitly. The host application retains
-transaction ownership, so IAM state, AuditEvent and OutboxEvent writes can be
-rolled back atomically before commit.
+Repository writes still do not commit implicitly. Host applications control commit
+and rollback boundaries, including AuditEvent + OutboxEvent transaction composition.
 
-This is separate from release/schema rollback.
+This transaction rollback is distinct from release/schema rollback.
 
-### Emergency restore
+### Future schema-changing migrations
 
-For a future migration that changes stored structure incompatibly:
+RC1 establishes migration bookkeeping, not a complete multi-revision migration
+framework.
+
+The current implementation does not yet provide:
+
+- arbitrary ordered DDL revisions beyond the RC1 baseline;
+- column rename/backfill transforms;
+- general downgrade DDL;
+- online migration orchestration;
+- automatic compatibility inference for unknown historical schemas.
+
+A future schema-changing release must add an explicit forward revision plus
+qualified rollback/restore behavior.
+
+## Destructive helper policy
+
+`drop_schema()` is suitable only for:
+
+- tests;
+- local development;
+- disposable qualification databases;
+- explicit teardown tooling.
+
+It must never be used as an automatic production rollback mechanism.
+
+## Emergency restore
+
+For a failed future deployment that changes persisted structure incompatibly:
 
 ```text
 stop writers
     ↓
-capture diagnostics
+capture failed-state diagnostics
     ↓
-restore database snapshot / point-in-time backup when required
+restore database snapshot / point-in-time backup
     ↓
 deploy previously qualified package
     ↓
@@ -143,45 +141,18 @@ run smoke + tenant-isolation + authorization checks
 resume traffic
 ```
 
-The database backup/restore mechanism remains a host deployment responsibility.
-
-## Destructive helper policy
-
-`drop_schema()` removes PyIAMKit business tables and migration bookkeeping. It is
-appropriate only for:
-
-- tests;
-- local development;
-- disposable qualification databases;
-- explicit teardown tooling.
-
-It is never an automatic production rollback mechanism.
-
-## What RC1 does not claim
-
-The RC1 baseline is intentionally narrow. It does not claim:
-
-- migration from arbitrary historical PyIAMKit schemas;
-- online column/table transformations;
-- automatic data backfills;
-- automatic downgrade of future structural migrations;
-- zero-downtime migration orchestration.
-
-Future schema-changing releases must add ordered revisions, forward migration
-evidence from the prior supported revision, data-preservation assertions and an
-explicit downgrade or restore strategy.
+Backup/restore remains a host deployment/database responsibility.
 
 ## RC qualification evidence
 
-The Production Qualification workflow verifies:
+The RC qualification suite verifies on SQLite and PostgreSQL that:
 
-- empty-database migration and baseline stamping on SQLite;
-- migration idempotency;
-- non-destructive adoption of a complete 0.5.0b2-compatible schema on SQLite;
-- the same adoption and rollback path on PostgreSQL 16;
-- persisted data survives adoption and RC1 baseline rollback;
-- partial schemas fail closed without a migration stamp;
-- unknown migration history fails before business-schema DDL;
-- legacy `create_schema()` bootstrap remains idempotent for disposable/local use.
-
-This is the migration contract qualified by 0.5.0rc1.
+- a fresh database can be migrated and stamped;
+- a compatible 0.5.0b2 schema can be adopted without data loss;
+- migration is idempotent;
+- rollback removes only the RC1 baseline stamp;
+- data remains readable after rollback;
+- the baseline can be reapplied;
+- a partial schema fails closed;
+- unknown migration history fails closed;
+- bootstrap teardown/recreate remains valid in disposable environments.
