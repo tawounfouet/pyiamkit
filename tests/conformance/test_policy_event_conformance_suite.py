@@ -292,9 +292,7 @@ def _publish_invalid() -> None:
 
 
 def _publish_downstream_failure() -> None:
-    GenericSecurityEventExporter(FailingSink()).publish(
-        security_event_to_outbox(_security_event())
-    )
+    GenericSecurityEventExporter(FailingSink()).publish(security_event_to_outbox(_security_event()))
 
 
 def test_event_publisher_conformance_qualifies_generic_siem_exporter() -> None:
