@@ -52,8 +52,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[sqlalchemy,jwt,oidc,oidc-http,mfa,postgres,redis,fastapi,django]"
           python -m pip install "pip-audit==2.10.1"
+          python -m pip uninstall -y pyiamkit
       - name: Audit installed supported dependency surface
-        run: pip-audit --local --strict --skip-editable
+        run: pip-audit --local --strict
 
   secret-scan:
     runs-on: ubuntu-latest
