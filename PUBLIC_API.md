@@ -2,6 +2,78 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0b2
+
+Introduces the reusable adapter/application conformance surface from
+`pyiamkit.conformance`:
+
+```text
+ConformanceCheck
+ConformanceReport
+ConformanceFailure
+
+RepositoryProbe
+RepositoryConformance
+
+AuthorizationProbe
+AuthorizationConformance
+
+TenantIsolationProbe
+TenantIsolationConformance
+
+AuthenticationProbe
+AuthenticationConformance
+
+TokenProviderProbe
+TokenProviderConformance
+
+PolicyEvaluatorProbe
+PolicyEvaluatorConformance
+
+SecretStoreProbe
+SecretStoreConformance
+
+EventPublisherProbe
+EventPublisherConformance
+```
+
+`ConformanceReport.require_passed()` converts any failed named contract into a
+`ConformanceFailure` suitable for CI and release gating.
+
+The probe objects are composition boundaries: consumers supply fresh scenarios
+backed by the adapter or application they want to certify. The suites own the
+PyIAMKit invariants and return deterministic reports; they do not own deployment
+configuration, vendor SDKs or transport wiring.
+
+`RepositoryConformance` checks missing reads, round-trip preservation,
+database-like copy semantics, optional `exists` behavior, persisted snapshot
+isolation and optional rehydration invariants. The initial official targets are
+InMemory and SQLAlchemy IdentityRepository adapters.
+
+`AuthorizationConformance` checks default-deny behavior, inactive subjects,
+unregistered permissions, revoked access and semantic determinism.
+`TenantIsolationConformance` is a separate release-blocking contract covering
+cross-Tenant binding leakage, foreign-Tenant Roles and scope/Tenant mismatches.
+
+`AuthenticationConformance` qualifies Session lifecycle and inactive-subject
+behavior. `TokenProviderConformance` qualifies token round-trip, tamper/expiry
+rejection, issuer/audience trust and Session revocation. The initial token target
+is `JwtTokenProvider`.
+
+`PolicyEvaluatorConformance` maps the M20 policy contract onto the currently
+implemented authorization governance model (constraints, SoD and assurance
+step-up). It does not imply that a separate `policy` bounded-context package
+exists.
+
+`SecretStoreConformance` qualifies the MFA secret-storage boundary.
+`EventPublisherConformance` qualifies canonical event identity under delivery
+and redelivery, invalid-event rejection and propagation of expected downstream
+failures.
+
+The reusable conformance surface is intended for official and third-party adapters.
+Passing conformance is not, by itself, a claim of production readiness or vendor
+certification.
+
 ## 0.5.0b1
 
 Adds framework-neutral security-hardening contracts.

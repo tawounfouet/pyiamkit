@@ -249,3 +249,20 @@ jobs:
           python -m pip install httpx pytest
       - name: Okta offline qualification
         run: pytest tests/qualification/scim_providers/test_okta.py -q
+
+
+  official-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install official conformance target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[sqlalchemy,jwt,mfa]"
+          python -m pip install pytest
+      - name: Official adapter conformance suites
+        run: pytest tests/conformance/test_*_conformance_suite.py -m conformance -q

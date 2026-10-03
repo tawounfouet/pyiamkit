@@ -6,6 +6,44 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0b2] - 2026-10-03
+
+### Added
+
+- Public `pyiamkit.conformance` package with structured `ConformanceCheck`,
+  `ConformanceReport` and release-blocking `ConformanceFailure`.
+- Reusable `RepositoryConformance` and `RepositoryProbe` contracts, initially
+  exercised against InMemory and SQLAlchemy IdentityRepository adapters.
+- Reusable `AuthorizationConformance` for default-deny semantics and deterministic
+  security-relevant authorization outcomes.
+- Dedicated `TenantIsolationConformance` covering cross-Tenant binding leakage,
+  foreign-Tenant Roles and scope/Tenant mismatch rejection.
+- `AuthenticationConformance` for Session lifecycle and inactive-subject behavior.
+- `TokenProviderConformance` for issue/verify round-trips, tamper and expiry
+  rejection, trust-context validation and Session revocation.
+- `PolicyEvaluatorConformance` mapped onto the implemented constraint, SoD and
+  assurance-step-up governance model.
+- `SecretStoreConformance` for MFA secret-reference storage semantics.
+- `EventPublisherConformance` for stable event identity, duplicate delivery,
+  invalid-event rejection and downstream failure propagation.
+- Dedicated `official-conformance` CI gate for reusable M20 suites.
+- Architecture and public-API documentation for third-party adapter certification.
+
+### Changed
+
+- Adapter compatibility is no longer represented only by repository-specific tests;
+  M20 exposes reusable executable contracts that can be consumed by official and
+  third-party adapters.
+- Tenant isolation is an explicit conformance family rather than an incidental
+  side-effect of authorization tests.
+
+### Security
+
+- Conformance probes fail closed on cross-Tenant authorization leakage, inactive
+  subjects, revoked access, insufficient assurance and missing policy context.
+- Passing a conformance suite does not relax existing integration/security gates and
+  does not constitute production-readiness or external vendor certification.
+
 ## [0.5.0b1] - 2026-10-03
 
 ### Added
