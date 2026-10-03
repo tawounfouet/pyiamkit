@@ -498,9 +498,9 @@ def test_postgresql_audit_failure_prevents_outbox_persistence() -> None:
         session.commit()
 
     with factory() as session:
-        assert SqlAlchemyAuditRepository(session).by_correlation_id(
-            "postgres-audit-failure"
-        ) == (audit,)
+        assert SqlAlchemyAuditRepository(session).by_correlation_id("postgres-audit-failure") == (
+            audit,
+        )
         assert SqlAlchemyOutboxRepository(session).get(outbox.id) is None
 
     drop_schema(engine)
