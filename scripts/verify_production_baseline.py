@@ -78,9 +78,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         "docs/architecture/production-stable-0.5.0.md": (
             "first production-oriented stable release"
         ),
-        "docs/guides/persistence-migration-and-rollback.md": (
-            "0001_0_5_0rc1_baseline"
-        ),
+        "docs/guides/persistence-migration-and-rollback.md": ("0001_0_5_0rc1_baseline"),
         "docs/guides/production-deployment.md": "controlled production deployments",
         "docs/guides/security-operations.md": "default deny",
         "docs/guides/integrations.md": "Third-party adapters",
