@@ -54,13 +54,13 @@ from .mfa import (
 from .ports import CredentialRepository, MfaFactorRepository, SessionRepository, TokenProvider
 from .rate_limit import (
     RateLimitDecision,
+    RateLimiter,
     RateLimitError,
     RateLimitExceeded,
     RateLimitGuard,
     RateLimitKey,
     RateLimitPolicy,
     RateLimitUnavailable,
-    RateLimiter,
 )
 from .tokens import (
     AccessTokenClaims,
