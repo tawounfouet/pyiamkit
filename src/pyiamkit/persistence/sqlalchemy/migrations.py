@@ -3,7 +3,18 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, Engine, MetaData, String, Table, delete, inspect, insert, select
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Engine,
+    MetaData,
+    String,
+    Table,
+    delete,
+    inspect,
+    insert,
+    select,
+)
 
 from .schema import metadata
 
@@ -69,6 +80,17 @@ def migrate_schema(engine: Engine) -> MigrationResult:
 
     with engine.begin() as connection:
         actual_tables = set(inspect(connection).get_table_names())
+        if _MIGRATION_TABLE_NAME in actual_tables:
+            existing_versions = tuple(
+                connection.execute(
+                    select(_schema_migration_table.c.version).order_by(
+                        _schema_migration_table.c.applied_at,
+                        _schema_migration_table.c.version,
+                    )
+                ).scalars()
+            )
+            _validate_known_versions(existing_versions)
+
         present_expected = expected_tables & actual_tables
 
         if present_expected and present_expected != expected_tables:
