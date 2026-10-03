@@ -44,7 +44,7 @@ A green result on an older commit is evidence for that older commit only.
 | Examples | all executable examples in CI |
 | Release artifacts | wheel + sdist + SHA-256 + SBOM + provenance |
 | Performance sanity | 1,000 InMemory authorization decisions within a coarse 10 s budget |
-| Schema lifecycle | SQLite + PostgreSQL repeated bootstrap/teardown proof |
+| Schema migration | SQLite + PostgreSQL b2-compatible adoption, rollback and lifecycle proof |
 
 ## M21 release gates
 
@@ -68,17 +68,22 @@ Qualification workflow is green on the final RC head.
 
 ## Migration terminology
 
-The current SQLAlchemy contract exposes `create_schema()` and `drop_schema()`.
+The SQLAlchemy contract now distinguishes bootstrap from production migration.
 
 For 0.5.0rc1:
 
-- repeated bootstrap is qualified;
-- teardown/recreate is qualified in disposable databases;
-- transactional rollback is qualified;
-- versioned schema migrations are not implemented.
+- `create_schema()` remains a local/test bootstrap helper;
+- `migrate_schema()` owns the versioned production baseline;
+- `iam_schema_migrations` stores the applied revision;
+- `0001_0_5_0rc1_baseline` is the first supported schema version;
+- empty databases are created and stamped;
+- complete 0.5.0b2-compatible schemas are adopted without destructive DDL;
+- partial schemas and unknown migration history fail closed;
+- `rollback_schema_baseline()` removes only the RC1 stamp and preserves data;
+- transactional rollback remains caller-owned.
 
-Therefore this RC does not claim automatic upgrade/downgrade between arbitrary
-historical schemas.
+The RC qualifies the exact compatible 0.5.0b2 → 0.5.0rc1 baseline transition. It
+does not claim automatic upgrade/downgrade between arbitrary historical schemas.
 
 See
 `docs/guides/persistence-migration-and-rollback.md`.
