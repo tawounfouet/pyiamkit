@@ -10,56 +10,35 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ### Added
 
-- Property-based authorization security invariants with Hypothesis.
-- Bounded hostile-input fuzz targets for JWT, OIDC, SCIM and permission parsing.
-- Targeted mutation-security gate covering Tenant/scope, inactive-subject, SoD, Session-revocation and OIDC issuer controls.
-- Framework-neutral authentication rate-limit contracts and fail-closed guard.
-- Session rotation during MFA step-up to prevent Session fixation.
-- Explicit JWT/OIDC signing-key rotation qualification.
-- Framework-neutral privileged-action guard with MFA/AAL enforcement for sensitive Role assignment.
-- Fail-closed break-glass foundations with bounded temporary grants and mandatory CRITICAL security-event recording.
-- Dedicated security-hardening architecture documentation.
-
-### Security
-
-- Bandit, strict third-party dependency audit and full-history Gitleaks scans are release-blocking Security workflow jobs.
-- GitHub Actions used by the Security workflow are pinned to immutable revisions.
-- Cross-Tenant authorization, revocation, disabled-subject, access-expiry and scope-mismatch invariants are generated and qualified.
-- Critical targeted mutants must be killed by their sentinel tests.
-- Untrusted JWT/OIDC/SCIM/parser inputs are bounded-fuzzed and must fail through controlled security/protocol errors.
-- Rate-limit uncertainty never becomes an implicit allow.
-- Successful MFA step-up revokes the previous Session and opens a new SessionId; access tokens tied to the old Session fail authoritative validation.
-- Key rotation supports an explicit overlap window and rejects retired or unknown key identifiers without fallback.
-- Sensitive Role assignment fails closed without a privileged-action guard and requires an explicit MFA-authenticated actor at the configured assurance level.
-- Break-glass activation requires MFA, minimum assurance, bounded duration, justification and mandatory security evidence recording.
-- Break-glass context is not an RBAC grant and does not silently bypass AuthorizationEngine.
-
-### Added
-
-- Property-based authorization security invariants for tenant isolation, revocation, disabled subjects, temporary-access expiry and scope isolation.
+- Property-based authorization security invariants for Tenant isolation, revocation, disabled subjects, temporary-access expiry and scope isolation.
 - Bounded hostile-input fuzz targets for JWT, OIDC, SCIM and PermissionCode parsing.
-- Targeted mutation-security gate covering tenant/scope validation, inactive subjects, dynamic SoD, revoked Sessions and OIDC issuer validation.
-- Dependency-vulnerability and full-history secret scanning gates with pinned GitHub Actions revisions.
+- Targeted mutation-security gate covering Tenant/scope validation, inactive subjects, dynamic SoD, revoked Sessions and OIDC issuer validation.
+- Strict third-party dependency auditing and full-history secret scanning with pinned GitHub Actions revisions.
 - Framework-neutral atomic rate-limit contracts and fail-closed `RateLimitGuard`.
-- Explicit MFA/AAL privileged-action hook for sensitive Role assignment.
-- Temporary, auditable break-glass foundations with mandatory CRITICAL SecurityEvent recording.
-- Dedicated Security workflow gates for key rotation and privileged-access controls.
+- Dedicated JWT/OIDC signing-key rotation qualification.
+- Explicit privileged-action MFA/AAL hook for sensitive Role assignment.
+- Temporary, auditable break-glass foundations with bounded grants and mandatory CRITICAL SecurityEvent recording.
+- Dedicated security-hardening architecture documentation and Security workflow gates.
 
 ### Changed
 
-- TOTP Session step-up now revokes the original Session and opens a new elevated Session ID to prevent Session fixation across privilege elevation.
-- JWT signing-key rotation is explicitly qualified across overlap, retirement and unknown-`kid` failure paths.
-- OIDC/JWKS key rotation is included in the dedicated security qualification surface.
+- TOTP Session step-up now revokes the original Session and opens a new elevated Session ID instead of elevating the existing identifier in place.
+- Sensitive Role assignment through `RoleBindingApplicationService` now requires an explicit `PrivilegedActionGuard`.
+- The reference `MfaPrivilegedActionGuard` requires an explicit actor, MFA and AAL2 by default, and rejects sensitive Role self-assignment.
 
 ### Security
 
-- Sensitive Role assignment fails closed when no privileged-action guard is configured.
-- The reference privileged-action guard requires an explicit actor, MFA and AAL2 by default.
-- Rate-limit backend unavailability is a security failure rather than an implicit allow.
-- Break-glass activation is duration-bounded, MFA-gated and fails if mandatory security evidence cannot be recorded.
-- Break-glass grants do not create Roles, Permissions or RoleBindings and do not bypass the AuthorizationEngine.
-- Supply-chain scanning, property tests, mutation probes and bounded fuzzing are release-blocking Security jobs.
-
+- Bandit, dependency audit, Gitleaks, authorization properties, bounded fuzzing, targeted mutation probes, key-rotation qualification and privileged-access qualification are independent Security workflow jobs.
+- Cross-Tenant authorization, revocation, disabled-subject, access-expiry and scope-mismatch invariants are generated and qualified.
+- Critical targeted mutants must be killed by their sentinel tests.
+- Untrusted JWT/OIDC/SCIM/parser inputs must fail through controlled security or protocol errors.
+- Rate-limit uncertainty never becomes an implicit allow.
+- Successful MFA step-up revokes the previous Session; access tokens tied to the old Session fail authoritative validation.
+- Key rotation supports an explicit overlap window and rejects retired or unknown key identifiers without fallback.
+- Sensitive Role assignment fails closed when the privileged guard, actor, MFA or required assurance is missing.
+- The reference privileged guard refuses sensitive Role self-assignment; stronger approval workflows must supply an explicit custom guard.
+- Break-glass activation requires MFA, minimum assurance, bounded duration, justification and mandatory security-evidence recording.
+- Break-glass context is not an RBAC grant and does not silently bypass `AuthorizationEngine`.
 
 ## [0.5.0a2] - 2026-10-03
 
