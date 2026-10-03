@@ -156,7 +156,6 @@ def test_siem_failure_is_retryable_through_outbox_publisher() -> None:
     assert second.published == 1
 
 
-
 def test_security_event_export_redacts_sensitive_payload_fields_recursively() -> None:
     event = SecurityEvent(
         event_type="AuthenticationFailed",
