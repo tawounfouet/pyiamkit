@@ -6,6 +6,45 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-04
+
+### Stable promotion
+
+- Promotes the fully qualified 1.0.0rc1 public-contract freeze to the first stable
+  PyIAMKit public API.
+- No new IAM capability, public-contract expansion or business-schema migration is
+  introduced by the promotion.
+- Package metadata advances to Development Status :: 5 - Production/Stable.
+- The reviewed 1.0.0rc1 public API manifest remains the starting compatibility
+  baseline for the 1.x release line.
+
+### Compatibility
+
+- Frozen public imports/exports and compatible signatures are preserved.
+- Stable public exception codes are preserved.
+- AuthorizationReason and PermissionCode semantics are preserved.
+- Repository/port, migration and event-versioning contracts are preserved.
+- API Compatibility remains release-blocking for the stable line.
+- The 1.x compatibility/deprecation policy is now effective.
+
+### Production baseline
+
+- CI, Security, Production Qualification and API Compatibility remain
+  release-blocking on the exact stable commit.
+- The schema baseline remains `0001_0_5_0rc1_baseline`; no extra database revision
+  is required for 1.0.0rc1 → 1.0.0.
+- Release artifacts, SBOM, provenance, migration lifecycle, adapter conformance and
+  installed-package smoke/examples remain part of qualification.
+
+### Security
+
+- PyIAMKit 1.x becomes the current supported stable security-fix line.
+- 0.5.x is superseded by 1.x and should be upgraded unless a release note or
+  security advisory explicitly states otherwise.
+- Stable 1.0 does not imply unsupported capabilities such as refresh-token
+  lifecycle, delegation, HSM/KMS custody, cryptographic audit-log immutability,
+  exactly-once external delivery or implicit external Group-to-Role mapping.
+
 ## [1.0.0rc1] - 2026-10-03
 
 ### Added

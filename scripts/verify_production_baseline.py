@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 API_FREEZE_FILES = (
+    Path("docs/architecture/stable-public-api-1.0.0.md"),
     Path("docs/api/public-api-freeze-1.0.0rc1.json"),
     Path("docs/api/public-api-freeze-1.0.0rc1.md"),
     Path("docs/api/compatibility-policy-1.0.md"),
@@ -107,6 +108,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
 
     if expected_version.startswith("1."):
         api_required_mentions = {
+            "docs/architecture/stable-public-api-1.0.0.md": "Stable Public API",
             "docs/api/public-api-freeze-1.0.0rc1.md": "27 documented public namespaces",
             "docs/api/compatibility-policy-1.0.md": "minimum transition window",
             "docs/api/error-reason-permission-contracts-1.0.md": "AuthorizationReason",

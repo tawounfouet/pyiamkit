@@ -4,9 +4,8 @@ PyIAMKit is a modular, framework-agnostic Python foundation for Identity and Acc
 Management (IAM), RBAC, multi-tenancy, authorization, authentication, federation,
 provisioning, auditability and durable persistence.
 
-> **Status:** `1.0.0rc1` — public API freeze release candidate, built on the
-> production-qualified 0.5.0 baseline. No new major IAM feature is introduced by
-> this RC.
+> **Status:** `1.0.0` — stable public API, production-qualified and protected by
+> executable compatibility, security, conformance and production gates.
 
 ## Goals
 
@@ -16,23 +15,17 @@ operations and framework-independent domain logic.
 
 ## Current milestone
 
-`1.0.0rc1` freezes the public contract expected to become PyIAMKit 1.0.0.
+`1.0.0` is the first stable PyIAMKit public API.
 
 ```text
 0.5.0 production-qualified capability surface
                     ↓
-public API inventory
+1.0.0rc1 executable public API freeze
                     ↓
-stable error / reason / permission review
-                    ↓
-adapter contract review
-                    ↓
-machine-readable compatibility manifest
-                    ↓
-1.0.0rc1 freeze
+1.0.0 stable public contract
 ```
 
-Four workflow families are release-blocking on the same commit:
+The exact release commit must pass four release-blocking workflow families:
 
 ```text
 CI
@@ -41,11 +34,12 @@ Production Qualification
 API Compatibility
 ```
 
-The API Compatibility gate freezes 27 documented namespaces and detects accidental
-export, signature, enum, dataclass, exception-code and reviewed-constant drift.
+The 1.x compatibility baseline is the reviewed 1.0.0rc1 manifest covering 27
+documented public namespaces. Version promotion does not rebaseline that contract.
 
-Contract documentation:
+Stable contract documentation:
 
+- [Stable Public API](docs/architecture/stable-public-api-1.0.0.md)
 - [Public API freeze](docs/api/public-api-freeze-1.0.0rc1.md)
 - [1.x compatibility/deprecation policy](docs/api/compatibility-policy-1.0.md)
 - [Error, reason-code and PermissionCode contracts](docs/api/error-reason-permission-contracts-1.0.md)
@@ -53,7 +47,9 @@ Contract documentation:
 - [Production deployment](docs/guides/production-deployment.md)
 - [Production checklist](docs/guides/production-checklist.md)
 
-The next roadmap milestone is `1.0.0 — Stable Public API`.
+The original implementation roadmap through `1.0.0` is now complete. Future work
+should proceed through explicitly versioned post-1.0 roadmaps rather than silently
+expanding the frozen 1.x contract.
 
 ## Installation
 

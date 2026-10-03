@@ -2,6 +2,54 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 1.0.0
+
+Stable Public API.
+
+1.0.0 promotes the fully qualified 1.0.0rc1 contract without adding a new IAM
+capability, expanding the frozen API or changing the business schema.
+
+The stable 1.x contract starts from the exact reviewed RC manifest:
+
+```text
+docs/api/public-api-freeze-1.0.0rc1.json
+```
+
+The API Compatibility workflow continues to enforce that baseline across the stable
+line. The root `__version__` export is a version token and is intentionally not
+frozen to one literal value.
+
+Stable guarantees include:
+
+```text
+documented import locations
+public exports and compatible signatures
+stable public exception codes
+stable AuthorizationReason semantics
+stable PermissionCode semantics
+stable repository / port contracts
+stable migration policy
+stable event-versioning rules
+official conformance contracts
+production security baseline
+```
+
+The persistence schema baseline remains `0001_0_5_0rc1_baseline`; no database
+migration is required solely for 1.0.0rc1 → 1.0.0.
+
+See:
+
+```text
+docs/architecture/stable-public-api-1.0.0.md
+docs/api/compatibility-policy-1.0.md
+docs/api/error-reason-permission-contracts-1.0.md
+docs/api/adapter-contract-matrix-1.0.0rc1.md
+```
+
+Breaking public-contract changes normally require the next major version. Security
+fixes may still tighten behavior that was unsafe and never part of the supported
+security contract.
+
 ## 1.0.0rc1
 
 Public API freeze release candidate.
