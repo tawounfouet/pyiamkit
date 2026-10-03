@@ -6,10 +6,11 @@ This file records the API surface that PyIAMKit intentionally exposes to consume
 
 Production qualification release candidate.
 
-This milestone intentionally adds no new IAM capability contract. It freezes and
-qualifies the public surface established through 0.5.0b2.
+This milestone intentionally adds no new IAM capability. It freezes and qualifies
+the IAM surface established through 0.5.0b2.
 
-The RC adds release/process evidence rather than application-facing IAM APIs:
+The RC does add a persistence migration-baseline API required for production
+qualification:
 
 ```text
 CI + Security + Production Qualification
