@@ -197,7 +197,6 @@ def test_sqlalchemy_outbox_repository_persists_delivery_state_transitions(
     engine.dispose()
 
 
-
 def test_sqlalchemy_audit_outbox_writer_writes_no_outbox_when_audit_persistence_fails(
     tmp_path: Path,
 ) -> None:
