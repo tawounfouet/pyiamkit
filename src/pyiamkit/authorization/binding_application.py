@@ -16,6 +16,7 @@ from pyiamkit.tenancy import (
 )
 
 from .domain.binding_value_objects import GrantSource, RoleBindingId
+from .domain.decision import AuthenticationEvidence
 from .domain.errors import (
     InvalidRoleBinding,
     RoleBindingAlreadyExists,
@@ -29,6 +30,12 @@ from .domain.role_binding import RoleBinding
 from .domain.value_objects import RoleId, RoleStatus
 from .governance import StaticSoDEvaluator
 from .ports import RoleBindingRepository, RoleRepository, SoDRuleRepository
+from .privileged import (
+    PrivilegedAction,
+    PrivilegedActionContext,
+    PrivilegedActionDenied,
+    PrivilegedActionGuard,
+)
 
 
 class RoleBindingApplicationService:
@@ -45,6 +52,7 @@ class RoleBindingApplicationService:
         clock: Clock,
         event_sink: DomainEventSink,
         sod_repository: SoDRuleRepository | None = None,
+        privileged_action_guard: PrivilegedActionGuard | None = None,
         max_hierarchy_depth: int = 32,
     ) -> None:
         self._identities = identity_repository
@@ -54,6 +62,7 @@ class RoleBindingApplicationService:
         self._bindings = binding_repository
         self._clock = clock
         self._events = event_sink
+        self._privileged_action_guard = privileged_action_guard
         self._static_sod = (
             None
             if sod_repository is None
@@ -75,6 +84,7 @@ class RoleBindingApplicationService:
         grant_source: GrantSource = GrantSource.DIRECT,
         granted_by: IdentityId | None = None,
         justification: str | None = None,
+        authentication: AuthenticationEvidence | None = None,
     ) -> RoleBinding:
         now = self._clock.now()
         identity = self._identities.get(identity_id)
@@ -102,6 +112,23 @@ class RoleBindingApplicationService:
             raise RoleNotAssignable(role_id)
         if role.tenant_id is not None and role.tenant_id != tenant_id:
             raise RoleTenantMismatch(role.tenant_id, tenant_id)
+
+        if role.sensitive:
+            guard = self._privileged_action_guard
+            if guard is None:
+                raise PrivilegedActionDenied(
+                    "Sensitive role assignment requires an explicit privileged-action guard"
+                )
+            guard.require(
+                PrivilegedActionContext(
+                    action=PrivilegedAction.SENSITIVE_ROLE_ASSIGNMENT,
+                    actor_id=granted_by,
+                    tenant_id=tenant_id,
+                    authentication=authentication,
+                    target_identity_id=identity_id,
+                    target_role_id=role.id,
+                )
+            )
 
         active_bindings = self._bindings.find_active_for_subject(identity_id, tenant_id, now)
         for binding in active_bindings:

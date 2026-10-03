@@ -156,10 +156,15 @@ def test_totp_step_up_updates_session_and_invalidates_old_access_token() -> None
         code=step_up_code,
     )
 
+    assert elevated.id != session.id
     assert elevated.context.assurance_level is AssuranceLevel.AAL2
     assert elevated.context.mfa is True
     assert elevated.context.mfa_verified_at == clock.now()
     assert elevated.context.mfa_factor_id == str(enrollment.factor.id)
+    rotated_from = sessions.get(session.id)
+    assert rotated_from is not None
+    assert rotated_from.status.value == "revoked"
+    assert rotated_from.revocation_reason == "mfa step-up session rotation"
 
     with pytest.raises(InvalidAccessToken):
         tokens.verify_access_token(old_token)

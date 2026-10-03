@@ -7,6 +7,7 @@ from typing import Protocol
 from pyiamkit.identity import IdentityId, IdentityNotFound, IdentityRepository, IdentityStatus
 from pyiamkit.shared import Clock, DomainEventSink
 
+from .domain.context import AuthenticationContext
 from .domain.errors import (
     AuthenticationSubjectInactive,
     MfaFactorNotFound,
@@ -172,13 +173,36 @@ class MfaApplicationService:
             raise MfaVerificationFailed("Session is not active")
         counter = self._verify_totp(factor, code=code, at=now)
         factor.record_verification(at=now, counter=counter)
-        session.step_up(
-            assurance_level=AssuranceLevel.AAL2,
-            factor_id=factor.id,
-            at=now,
-        )
         self._save_factor(factor)
-        return self._save_session(session)
+
+        previous_context = session.context
+        expires_at = session.expires_at
+        identity_id = session.identity_id
+        session.revoke(at=now, reason="mfa step-up session rotation")
+        self._save_session(session)
+
+        effective_assurance = (
+            AssuranceLevel.AAL3
+            if previous_context.assurance_level is AssuranceLevel.AAL3
+            else AssuranceLevel.AAL2
+        )
+        elevated = Session.open(
+            identity_id=identity_id,
+            context=AuthenticationContext(
+                method=previous_context.method,
+                assurance_level=effective_assurance,
+                mfa=True,
+                authenticated_at=previous_context.authenticated_at,
+                provider_id=previous_context.provider_id,
+                device_id=previous_context.device_id,
+                network_zone=previous_context.network_zone,
+                mfa_verified_at=now,
+                mfa_factor_id=str(factor.id),
+            ),
+            created_at=now,
+            expires_at=expires_at,
+        )
+        return self._save_session(elevated)
 
     def revoke_factor(self, factor_id: MfaFactorId) -> MfaFactor:
         factor = self._require_factor(factor_id)

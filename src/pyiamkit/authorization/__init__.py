@@ -3,6 +3,15 @@
 from .application import RoleCatalogApplicationService
 from .audit import AuthorizationDecisionAuditRecorder
 from .binding_application import RoleBindingApplicationService
+from .break_glass import (
+    BreakGlassActivationSink,
+    BreakGlassDenied,
+    BreakGlassError,
+    BreakGlassGrant,
+    BreakGlassGrantId,
+    BreakGlassPolicy,
+    BreakGlassService,
+)
 from .domain.binding_value_objects import GrantSource, RoleBindingId, RoleBindingStatus
 from .domain.decision import (
     AuthenticationEvidence,
@@ -71,6 +80,13 @@ from .ports import (
     RoleRepository,
     SoDRuleRepository,
 )
+from .privileged import (
+    MfaPrivilegedActionGuard,
+    PrivilegedAction,
+    PrivilegedActionContext,
+    PrivilegedActionDenied,
+    PrivilegedActionGuard,
+)
 
 __all__ = [
     "AccessGovernanceApplicationService",
@@ -85,6 +101,13 @@ __all__ = [
     "AuthorizationReason",
     "AuthorizationRequest",
     "AuthorizationResult",
+    "BreakGlassActivationSink",
+    "BreakGlassDenied",
+    "BreakGlassError",
+    "BreakGlassGrant",
+    "BreakGlassGrantId",
+    "BreakGlassPolicy",
+    "BreakGlassService",
     "ConstraintEvaluator",
     "ConstraintRepository",
     "DecisionExplanation",
@@ -100,6 +123,7 @@ __all__ = [
     "InvalidRoleBinding",
     "InvalidRoleBindingTransition",
     "InvalidRoleName",
+    "MfaPrivilegedActionGuard",
     "MinimumAssuranceConstraint",
     "MutuallyExclusiveRolesRule",
     "NumericMaximumConstraint",
@@ -110,6 +134,10 @@ __all__ = [
     "PermissionCode",
     "PermissionNotAssigned",
     "PermissionNotFound",
+    "PrivilegedAction",
+    "PrivilegedActionContext",
+    "PrivilegedActionDenied",
+    "PrivilegedActionGuard",
     "ResourceAttributeEqualsConstraint",
     "ResourceDescriptor",
     "Role",

@@ -14,11 +14,132 @@ jobs:
   static-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install security tooling
-        run: python -m pip install bandit
+        run: python -m pip install "bandit>=1.8,<2"
       - name: Bandit
         run: bandit -q -r src
+
+  authorization-properties:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install property-based security target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "hypothesis>=6.100,<7" pytest
+      - name: Authorization security properties
+        run: pytest tests/security/test_authorization_properties.py -m security -q
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install supported dependency surface
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[sqlalchemy,jwt,oidc,oidc-http,mfa,postgres,redis,fastapi,django]"
+          python -m pip install "pip-audit==2.10.1"
+          python -m pip uninstall -y pyiamkit
+      - name: Audit installed supported dependency surface
+        run: pip-audit --local --strict
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+
+  hostile-input-fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install bounded fuzz targets
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[jwt,oidc]"
+          python -m pip install "hypothesis>=6.100,<7" pytest
+      - name: Run hostile-input fuzz targets
+        run: pytest tests/security/test_input_fuzz.py -m security -q
+
+
+  targeted-security-mutations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install mutation qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[jwt,oidc]"
+          python -m pip install "hypothesis>=6.100,<7" pytest
+      - name: Kill targeted security mutants
+        run: python scripts/security_mutation_gate.py
+
+
+  key-rotation-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install key-rotation qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[jwt,oidc,oidc-http]"
+          python -m pip install pytest
+      - name: Qualify JWT and OIDC key rotation
+        run: |
+          pytest tests/security/test_key_rotation.py -m security -q
+          pytest tests/unit/authentication/test_oidc_discovery.py -q -k "rotation or unknown_kid"
+
+
+  privileged-access-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install privileged-access qualification target
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[mfa,jwt]"
+          python -m pip install pytest
+      - name: Qualify privileged MFA and break-glass controls
+        run: >-
+          pytest
+          tests/unit/authorization/test_binding_application.py
+          tests/unit/authorization/test_break_glass.py
+          tests/unit/authentication/test_mfa.py
+          -q

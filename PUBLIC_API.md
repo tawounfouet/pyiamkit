@@ -2,6 +2,68 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0b1
+
+Adds framework-neutral security-hardening contracts.
+
+Authentication exports:
+
+```text
+RateLimitKey
+RateLimitPolicy
+RateLimitDecision
+RateLimiter
+RateLimitGuard
+RateLimitError
+RateLimitExceeded
+RateLimitUnavailable
+```
+
+Authorization exports:
+
+```text
+PrivilegedAction
+PrivilegedActionContext
+PrivilegedActionGuard
+PrivilegedActionDenied
+MfaPrivilegedActionGuard
+BreakGlassGrantId
+BreakGlassPolicy
+BreakGlassGrant
+BreakGlassActivationSink
+BreakGlassService
+BreakGlassError
+BreakGlassDenied
+```
+
+`RateLimiter.check_and_consume()` is an atomic port. PyIAMKit does not make a
+specific Redis, gateway or vendor implementation part of the core contract.
+`RateLimitGuard` treats a denied or unavailable limiter as a security failure,
+never as an implicit allow.
+
+Sensitive Role assignment is now an explicitly privileged operation. When a
+`Role.sensitive` Role is assigned through `RoleBindingApplicationService`, the
+service requires a configured `PrivilegedActionGuard`. The reference
+`MfaPrivilegedActionGuard` requires an explicit actor, MFA and minimum assurance
+(AAL2 by default) and rejects sensitive Role self-assignment. Applications that
+intentionally permit an exceptional self-assignment workflow must provide a custom
+`PrivilegedActionGuard` with their stronger approval controls. Ordinary
+non-sensitive Role assignment keeps its previous contract.
+
+TOTP Session step-up now rotates the Session identifier: the original Session is
+revoked and a new elevated Session is created. Access tokens tied to the previous
+Session therefore fail authoritative Session validation after successful step-up.
+
+`BreakGlassService` creates temporary emergency-access evidence only. A
+`BreakGlassGrant` is not a Role, Permission, RoleBinding or AuthorizationEngine
+bypass. Activation requires MFA, minimum assurance, a bounded duration,
+justification and successful recording through `BreakGlassActivationSink`.
+Successful activation records a CRITICAL `BreakGlassActivated` SecurityEvent.
+
+JWT and OIDC signing-key rotation semantics remain based on configured `kid`
+values and trusted key sets. `0.5.0b1` explicitly qualifies overlap, retirement,
+unknown-`kid` rejection and bounded OIDC JWKS refresh behavior.
+
 ## 0.5.0a2
 
 Adds the framework-neutral audit, transactional outbox and SIEM export surface from
