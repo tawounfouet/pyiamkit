@@ -14,6 +14,8 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
   persistence, framework, OIDC, Redis, Audit, Outbox, SCIM and packaging surfaces.
 - SQLite and PostgreSQL schema-lifecycle qualification for repeated bootstrap,
   data preservation, teardown and clean recreation.
+- Versioned SQLAlchemy RC1 migration baseline with `iam_schema_migrations`,
+  non-destructive 0.5.0b2-compatible schema adoption and fail-closed history checks.
 - Explicit persistence migration/rollback operational guide.
 - Release-evidence generator producing SHA-256 checksums, CycloneDX 1.5 SBOM and
   build provenance metadata for wheel/sdist artifacts.
@@ -34,8 +36,8 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 - Production qualification requires CI, Security and Production Qualification to be
   green on the same final commit.
-- The RC does not claim refresh-token, delegation, versioned migration, HSM/KMS,
-  cryptographic audit-immutability or exactly-once delivery capabilities.
+- The RC does not claim refresh-token, delegation, arbitrary historical-schema
+  migration, HSM/KMS, cryptographic audit-immutability or exactly-once delivery.
 - A green RC requires Tenant isolation, dependency audit, secret scan,
   privileged-access controls and Audit/Outbox qualification to remain green.
 
