@@ -12,6 +12,12 @@ from .ports import (
 )
 from .publisher import OutboxPublishBatchResult, OutboxPublisher
 from .security import SecurityEvent, SecurityEventId, SecuritySeverity
+from .siem import (
+    GenericSecurityEventExporter,
+    SecurityEventEnvelope,
+    SecurityEventSink,
+    security_event_to_outbox,
+)
 
 __all__ = [
     "AuditCategory",
@@ -23,6 +29,7 @@ __all__ = [
     "AuditSink",
     "DomainEventAuditBridge",
     "EventPublisher",
+    "GenericSecurityEventExporter",
     "OutboxEvent",
     "OutboxEventId",
     "OutboxPublishBatchResult",
@@ -30,6 +37,9 @@ __all__ = [
     "OutboxRepository",
     "OutboxStatus",
     "SecurityEvent",
+    "SecurityEventEnvelope",
     "SecurityEventId",
+    "SecurityEventSink",
     "SecuritySeverity",
+    "security_event_to_outbox",
 ]
