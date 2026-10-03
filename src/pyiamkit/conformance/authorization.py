@@ -140,9 +140,7 @@ class AuthorizationConformance:
         if decision.allowed:
             raise AssertionError(f"expected DENY {expected.value}, got ALLOW")
         if decision.reason_code is not expected:
-            raise AssertionError(
-                f"expected {expected.value}, got {decision.reason_code.value}"
-            )
+            raise AssertionError(f"expected {expected.value}, got {decision.reason_code.value}")
 
     @staticmethod
     def _check(name: str, operation: Callable[[], None]) -> ConformanceCheck:
