@@ -52,7 +52,9 @@ PROBES = (
         ),
         mutant=(
             "        if False and identity.status is not IdentityStatus.ACTIVE:\n"
-            "            return self._deny(request, now, AuthorizationReason.DENY_SUBJECT_INACTIVE)\n"
+            "            return self._deny("
+            "request, now, AuthorizationReason.DENY_SUBJECT_INACTIVE"
+            ")\n"
         ),
         test_target=(
             "tests/security/test_authorization_properties.py::"
