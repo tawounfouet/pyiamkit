@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyiamkit"
-version = "0.5.0rc1"
+version = "0.5.0"
 description = "Framework-agnostic Python foundations for IAM, authentication, RBAC, multi-tenancy and authorization."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -12,7 +12,7 @@ authors = [
   { name = "Thomas Awounfouet" },
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
