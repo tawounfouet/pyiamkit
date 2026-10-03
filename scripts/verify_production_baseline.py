@@ -44,9 +44,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
     project = pyproject.get("project", {})
     version = project.get("version")
     if version != EXPECTED_VERSION:
-        failures.append(
-            f"pyproject version mismatch: expected {EXPECTED_VERSION}, got {version!r}"
-        )
+        failures.append(f"pyproject version mismatch: expected {EXPECTED_VERSION}, got {version!r}")
 
     version_path = root / "src/pyiamkit/_version.py"
     if not version_path.is_file():
@@ -56,8 +54,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         runtime_version = match.group(1) if match else None
         if runtime_version != EXPECTED_VERSION:
             failures.append(
-                "runtime version mismatch: "
-                f"expected {EXPECTED_VERSION}, got {runtime_version!r}"
+                f"runtime version mismatch: expected {EXPECTED_VERSION}, got {runtime_version!r}"
             )
 
     required_mentions = {
@@ -70,9 +67,7 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         "docs/architecture/threat-model-delta-0.5.0rc1.md": (
             "No new critical risk is intentionally accepted"
         ),
-        "docs/guides/persistence-migration-and-rollback.md": (
-            "0001_0_5_0rc1_baseline"
-        ),
+        "docs/guides/persistence-migration-and-rollback.md": ("0001_0_5_0rc1_baseline"),
     }
 
     for relative, needle in required_mentions.items():
