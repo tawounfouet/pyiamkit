@@ -11,8 +11,8 @@ from sqlalchemy import (
     String,
     Table,
     delete,
-    inspect,
     insert,
+    inspect,
     select,
 )
 
