@@ -2,6 +2,34 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0rc1
+
+Production qualification release candidate.
+
+This milestone intentionally adds no new IAM capability contract. It freezes and
+qualifies the public surface established through 0.5.0b2.
+
+The RC adds release/process evidence rather than application-facing IAM APIs:
+
+```text
+CI + Security + Production Qualification
+schema lifecycle qualification
+rollback documentation
+wheel + sdist verification
+SHA-256 checksums
+CycloneDX SBOM
+build provenance
+threat-model delta
+```
+
+`create_schema()` remains a bootstrap helper and `drop_schema()` remains a
+destructive teardown helper for isolated environments. Neither is promoted to a
+versioned production migration API by this RC.
+
+Passing 0.5.0rc1 qualification does not mean that PyPI publication occurred and
+does not constitute a 1.0 public-API freeze. The formal public-API freeze remains
+planned for 1.0.0rc1.
+
 ## 0.5.0b2
 
 Introduces the reusable adapter/application conformance surface from
