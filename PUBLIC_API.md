@@ -23,8 +23,24 @@ threat-model delta
 ```
 
 `create_schema()` remains a bootstrap helper and `drop_schema()` remains a
-destructive teardown helper for isolated environments. Neither is promoted to a
-versioned production migration API by this RC.
+destructive teardown helper for isolated environments.
+
+The RC adds the SQLAlchemy production-migration baseline:
+
+```text
+BASELINE_SCHEMA_VERSION
+MigrationResult
+SchemaMigrationError
+current_schema_version()
+migrate_schema()
+rollback_schema_baseline()
+```
+
+`migrate_schema()` can initialize an empty database or non-destructively adopt
+the complete schema qualified in 0.5.0b2. Partial schemas and unknown migration
+history fail closed. `rollback_schema_baseline()` removes only RC1 migration
+bookkeeping; it does not drop IAM data or claim to downgrade arbitrary future
+schema revisions.
 
 Passing 0.5.0rc1 qualification does not mean that PyPI publication occurred and
 does not constitute a 1.0 public-API freeze. The formal public-API freeze remains
