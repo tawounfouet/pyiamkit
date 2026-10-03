@@ -125,6 +125,7 @@ class RoleBindingApplicationService:
                     actor_id=granted_by,
                     tenant_id=tenant_id,
                     authentication=authentication,
+                    target_identity_id=identity_id,
                     target_role_id=role.id,
                 )
             )
