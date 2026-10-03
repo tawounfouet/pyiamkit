@@ -54,7 +54,7 @@ A green result on an older commit is evidence for that older commit only.
 [x] conformance green
 [x] tenant isolation green
 [x] security tests green
-[ ] migration/bootstrap qualification green on final RC head
+[x] migration/bootstrap qualification green on final RC head
 [x] rollback strategy documented/reviewed
 [x] docs baseline defined
 [x] examples are executable CI gates
@@ -63,8 +63,8 @@ A green result on an older commit is evidence for that older commit only.
 [x] threat-model delta documented
 ```
 
-The migration/bootstrap item remains unchecked until the dedicated Production
-Qualification workflow is green on the final RC head.
+The migration/bootstrap gate is satisfied by the dedicated Production Qualification
+workflow on the qualified RC head.
 
 ## Migration terminology
 
