@@ -88,7 +88,8 @@ def test_fuzz_scim_user_payload_fails_with_protocol_error_only(payload: object) 
         return
 
     assert parsed.user_name
-    assert "password" not in payload if isinstance(payload, dict) else True
+    if isinstance(payload, dict):
+        assert "password" not in payload
 
 
 @settings(max_examples=100, deadline=None)
