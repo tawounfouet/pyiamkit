@@ -52,6 +52,16 @@ from .mfa import (
     TotpProvider,
 )
 from .ports import CredentialRepository, MfaFactorRepository, SessionRepository, TokenProvider
+from .rate_limit import (
+    RateLimitDecision,
+    RateLimitError,
+    RateLimitExceeded,
+    RateLimitGuard,
+    RateLimitKey,
+    RateLimiter,
+    RateLimitPolicy,
+    RateLimitUnavailable,
+)
 from .tokens import (
     AccessTokenClaims,
     ExpiredAccessToken,
@@ -109,6 +119,14 @@ __all__ = [
     "MfaSecretStore",
     "MfaSecretUnavailable",
     "MfaVerificationFailed",
+    "RateLimitDecision",
+    "RateLimitError",
+    "RateLimitExceeded",
+    "RateLimitGuard",
+    "RateLimitKey",
+    "RateLimiter",
+    "RateLimitPolicy",
+    "RateLimitUnavailable",
     "Session",
     "SessionId",
     "SessionNotFound",
