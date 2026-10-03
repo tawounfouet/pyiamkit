@@ -155,9 +155,7 @@ class SecurityEventEnvelope:
             return None
         normalized = value.strip()
         if not normalized:
-            raise ValueError(
-                f"SecurityEventEnvelope.{field_name} must not be empty when provided"
-            )
+            raise ValueError(f"SecurityEventEnvelope.{field_name} must not be empty when provided")
         return normalized
 
     @staticmethod
