@@ -6,6 +6,39 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0rc1] - 2026-10-03
+
+### Added
+
+- Dedicated production-qualification matrix covering the supported Python,
+  persistence, framework, OIDC, Redis, Audit, Outbox, SCIM and packaging surfaces.
+- SQLite and PostgreSQL schema-lifecycle qualification for repeated bootstrap,
+  data preservation, teardown and clean recreation.
+- Explicit persistence migration/rollback operational guide.
+- Release-evidence generator producing SHA-256 checksums, CycloneDX 1.5 SBOM and
+  build provenance metadata for wheel/sdist artifacts.
+- RC threat-model delta documenting implemented controls, unsupported threat
+  surfaces and residual deployment risks.
+- Dedicated Production Qualification workflow for RC-only release gates.
+
+### Changed
+
+- Project status advances from pre-alpha to alpha for the production-qualification
+  release candidate.
+- Feature development is frozen for the RC line; changes are limited to
+  qualification, security, compatibility, documentation and packaging fixes.
+- Production rollback documentation explicitly distinguishes transaction rollback,
+  same-schema application rollback and database snapshot/restore.
+
+### Security
+
+- Production qualification requires CI, Security and Production Qualification to be
+  green on the same final commit.
+- The RC does not claim refresh-token, delegation, versioned migration, HSM/KMS,
+  cryptographic audit-immutability or exactly-once delivery capabilities.
+- A green RC requires Tenant isolation, dependency audit, secret scan,
+  privileged-access controls and Audit/Outbox qualification to remain green.
+
 ## [0.5.0b2] - 2026-10-03
 
 ### Added
