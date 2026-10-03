@@ -66,14 +66,22 @@ def test_fuzz_oidc_adapter_rejects_untrusted_text_without_internal_error(token: 
         verifier.verify_identity_token(token)
 
 
-_JSON_SCALAR = st.none() | st.booleans() | st.integers() | st.floats(
-    allow_nan=False,
-    allow_infinity=False,
-) | st.text(max_size=64)
+_JSON_SCALAR = (
+    st.none()
+    | st.booleans()
+    | st.integers()
+    | st.floats(
+        allow_nan=False,
+        allow_infinity=False,
+    )
+    | st.text(max_size=64)
+)
 _JSON_VALUE = st.recursive(
     _JSON_SCALAR,
-    lambda children: st.lists(children, max_size=5)
-    | st.dictionaries(st.text(max_size=32), children, max_size=5),
+    lambda children: (
+        st.lists(children, max_size=5)
+        | st.dictionaries(st.text(max_size=32), children, max_size=5)
+    ),
     max_leaves=20,
 )
 
