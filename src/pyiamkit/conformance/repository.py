@@ -2,7 +2,9 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+
 from .report import ConformanceCheck, ConformanceReport
+
 
 @dataclass(frozen=True, slots=True)
 class RepositoryProbe[EntityT, KeyT]:
