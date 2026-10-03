@@ -58,9 +58,9 @@ from .rate_limit import (
     RateLimitExceeded,
     RateLimitGuard,
     RateLimitKey,
-    RateLimiter,
     RateLimitPolicy,
     RateLimitUnavailable,
+    RateLimiter,
 )
 from .tokens import (
     AccessTokenClaims,
@@ -124,9 +124,9 @@ __all__ = [
     "RateLimitExceeded",
     "RateLimitGuard",
     "RateLimitKey",
-    "RateLimiter",
     "RateLimitPolicy",
     "RateLimitUnavailable",
+    "RateLimiter",
     "Session",
     "SessionId",
     "SessionNotFound",
