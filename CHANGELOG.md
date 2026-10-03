@@ -6,6 +6,34 @@ The project follows Semantic Versioning and PEP 440 for Python pre-releases.
 
 ## [Unreleased]
 
+## [0.5.0b1] - 2026-10-03
+
+### Added
+
+- Property-based authorization security invariants with Hypothesis.
+- Bounded hostile-input fuzz targets for JWT, OIDC, SCIM and permission parsing.
+- Targeted mutation-security gate covering Tenant/scope, inactive-subject, SoD, Session-revocation and OIDC issuer controls.
+- Framework-neutral authentication rate-limit contracts and fail-closed guard.
+- Session rotation during MFA step-up to prevent Session fixation.
+- Explicit JWT/OIDC signing-key rotation qualification.
+- Framework-neutral privileged-action guard with MFA/AAL enforcement for sensitive Role assignment.
+- Fail-closed break-glass foundations with bounded temporary grants and mandatory CRITICAL security-event recording.
+- Dedicated security-hardening architecture documentation.
+
+### Security
+
+- Bandit, strict third-party dependency audit and full-history Gitleaks scans are release-blocking Security workflow jobs.
+- GitHub Actions used by the Security workflow are pinned to immutable revisions.
+- Cross-Tenant authorization, revocation, disabled-subject, access-expiry and scope-mismatch invariants are generated and qualified.
+- Critical targeted mutants must be killed by their sentinel tests.
+- Untrusted JWT/OIDC/SCIM/parser inputs are bounded-fuzzed and must fail through controlled security/protocol errors.
+- Rate-limit uncertainty never becomes an implicit allow.
+- Successful MFA step-up revokes the previous Session and opens a new SessionId; access tokens tied to the old Session fail authoritative validation.
+- Key rotation supports an explicit overlap window and rejects retired or unknown key identifiers without fallback.
+- Sensitive Role assignment fails closed without a privileged-action guard and requires an explicit MFA-authenticated actor at the configured assurance level.
+- Break-glass activation requires MFA, minimum assurance, bounded duration, justification and mandatory security evidence recording.
+- Break-glass context is not an RBAC grant and does not silently bypass AuthorizationEngine.
+
 ### Added
 
 - Property-based authorization security invariants for tenant isolation, revocation, disabled subjects, temporary-access expiry and scope isolation.
