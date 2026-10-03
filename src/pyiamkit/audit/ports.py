@@ -1,8 +1,10 @@
 """Audit persistence and delivery ports."""
 
+from datetime import datetime
 from typing import Protocol
 
 from .domain import AuditEvent
+from .outbox import OutboxEvent, OutboxEventId
 
 
 class AuditSink(Protocol):
@@ -17,3 +19,26 @@ class AuditRepository(AuditSink, Protocol):
     def all(self) -> tuple[AuditEvent, ...]: ...
     def by_correlation_id(self, correlation_id: str) -> tuple[AuditEvent, ...]: ...
     def by_subject(self, subject_id: str) -> tuple[AuditEvent, ...]: ...
+
+
+class EventPublisher(Protocol):
+    """Publish one durable outbox event to an external transport."""
+
+    def publish(self, event: OutboxEvent) -> None: ...
+
+
+class OutboxRepository(Protocol):
+    """Durable publication intents plus controlled delivery-state transitions."""
+
+    def append(self, event: OutboxEvent) -> None: ...
+    def get(self, event_id: OutboxEventId) -> OutboxEvent | None: ...
+    def pending(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]: ...
+    def deliverable(self, *, limit: int = 100) -> tuple[OutboxEvent, ...]: ...
+    def mark_published(self, event_id: OutboxEventId, *, published_at: datetime) -> None: ...
+    def mark_failed(self, event_id: OutboxEventId) -> None: ...
+
+
+class AuditOutboxWriter(Protocol):
+    """Atomically append required audit evidence and publication intent."""
+
+    def append(self, audit_event: AuditEvent, outbox_event: OutboxEvent) -> None: ...

@@ -2,6 +2,53 @@
 
 This file records the API surface that PyIAMKit intentionally exposes to consumers.
 
+## 0.5.0a2
+
+Adds the framework-neutral audit, transactional outbox and SIEM export surface from
+`pyiamkit.audit`:
+
+```text
+SecurityEvent
+SecurityEventId
+SecuritySeverity
+OutboxEvent
+OutboxEventId
+OutboxStatus
+OutboxRepository
+AuditOutboxWriter
+EventPublisher
+OutboxPublisher
+OutboxPublishBatchResult
+SecurityEventEnvelope
+SecurityEventSink
+GenericSecurityEventExporter
+security_event_to_outbox()
+```
+
+`SecurityEventSink` is vendor-neutral. Splunk, Microsoft Sentinel, Elastic,
+Datadog, HTTP and Syslog integrations remain adapters outside the domain contract.
+
+`security_event_to_outbox()` creates the canonical durable SecurityEvent
+publication intent. `GenericSecurityEventExporter` implements the outbox
+`EventPublisher` contract, validates that canonical representation and forwards a
+`SecurityEventEnvelope` to the configured sink.
+
+SIEM delivery is post-commit and at-least-once. Failed deliveries remain retryable;
+published events are not selected again. Downstream consumers should use
+`SecurityEventEnvelope.event_id` for deduplication.
+
+Common raw-secret payload fields are recursively redacted before SecurityEvent
+outbox persistence/export. Opaque pointers such as `secret_reference` remain
+preserved.
+
+The transactional writer is all-or-nothing in both failure directions: an outbox
+conflict rolls back its paired audit insert, while an audit persistence failure
+prevents the paired outbox intent from being created.
+
+At-least-once delivery deliberately allows duplicate publication after an ambiguous
+external success. The canonical `SecurityEventEnvelope.event_id` is stable across
+redelivery so downstream consumers can implement idempotent side effects.
+
 ## 0.5.0a1
 
 Adds the framework-neutral distributed-operations surface from

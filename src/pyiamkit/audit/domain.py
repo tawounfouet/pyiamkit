@@ -16,6 +16,7 @@ class AuditEventId(EntityId):
 class AuditCategory(StrEnum):
     AUTHORIZATION = "authorization"
     DOMAIN = "domain"
+    SECURITY = "security"
 
 
 class AuditOutcome(StrEnum):
