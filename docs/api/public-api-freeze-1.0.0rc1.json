@@ -109,7 +109,7 @@
         "TotpEnrollmentMaterial",
         "TotpProvider"
       ],
-      "fingerprint": "bc35c9e451a652127fe584ae1eb4368ef4e282dc1ae63cf4b51d6388783fcdba"
+      "fingerprint": "c760b16b9081ca06eb4c04f621380c46ff0a03a5d0414fe47de2028235288bb9"
     },
     "pyiamkit.authentication.adapters": {
       "exports": [
@@ -271,7 +271,7 @@
         "TokenProviderConformance",
         "TokenProviderProbe"
       ],
-      "fingerprint": "09a1f5c7ff24031401f5d48ded946b150d81478a2d057142f2c90453837e4e19"
+      "fingerprint": "6e9649feec57ca9338bb02b7b20cb35814d28643aa010724fadc6c9ef146949a"
     },
     "pyiamkit.identity": {
       "exports": [
@@ -317,7 +317,7 @@
         "get_authorization_decision",
         "permission_required"
       ],
-      "fingerprint": "92d8a49289e3087667496414e0db6f9a48e2b30c3975805689855c8344d346af"
+      "fingerprint": "e982c0e65ee955a96b574f479c19474a47fdf72e7a902798b105169064ce5cad"
     },
     "pyiamkit.integrations.fastapi": {
       "exports": [
@@ -392,7 +392,7 @@
         "PersistenceError",
         "PersistenceSerializationError"
       ],
-      "fingerprint": "678e085467b1ea17502aaad05f4efa6387c9ecfe9ab0e6ce9a7aec90aae328cd"
+      "fingerprint": "9c15fd69037f4bba6c927a393c72677d1ef0ed5c5d9fb32644005dda77d0069d"
     },
     "pyiamkit.persistence.sqlalchemy": {
       "exports": [
@@ -424,7 +424,7 @@
         "migrate_schema",
         "rollback_schema_baseline"
       ],
-      "fingerprint": "5c4c850be587b1e68496569b26f83a600ae34fde56616c65d710f0e5c0cc36f2"
+      "fingerprint": "1756ca3eb760f4e6ef7d8d8ca9042ad1bcdd722f3843ef343454c6cfbec85b48"
     },
     "pyiamkit.provisioning": {
       "exports": [
@@ -512,7 +512,7 @@
         "PyIAMKitError",
         "SystemClock"
       ],
-      "fingerprint": "db51a765eba826e2e53d2684661321d1b3c4a2d651ec8558ff18383ca0db5633"
+      "fingerprint": "69231cb390331ae36842120ab4c26bdc4b76469818a920e5672d3e4fd427d136"
     },
     "pyiamkit.tenancy": {
       "exports": [
