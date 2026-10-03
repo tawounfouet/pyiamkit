@@ -134,11 +134,16 @@ The RC does not claim to solve:
 - cryptographic audit-log immutability;
 - exactly-once external event delivery;
 - database row-level security;
-- versioned schema migrations;
+- arbitrary historical-schema migration and future online structural transforms;
 - multi-region consensus for revocation/state;
 - host-application authorization bypasses outside PyIAMKit.
 
-These are not silently marked as mitigated.
+RC1 does provide a bounded versioned schema baseline for empty databases and
+complete 0.5.0b2-compatible schemas. Partial or unknown schema state fails closed,
+and baseline rollback preserves business data. This does not imply a general
+multi-revision migration engine.
+
+These residual risks are not silently marked as mitigated.
 
 ## Critical-risk review
 
