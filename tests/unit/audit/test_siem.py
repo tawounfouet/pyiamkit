@@ -154,3 +154,34 @@ def test_siem_failure_is_retryable_through_outbox_publisher() -> None:
     assert published.published_at == NOW
     assert sink.events == [SecurityEventEnvelope.from_security_event(event)]
     assert second.published == 1
+
+
+
+def test_security_event_export_redacts_sensitive_payload_fields_recursively() -> None:
+    event = SecurityEvent(
+        event_type="AuthenticationFailed",
+        severity=SecuritySeverity.MEDIUM,
+        occurred_at=NOW,
+        payload={
+            "password": "raw-password",
+            "secret_reference": "vault://iam/alice",
+            "nested": {
+                "access-token": "raw-access-token",
+                "reason": "invalid_credentials",
+            },
+        },
+    )
+
+    envelope = SecurityEventEnvelope.from_security_event(event)
+    outbox = security_event_to_outbox(event)
+    round_trip = SecurityEventEnvelope.from_outbox_event(outbox)
+
+    assert envelope.payload["password"] == "[REDACTED]"
+    assert envelope.payload["secret_reference"] == "vault://iam/alice"
+    nested = envelope.payload["nested"]
+    assert isinstance(nested, dict)
+    assert nested["access-token"] == "[REDACTED]"
+    assert nested["reason"] == "invalid_credentials"
+    assert round_trip == envelope
+    assert "raw-password" not in repr(outbox.payload)
+    assert "raw-access-token" not in repr(outbox.payload)
