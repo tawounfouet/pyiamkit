@@ -1,12 +1,10 @@
-"""Verify the static production-qualification release baseline."""
+"""Verify the static production qualification and stable-release baseline."""
 
 from __future__ import annotations
 
 import re
 import tomllib
 from pathlib import Path
-
-EXPECTED_VERSION = "0.5.0rc1"
 
 REQUIRED_FILES = (
     Path("CHANGELOG.md"),
@@ -15,7 +13,12 @@ REQUIRED_FILES = (
     Path("SECURITY.md"),
     Path("docs/architecture/production-qualification-0.5.0rc1.md"),
     Path("docs/architecture/threat-model-delta-0.5.0rc1.md"),
+    Path("docs/architecture/production-stable-0.5.0.md"),
+    Path("docs/guides/production-deployment.md"),
+    Path("docs/guides/security-operations.md"),
     Path("docs/guides/persistence-migration-and-rollback.md"),
+    Path("docs/guides/integrations.md"),
+    Path("docs/guides/production-checklist.md"),
     Path("src/pyiamkit/persistence/sqlalchemy/migrations.py"),
     Path("tests/qualification/test_schema_migrations.py"),
     Path(".github/workflows/ci.yml"),
@@ -26,6 +29,18 @@ REQUIRED_FILES = (
 _VERSION_PATTERN = re.compile(r'__version__\s*=\s*"([^"]+)"')
 
 
+def _project_version(root: Path) -> str:
+    pyproject_path = root / "pyproject.toml"
+    if not pyproject_path.is_file():
+        raise ValueError("missing pyproject.toml")
+    with pyproject_path.open("rb") as stream:
+        project = tomllib.load(stream).get("project", {})
+    version = project.get("version")
+    if not isinstance(version, str) or not version.strip():
+        raise ValueError("pyproject.toml is missing project.version")
+    return version.strip()
+
+
 def verify_baseline(root: Path) -> tuple[str, ...]:
     failures: list[str] = []
 
@@ -33,18 +48,11 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
         if not (root / relative).is_file():
             failures.append(f"missing required file: {relative}")
 
-    pyproject_path = root / "pyproject.toml"
-    if not pyproject_path.is_file():
-        failures.append("missing pyproject.toml")
+    try:
+        expected_version = _project_version(root)
+    except ValueError as exc:
+        failures.append(str(exc))
         return tuple(failures)
-
-    with pyproject_path.open("rb") as stream:
-        pyproject = tomllib.load(stream)
-
-    project = pyproject.get("project", {})
-    version = project.get("version")
-    if version != EXPECTED_VERSION:
-        failures.append(f"pyproject version mismatch: expected {EXPECTED_VERSION}, got {version!r}")
 
     version_path = root / "src/pyiamkit/_version.py"
     if not version_path.is_file():
@@ -52,22 +60,31 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
     else:
         match = _VERSION_PATTERN.search(version_path.read_text(encoding="utf-8"))
         runtime_version = match.group(1) if match else None
-        if runtime_version != EXPECTED_VERSION:
+        if runtime_version != expected_version:
             failures.append(
-                f"runtime version mismatch: expected {EXPECTED_VERSION}, got {runtime_version!r}"
+                f"runtime version mismatch: expected {expected_version}, got {runtime_version!r}"
             )
 
     required_mentions = {
-        "CHANGELOG.md": "## [0.5.0rc1]",
-        "PUBLIC_API.md": "## 0.5.0rc1",
-        "README.md": "0.5.0rc1   Production qualification",
+        "CHANGELOG.md": f"## [{expected_version}]",
+        "PUBLIC_API.md": f"## {expected_version}\n",
+        "README.md": "0.5.0      First production-oriented stable",
         "docs/architecture/production-qualification-0.5.0rc1.md": (
             "CI\nSecurity\nProduction Qualification"
         ),
         "docs/architecture/threat-model-delta-0.5.0rc1.md": (
             "No new critical risk is intentionally accepted"
         ),
-        "docs/guides/persistence-migration-and-rollback.md": ("0001_0_5_0rc1_baseline"),
+        "docs/architecture/production-stable-0.5.0.md": (
+            "first production-oriented stable release"
+        ),
+        "docs/guides/persistence-migration-and-rollback.md": (
+            "0001_0_5_0rc1_baseline"
+        ),
+        "docs/guides/production-deployment.md": "controlled production deployments",
+        "docs/guides/security-operations.md": "default deny",
+        "docs/guides/integrations.md": "Third-party adapters",
+        "docs/guides/production-checklist.md": "Production checklist",
     }
 
     for relative, needle in required_mentions.items():
@@ -77,19 +94,25 @@ def verify_baseline(root: Path) -> tuple[str, ...]:
 
     public_api = root / "PUBLIC_API.md"
     if public_api.is_file() and "migrate_schema()" not in public_api.read_text(encoding="utf-8"):
-        failures.append("PUBLIC_API.md is missing the RC1 migration API")
+        failures.append("PUBLIC_API.md is missing the production migration API")
 
     return tuple(failures)
 
 
 def main() -> int:
+    try:
+        expected_version = _project_version(Path("."))
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+
     failures = verify_baseline(Path("."))
     if failures:
         for failure in failures:
             print(f"ERROR: {failure}")
         return 1
 
-    print(f"Production baseline verified for PyIAMKit {EXPECTED_VERSION}.")
+    print(f"Production baseline verified for PyIAMKit {expected_version}.")
     return 0
 
 
