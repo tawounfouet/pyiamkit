@@ -460,3 +460,48 @@ def test_postgresql_outbox_worker_cannot_see_uncommitted_intent() -> None:
 
     drop_schema(engine)
     engine.dispose()
+
+
+@pytest.mark.integration
+def test_postgresql_audit_failure_prevents_outbox_persistence() -> None:
+    database_url = os.getenv("PYIAMKIT_TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("PYIAMKIT_TEST_DATABASE_URL is not configured")
+
+    engine = create_sqlalchemy_engine(database_url)
+    drop_schema(engine)
+    create_schema(engine)
+    factory = create_session_factory(engine)
+    audit = AuditEvent(
+        category=AuditCategory.SECURITY,
+        event_type="RoleBindingRevoked",
+        occurred_at=NOW,
+        subject_id="identity-1",
+        tenant_id="tenant-1",
+        correlation_id="postgres-audit-failure",
+    )
+    outbox = OutboxEvent(
+        event_type="RoleBindingRevoked",
+        aggregate_type="RoleBinding",
+        aggregate_id="binding-1",
+        tenant_id="tenant-1",
+        occurred_at=NOW,
+        payload={"correlation_id": "postgres-audit-failure"},
+    )
+
+    with factory.begin() as session:
+        SqlAlchemyAuditRepository(session).append(audit)
+
+    with factory() as session:
+        with pytest.raises(ValueError, match="conflicts"):
+            SqlAlchemyAuditOutboxWriter(session).append(audit, outbox)
+        session.commit()
+
+    with factory() as session:
+        assert SqlAlchemyAuditRepository(session).by_correlation_id(
+            "postgres-audit-failure"
+        ) == (audit,)
+        assert SqlAlchemyOutboxRepository(session).get(outbox.id) is None
+
+    drop_schema(engine)
+    engine.dispose()
