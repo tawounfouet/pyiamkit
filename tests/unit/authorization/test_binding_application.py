@@ -15,7 +15,7 @@ from pyiamkit.authorization import (
 )
 from pyiamkit.authorization.adapters import InMemoryRoleBindingRepository, InMemoryRoleRepository
 from pyiamkit.authorization.domain.role import Role
-from pyiamkit.identity import Identity
+from pyiamkit.identity import Identity, IdentityId
 from pyiamkit.identity.adapters.memory import InMemoryDomainEventSink, InMemoryIdentityRepository
 from pyiamkit.shared import Clock
 from pyiamkit.tenancy import TenantId, TenantMismatch, TenantScope
@@ -199,6 +199,7 @@ def test_sensitive_role_assignment_requires_actor_mfa_and_aal2(
         sensitive=True,
         privileged_action_guard=MfaPrivilegedActionGuard(),
     )
+    admin_actor = IdentityId.new()
 
     with pytest.raises(PrivilegedActionDenied):
         service.assign_role(
@@ -206,7 +207,7 @@ def test_sensitive_role_assignment_requires_actor_mfa_and_aal2(
             role_id=role.id,
             tenant_id=tenant.id,
             scope=TenantScope(tenant.id),
-            granted_by=identity.id,
+            granted_by=admin_actor,
             authentication=evidence,
         )
 
@@ -217,12 +218,13 @@ def test_sensitive_role_assignment_accepts_explicit_mfa_aal2_actor() -> None:
         privileged_action_guard=MfaPrivilegedActionGuard(),
     )
 
+    admin_actor = IdentityId.new()
     binding = service.assign_role(
         identity_id=identity.id,
         role_id=role.id,
         tenant_id=tenant.id,
         scope=TenantScope(tenant.id),
-        granted_by=identity.id,
+        granted_by=admin_actor,
         authentication=AuthenticationEvidence(
             assurance_level=AssuranceLevel.AAL2,
             mfa=True,
@@ -231,7 +233,7 @@ def test_sensitive_role_assignment_accepts_explicit_mfa_aal2_actor() -> None:
     )
 
     assert binding.role_id == role.id
-    assert binding.granted_by == identity.id
+    assert binding.granted_by == admin_actor
 
 
 def test_sensitive_role_assignment_rejects_missing_actor_even_with_mfa() -> None:
@@ -246,6 +248,28 @@ def test_sensitive_role_assignment_rejects_missing_actor_even_with_mfa() -> None
             role_id=role.id,
             tenant_id=tenant.id,
             scope=TenantScope(tenant.id),
+            authentication=AuthenticationEvidence(
+                assurance_level=AssuranceLevel.AAL2,
+                mfa=True,
+                authenticated_at=NOW,
+            ),
+        )
+
+
+
+def test_sensitive_role_assignment_rejects_self_assignment_with_reference_guard() -> None:
+    service, identity, tenant, role, _ = _setup(
+        sensitive=True,
+        privileged_action_guard=MfaPrivilegedActionGuard(),
+    )
+
+    with pytest.raises(PrivilegedActionDenied, match="self-assignment"):
+        service.assign_role(
+            identity_id=identity.id,
+            role_id=role.id,
+            tenant_id=tenant.id,
+            scope=TenantScope(tenant.id),
+            granted_by=identity.id,
             authentication=AuthenticationEvidence(
                 assurance_level=AssuranceLevel.AAL2,
                 mfa=True,
